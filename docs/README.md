@@ -22,6 +22,6 @@ How the documentation in this repo is organized.
   ---
   ```
 
-- **Phases** always refer to the four phases in [product/roadmap.md](product/roadmap.md): P1 Launch, P2 Deepen practice, P3 Chant together, P4 All Dharmic traditions & ecosystem.
+- **Phases** always refer to the four phases in [product/roadmap.md](product/roadmap.md): P1 Launch, P2 Deepen practice & all Dharmic traditions, P3 Chant together, P4 Wider ecosystem.
 - **Build effort** tags used in specs: `easy`, `medium`, `hard`.
 - **Terms.** Use the devotional terms consistently and explain them once, in the [glossary](product/glossary.md).

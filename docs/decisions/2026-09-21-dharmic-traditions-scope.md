@@ -16,6 +16,6 @@ The app serves **Hindu, Sikh, Buddhist and Jain** traditions (and related tradit
 ## Consequences
 
 - Shared concepts (mala, mantra, japa/simran, sankalpa) fit naturally across all supported traditions.
-- Hindu traditions launch in P1; Sikh, Buddhist and Jain in P4, each with an advisor.
+- Hindu traditions launch in P1; Sikh, Buddhist and Jain follow in **P2** (moved up from P4 because the narrower scope shares most of the product), each with an advisor.
 - Partially supersedes the "every faith" wording in [2026-09-21-full-scope-in-phases](2026-09-21-full-scope-in-phases.md); its phasing still stands.
 - See [dharmic-traditions](../product/features/dharmic-traditions.md).

@@ -1,7 +1,7 @@
 ---
 status: draft
 updated: 2026-09-21
-phases: P1, P2, P4
+phases: P1, P2
 ---
 
 # Mantra library
@@ -47,4 +47,4 @@ Each template includes:
 ## Growth
 
 - **P2:** larger library across more deities and sampradayas.
-- **P4:** Sikh, Buddhist and Jain — see [dharmic-traditions](dharmic-traditions.md).
+- **P2:** Sikh, Buddhist and Jain — see [dharmic-traditions](dharmic-traditions.md).

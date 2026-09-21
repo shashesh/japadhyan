@@ -33,7 +33,7 @@ Special naam japam programs for festivals and observances.
 - Nepal: **Dashain** and **Tihar**, with Vikram Samvat / Nepal Sambat dates (P2).
 - Regional variants of major festivals across India (e.g. Durga Puja, Onam, Pongal) (P2).
 
-## P4 — Sikh, Buddhist and Jain
+## P2 — Sikh, Buddhist and Jain
 
 - Sikh: Gurpurabs (e.g. Guru Nanak Gurpurab), Vaisakhi.
 - Buddhist: Buddha Jayanti / Vesak.

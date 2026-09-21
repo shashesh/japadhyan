@@ -1,7 +1,7 @@
 ---
 status: draft
 updated: 2026-09-21
-phases: Hindu in P1, Sikh / Buddhist / Jain in P4 (data model from P1)
+phases: Hindu in P1, Sikh / Buddhist / Jain in P2 (data model from P1)
 ---
 
 # Dharmic traditions
@@ -12,6 +12,7 @@ The app serves traditions **native to the Indian subcontinent and wider Indo-Asi
 
 - **Launch with Hindu traditions** across sampradayas (Vaishnava, Shaiva, Shakta, Smarta, Sai and guru lineages).
 - **From P1**, the data model must not hard-code Hindu concepts: tradition, round size, offering style, imagery and calendar are all configurable per tradition.
+- **Sikh, Buddhist and Jain in P2.** They share most of the product (malas, mantras, sankalpas, counting modes), so each mainly needs its library, wording, imagery rules and calendar. Advisors should be engaged during P1 so content is ready.
 - **An advisor from each tradition** reviews its mantras, content, imagery and wording before release.
 
 ## Traditions
