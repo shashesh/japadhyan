@@ -11,3 +11,4 @@
 - [ ] `npm run check` passes
 - [ ] Tested on: iOS / Android / web
 - [ ] Docs updated (feature spec, INDEX, TECH-VERSIONS) if needed
+- [ ] Copilot review requested; every comment resolved before the PR is marked ready (that starts CI)

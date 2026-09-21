@@ -12,6 +12,10 @@ Start with [docs/INDEX.md](./docs/INDEX.md) — the map of every doc. The produc
 
 - **Never commit to `master`.** Work on a feature branch (`feat/…`, `fix/…`, `chore/…`, `docs/…`) and open a PR against `master`.
 - Git hooks in `.githooks/` enforce this: `pre-commit` blocks commits on `master`, `pre-push` blocks pushes to it. `npm install` turns them on. Never bypass them with `--no-verify`.
+- **Open every PR as a draft.** On a feature branch, commit, push and open a **draft** PR against `master` without asking (`gh pr create --draft --base master`), filling in `.github/pull_request_template.md`.
+- **Request Copilot's review yourself.** Right after opening the draft, run `gh pr edit <number> --add-reviewer @copilot`. Request it again after pushing fixes for its comments. Copilot does not review drafts on its own.
+- **Never mark a PR ready for review.** The owner does that once every Copilot comment is resolved and the review recommends approval. Marking it ready is what starts CI.
+- **GitHub Actions minutes are limited.** Draft PRs and docs-only changes run no CI ([decision](./docs/decisions/2026-09-21-ci-only-when-ready.md)). Don't re-run workflows, push empty commits or dispatch CI to test something; run `npm run check` locally instead.
 - Clear, conventional commit messages.
 - Never force-push `master`. Merging is the owner's call.
 
@@ -22,7 +26,7 @@ npm install            # once, from the repo root
 npm run mobile         # Expo dev server (press i / a / w for iOS / Android / web)
 npm run web            # Expo dev server for web
 npm run check          # lint + type-check + all tests — run before every PR
-npm test               # tests only (Vitest in shared, Jest in mobile)
+npm test               # tests only (node:test for scripts/, Vitest in shared, Jest in mobile)
 ```
 
 Add Expo packages with `npx expo install <pkg>` from `apps/mobile/`, never plain `npm install`, so versions match the Expo SDK. Expo specifics: [apps/mobile/AGENTS.md](./apps/mobile/AGENTS.md).

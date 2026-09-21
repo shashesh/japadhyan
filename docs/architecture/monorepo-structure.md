@@ -24,7 +24,7 @@ naam-japam/
 │        ├─ logic/            Pure business logic + Vitest tests
 │        └─ constants/        Starter mantras, round sizes
 ├─ docs/                      Product, architecture, decisions, plans
-├─ scripts/                   Repo tooling (git hooks setup, run by npm install)
+├─ scripts/                   Repo tooling: git hooks setup, CI guard tests (node:test)
 ├─ .githooks/                 Git hooks: no commits or pushes to master
 ├─ .github/                   CI workflow, PR template
 ├─ CLAUDE.md                  Rules for coding agents

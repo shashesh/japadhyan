@@ -10,7 +10,8 @@
   "scripts": {
     "mobile": "npm run start --workspace=apps/mobile",
     "web": "npm run web --workspace=apps/mobile",
-    "test": "npm run test --workspaces --if-present",
+    "test": "npm run test:scripts && npm run test --workspaces --if-present",
+    "test:scripts": "node --test \"scripts/**/*.test.mjs\"",
     "lint": "eslint .",
     "type-check": "npm run type-check --workspaces --if-present",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\"",
@@ -29,7 +30,8 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^16.5.0",
     "prettier": "^3.2.5",
-    "typescript-eslint": "^8.70.0"
+    "typescript-eslint": "^8.70.0",
+    "yaml": "^2.9.1"
   },
   "overrides": {
     "react": "19.2.3",

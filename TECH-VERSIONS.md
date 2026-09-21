@@ -44,6 +44,7 @@ Single source of truth for versions used in this repo. Update in the same PR as 
 | Jest | ^30.5 | `apps/mobile` tests, `jest-expo` preset |
 | jest-expo | ^57.0.5 | |
 | @testing-library/react-native | ^14.0.1 | `render` and `fireEvent` are async — always `await` them |
+| yaml | ^2.9.1 | Root dev dependency; `scripts/ci/draft-triggers.test.mjs` parses the workflows with it |
 
 ## Planned (not installed yet)
 

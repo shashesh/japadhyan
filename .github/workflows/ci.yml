@@ -1,8 +1,16 @@
 name: CI
 
+# GitHub Actions minutes are limited, so CI only spends them on code that is ready to merge:
+# - Draft PRs start this workflow, but every job is skipped until the PR is marked ready for review.
+#   Converting a PR back to draft starts a skipped run that cancels the one in flight.
+# - Docs-only changes never start it.
+# Why: docs/decisions/2026-09-21-ci-only-when-ready.md. scripts/ci/draft-triggers.test.mjs checks
+# the triggers and the per-job draft guard of every workflow that runs on pull requests.
+
 on:
   pull_request:
     branches: [master]
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
     paths-ignore:
       - 'docs/**'
       - '**/*.md'
@@ -14,11 +22,13 @@ on:
   workflow_dispatch:
 
 concurrency:
+  # One run per PR (and per branch for pushes): a newer event cancels the run it made obsolete.
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   check:
+    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
