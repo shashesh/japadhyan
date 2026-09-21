@@ -27,7 +27,7 @@ Stack: **React Native with Expo** as a universal app (iOS, Android, web) plus na
 
 - **Voice:** audio is processed on-device only, never uploaded, not stored after the session.
 - **Private guru mantras:** words never stored; only the devotee's chosen label and counts.
-- **Minimal analytics**, opt-in, never including mantra text or dedications.
+- **Minimal analytics**, opt-in, never including mantra text, dedications, sankalpa intentions or reflections.
 - Community features (P3) are opt-in and anonymous by default.
 
 ## Data model notes

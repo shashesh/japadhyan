@@ -32,3 +32,4 @@ Other traditions of the region (e.g. Kabir Panth, Ravidassia, Bon) can be added 
 - **"Offering" wording adapts** per tradition (offering at the lotus feet, dedication of merit in Buddhism, etc.).
 - **Calendars differ:** Vikram Samvat, Nepal Sambat, Nanakshahi, Buddhist lunar, Vira Nirvana Samvat.
 - **Festivals** per tradition — see [festival-programs](festival-programs.md).
+- **"Teacher", not "guru", in app wording** for teacher and temple profiles ([partners](partners-and-revenue.md#partners-p4)). In Sikhism, Guru refers to the ten Gurus and the Guru Granth Sahib. Devotees can still name their own guru, e.g. for a [private guru mantra](mantra-library.md#private-guru-mantra-p1).

@@ -12,7 +12,17 @@ Devotee-first: partners come after the personal practice is excellent ([decision
 
 - **Temple partnerships** — offer japa totals and printed japa books; temple-led festival programs.
 - **Teacher-led programs** — qualified teachers publish guided sankalpas and courses.
+- **Verified teacher and temple profiles** — they host chanting challenges that followers join. A challenge shows the community's total and each devotee's own share, never a ranking ([decision](../../decisions/2026-09-21-collective-not-competitive.md)). Verifying a profile is trust-and-safety work, done before it goes live. The app calls them teachers, not gurus ([why](dharmic-traditions.md#sensitivities)).
 - **Later:** branded versions of the app for temples, ashrams and gurus (the Sai app that inspired this is an example of such an app built for one organization).
+
+## Seva (P4)
+
+Community goals can be dedicated to real-world seva: meals (annadaan, langar), trees, support for a temple or school.
+
+- **Pledged up front, never conditional on a count.** The sponsor or partner commits the seva before the goal starts, and the community dedicates its japa to it. No one goes without because devotees chanted less, and money never rides on self-reported counts.
+- Funded by sponsors or a share of premium revenue; delivered by verified partners, with public reporting of what was given.
+- Builds on [dedicating a session](dedication-and-offering.md#dedicate-a-session-p2).
+- Check charity-promotion rules in each country before launch.
 
 ## Revenue
 
