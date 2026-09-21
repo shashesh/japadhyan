@@ -32,6 +32,6 @@ Practice as vows and a rhythm, not just a number.
 ## Insight (P2)
 
 - **10-second reflection** after a session: "How still was my mind?" (1–5) and an optional note, shown next to counts.
-- **Milestones:** first lakh, 108 days in a row, first completed mandala.
+- **Milestones:** first lakh, 108 days in a row, first completed mandala. Milestones celebrate; they never unlock anything ([decision](../../decisions/2026-09-21-free-flow-nothing-locked.md)).
 - **Year in review** for your practice.
 - **Mode mix:** how much was spoken, tapped, written or silent.

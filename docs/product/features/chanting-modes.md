@@ -35,6 +35,7 @@ The heart of the app: many ways to chant, one count.
 ## Mala tap
 
 - An on-screen bead ring that advances with each tap.
+- **Mala style is the devotee's choice**: Rudraksha, Tulsi, sphatik (crystal), sandalwood, lotus seed, simarna, plain beads and more. Picked at [setup](onboarding.md), suggested by tradition, changeable any time. Never locked behind progress ([decision](../../decisions/2026-09-21-free-flow-nothing-locked.md)).
 - Light haptic on every bead; stronger haptic (and optional bell) at the meru bead.
 - Tap **anywhere** on the screen so it works with eyes closed.
 - Optional: after completing a round, reverse direction (traditional practice of not crossing the meru).

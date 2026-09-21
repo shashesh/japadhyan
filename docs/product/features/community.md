@@ -29,3 +29,4 @@ Shared practice without competition ([decision](../../decisions/2026-09-21-colle
 
 - Public leaderboards or ranking individuals against each other.
 - Sharing of [private guru mantras](mantra-library.md#private-guru-mantra-p1) in any form.
+- **Not for now:** location-based maps or "people chanting near you" counts. Religion plus location is highly sensitive data, and small areas can identify individual devotees.

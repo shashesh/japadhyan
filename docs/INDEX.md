@@ -59,6 +59,7 @@
 - [decisions/2026-09-21-open-audience.md](decisions/2026-09-21-open-audience.md) — open to everyone, no primary audience
 - [decisions/2026-09-21-tech-stack.md](decisions/2026-09-21-tech-stack.md) — React Native (Expo) universal app + native watch apps, chosen over Flutter
 - [decisions/2026-09-21-ci-only-when-ready.md](decisions/2026-09-21-ci-only-when-ready.md) — PRs open as drafts, Copilot reviews first, CI runs only once the owner marks a PR ready
+- [decisions/2026-09-21-free-flow-nothing-locked.md](decisions/2026-09-21-free-flow-nothing-locked.md) — every mala, mantra and mode open from day one; nothing unlocked by progress
 
 ## Research
 
