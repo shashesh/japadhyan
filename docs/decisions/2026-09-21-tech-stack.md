@@ -1,11 +1,11 @@
 ---
-status: proposed
+status: accepted
 date: 2026-09-21
 ---
 
 # Tech stack: React Native (Expo) vs Flutter
 
-> **Status: proposed.** Change to `accepted` once agreed, and move the choice out of [open questions](../product/open-questions.md#tech-stack).
+> **Accepted 2026-09-21:** React Native with Expo, as a universal app, plus native watch apps.
 
 ## Context
 
@@ -77,7 +77,7 @@ Flutter would be the better choice if the team already knew Dart, or if the app 
 | Voice counting | Native module; prototype LiteRT custom keyword spotting vs Picovoice before P2 |
 | Monorepo | Same layout as nepally: `apps/`, `packages/shared` |
 
-## Before accepting
+## Early validation spikes
 
 - **Spike 1 (P1):** Expo web + Devanagari/Gurmukhi/Tamil text rendering and a smooth 108-bead ring with haptics.
 - **Spike 2 (early):** voice-counting prototype on a real phone with a real chant — confirms feasibility regardless of framework.

@@ -5,13 +5,13 @@ updated: 2026-09-21
 
 # Platform principles
 
-The tech stack is not chosen yet ([open question](../product/open-questions.md#tech-stack)). These principles hold whatever it is.
+Stack: **React Native with Expo** as a universal app (iOS, Android, web) plus native watch apps — see the [tech stack decision](../decisions/2026-09-21-tech-stack.md). These principles hold regardless.
 
 ## Targets
 
 - **Android, iOS and web** from P1.
 - **Apple Watch and Wear OS** from P2.
-- Prefer one shared codebase (Flutter or React Native / Expo) with native modules where needed (watch apps, on-device voice counting, volume-button capture).
+- One Expo Router codebase for iOS, Android and web, with native modules where needed (on-device voice counting, volume-button capture). Apple Watch in SwiftUI, Wear OS in Kotlin/Compose.
 
 ## Offline-first
 

@@ -19,7 +19,8 @@ Start with the [docs index](docs/INDEX.md). Highlights:
 - [Vision](docs/product/vision.md) — who this is for, and the principles behind it
 - [Roadmap](docs/product/roadmap.md) — every feature, in four phases
 - [Chanting modes](docs/product/features/chanting-modes.md) — the heart of the app
-- [Open questions](docs/product/open-questions.md) — name, stack, languages, pricing
+- [Open questions](docs/product/open-questions.md) — name, languages, pricing
+- [Tech stack](docs/decisions/2026-09-21-tech-stack.md) — React Native (Expo) + native watch apps
 
 ## Repository layout
 
@@ -28,7 +29,7 @@ docs/
   INDEX.md          every doc with a one-line purpose
   README.md         folder guide and conventions
   product/          vision, roadmap, feature specs, open questions
-  architecture/     platform principles (stack TBD)
+  architecture/     platform principles
   decisions/        dated decision records
   research/         inspiration and competitor notes
 ```
