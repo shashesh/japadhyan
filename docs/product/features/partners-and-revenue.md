@@ -16,13 +16,13 @@ Devotee-first: partners come after the personal practice is excellent ([decision
 
 ## Revenue
 
-| Stream | Notes |
-|---|---|
-| Free core | Chanting in every mode, the base library, streaks and charts — **free forever** |
-| Premium | Advanced programs, anushthanas, full festival calendar, insights, extra audio |
-| Dakshina | Donations to partner temples, with a transparent platform fee |
-| Printed japa books | Paid print-and-deliver or temple offering |
-| Teacher programs | Revenue share |
+| Stream             | Notes                                                                           |
+| ------------------ | ------------------------------------------------------------------------------- |
+| Free core          | Chanting in every mode, the base library, streaks and charts — **free forever** |
+| Premium            | Advanced programs, anushthanas, full festival calendar, insights, extra audio   |
+| Dakshina           | Donations to partner temples, with a transparent platform fee                   |
+| Printed japa books | Paid print-and-deliver or temple offering                                       |
+| Teacher programs   | Revenue share                                                                   |
 
 ## Never
 

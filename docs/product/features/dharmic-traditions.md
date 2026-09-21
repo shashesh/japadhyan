@@ -17,12 +17,12 @@ The app serves traditions **native to the Indian subcontinent and wider Indo-Asi
 
 ## Traditions
 
-| Tradition | Practice | Examples | Notes |
-|---|---|---|---|
-| Hindu | Japa, naam japam, likhita japa | *Om Namah Shivaya*, *Hare Krishna*, *Sri Ram Jai Ram*, Gayatri | 108-bead mala; P1 |
-| Sikh | Naam Japna / Naam simran — one of Guru Nanak's three pillars (Naam Japo, Kirat Karo, Vand Chhako) | *Waheguru*, Mool Mantar | No depiction of God; imagery off by default; mala (simarna) optional |
-| Buddhist | Mantra recitation, nianfo | *Om Mani Padme Hum*, *Namo Amituofo*, *Nam Myoho Renge Kyo* | 108-bead mala; Tibetan, Mahayana and Nichiren practices differ |
-| Jain | Navkar jaap | *Namokar / Navkar Mantra* | 108-bead mala; Svetambara and Digambara nuances |
+| Tradition | Practice                                                                                          | Examples                                                       | Notes                                                                |
+| --------- | ------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- | -------------------------------------------------------------------- |
+| Hindu     | Japa, naam japam, likhita japa                                                                    | _Om Namah Shivaya_, _Hare Krishna_, _Sri Ram Jai Ram_, Gayatri | 108-bead mala; P1                                                    |
+| Sikh      | Naam Japna / Naam simran — one of Guru Nanak's three pillars (Naam Japo, Kirat Karo, Vand Chhako) | _Waheguru_, Mool Mantar                                        | No depiction of God; imagery off by default; mala (simarna) optional |
+| Buddhist  | Mantra recitation, nianfo                                                                         | _Om Mani Padme Hum_, _Namo Amituofo_, _Nam Myoho Renge Kyo_    | 108-bead mala; Tibetan, Mahayana and Nichiren practices differ       |
+| Jain      | Navkar jaap                                                                                       | _Namokar / Navkar Mantra_                                      | 108-bead mala; Svetambara and Digambara nuances                      |
 
 Other traditions of the region (e.g. Kabir Panth, Ravidassia, Bon) can be added later with advisors.
 

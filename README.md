@@ -34,7 +34,7 @@ Start with the [docs index](docs/INDEX.md). Highlights:
 
 ## Repository layout
 
-```
+```text
 apps/mobile/        Expo app — iOS, Android and web (Expo Router)
 packages/shared/    platform-agnostic types, logic and constants
 docs/

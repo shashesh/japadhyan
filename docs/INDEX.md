@@ -15,7 +15,7 @@
 ## Guides
 
 - [README.md](README.md) — folder guide and conventions
-- [guides/setup.md](guides/setup.md) — install, run on iOS/Android/web, checks, adding packages, CI
+- [guides/setup.md](guides/setup.md) — install, run on iOS/Android/web, checks, adding packages, branches and git hooks, PR flow, CI
 
 ## Product
 
@@ -58,6 +58,7 @@
 - [decisions/2026-09-21-dharmic-traditions-scope.md](decisions/2026-09-21-dharmic-traditions-scope.md) — Hindu, Sikh, Buddhist and Jain only
 - [decisions/2026-09-21-open-audience.md](decisions/2026-09-21-open-audience.md) — open to everyone, no primary audience
 - [decisions/2026-09-21-tech-stack.md](decisions/2026-09-21-tech-stack.md) — React Native (Expo) universal app + native watch apps, chosen over Flutter
+- [decisions/2026-09-21-ci-only-when-ready.md](decisions/2026-09-21-ci-only-when-ready.md) — PRs open as drafts, Copilot reviews first, CI runs only once the owner marks a PR ready
 
 ## Research
 

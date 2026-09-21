@@ -9,7 +9,7 @@ Source: a screen recording (2026-09-21) of the Nama Japam feature in a Sathya Sa
 
 ## What the screen does
 
-- Header: image of Swami and the instruction — *"Sai Ram! Tap 'Aum Sri Sai Ram' in a sequence. For every 11 entries, offer at the Lotus feet of Swami by clicking on Offer Japam."*
+- Header: image of Swami and the instruction — _"Sai Ram! Tap 'Aum Sri Sai Ram' in a sequence. For every 11 entries, offer at the Lotus feet of Swami by clicking on Offer Japam."_
 - A large running **count** (e.g. 59, 61, 62, 64).
 - A text field (**"Type here…"**) — you can type the mantra instead of tapping.
 - Four word tiles: **AUM · SRI · SAI · RAM**. The next expected tile is highlighted with a hand pointer; completed tiles get a green tick.

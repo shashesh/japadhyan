@@ -1,0 +1,18 @@
+#!/bin/sh
+# Changes reach master only through pull requests, so refuse any push that
+# updates master on the remote. Enabled by `npm install` (core.hooksPath).
+#
+# git passes one line per ref: <local ref> <local sha> <remote ref> <remote sha>
+
+protected_ref="refs/heads/master"
+
+while read -r _local_ref _local_sha remote_ref _remote_sha; do
+  if [ "$remote_ref" = "$protected_ref" ]; then
+    echo "Push blocked: pushing to 'master' is not allowed." >&2
+    echo "Push your feature branch and open a draft pull request against master:" >&2
+    echo "  git push -u origin HEAD && gh pr create --draft --base master" >&2
+    exit 1
+  fi
+done
+
+exit 0

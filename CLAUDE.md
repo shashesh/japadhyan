@@ -10,9 +10,14 @@ Start with [docs/INDEX.md](./docs/INDEX.md) — the map of every doc. The produc
 
 ## Git workflow
 
-- Work on a **feature branch** (`feat/…`, `fix/…`, `chore/…`, `docs/…`) and open a PR against `main`. Don't commit directly to `main`.
+- **Never commit to `master`.** Work on a feature branch (`feat/…`, `fix/…`, `chore/…`, `docs/…`) and open a PR against `master`.
+- Git hooks in `.githooks/` enforce this: `pre-commit` blocks commits on `master` (and runs `npm run lint:md` when `.md` files are staged), `pre-push` blocks pushes to it. `npm install` turns them on. Never bypass them with `--no-verify`.
+- **Open every PR as a draft.** On a feature branch, commit, push and open a **draft** PR against `master` without asking (`gh pr create --draft --base master`), filling in `.github/pull_request_template.md`.
+- **Request Copilot's review yourself.** Right after opening the draft, run `gh pr edit <number> --add-reviewer @copilot`. Request it again after pushing fixes for its comments. Copilot does not review drafts on its own.
+- **Never mark a PR ready for review.** The owner does that once every Copilot comment is resolved and the review recommends approval. Marking it ready is what starts CI.
+- **GitHub Actions minutes are limited.** Draft PRs and docs-only changes run no CI ([decision](./docs/decisions/2026-09-21-ci-only-when-ready.md)). Don't re-run workflows, push empty commits or dispatch CI to test something; run `npm run check` locally instead.
 - Clear, conventional commit messages.
-- Never force-push `main`. Merging is the owner's call.
+- Never force-push `master`. Merging is the owner's call.
 
 ## Commands
 
@@ -20,8 +25,10 @@ Start with [docs/INDEX.md](./docs/INDEX.md) — the map of every doc. The produc
 npm install            # once, from the repo root
 npm run mobile         # Expo dev server (press i / a / w for iOS / Android / web)
 npm run web            # Expo dev server for web
-npm run check          # lint + type-check + all tests — run before every PR
-npm test               # tests only (Vitest in shared, Jest in mobile)
+npm run check          # lint (incl. Markdown) + type-check + all tests — run before every PR
+npm test               # tests only (node:test for scripts/, Vitest in shared, Jest in mobile)
+npm run lint:md        # markdownlint + Prettier check on every .md file
+npm run format         # Prettier: fixes formatting, including Markdown tables
 ```
 
 Add Expo packages with `npx expo install <pkg>` from `apps/mobile/`, never plain `npm install`, so versions match the Expo SDK. Expo specifics: [apps/mobile/AGENTS.md](./apps/mobile/AGENTS.md).
@@ -58,3 +65,4 @@ See [docs/architecture/monorepo-structure.md](./docs/architecture/monorepo-struc
 - Adding, moving or retiring a doc → update [docs/INDEX.md](./docs/INDEX.md) in the same commit.
 - Feature behaviour → `docs/product/features/`. Decisions → `docs/decisions/YYYY-MM-DD-name.md`. Plans → `docs/plans/active/` (move to `docs/archive/` when done).
 - New dependency or version bump → update [TECH-VERSIONS.md](./TECH-VERSIONS.md).
+- Markdown is formatted by Prettier and linted by markdownlint (`.markdownlint-cli2.jsonc`). After editing `.md` files, run `npm run format` then `npm run lint:md`. Don't hand-align tables; Prettier does it.

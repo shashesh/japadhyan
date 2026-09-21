@@ -17,20 +17,20 @@ The heart of the app: many ways to chant, one count.
 
 ## Summary
 
-| Mode | Phase | Effort |
-|---|---|---|
-| [Mala tap](#mala-tap) | P1 | easy |
-| [Word-by-word tap](#word-by-word-tap) | P1 | easy |
-| [Likhita japa — typing](#likhita-japa) | P1 | easy |
-| [Silent chanting (manasika)](#silent-chanting-manasika) | P1 | easy |
-| [Volume-button counting](#hands-free-counting) | P1 | medium |
-| [Flip face down to pause](#hands-free-counting) | P1 | easy |
-| [Voice counting](#voice-counting) | P2 | hard |
-| [Smartwatch](#hands-free-counting) | P2 | medium |
-| [Chant along](#chant-along) | P2 | easy |
-| [Listening japa](#listening-japa) | P2 | easy |
-| [Likhita japa — handwriting tracing](#likhita-japa) | P3 | hard |
-| [Bluetooth rings / smart malas](#hands-free-counting) | P4 | medium |
+| Mode                                                    | Phase | Effort |
+| ------------------------------------------------------- | ----- | ------ |
+| [Mala tap](#mala-tap)                                   | P1    | easy   |
+| [Word-by-word tap](#word-by-word-tap)                   | P1    | easy   |
+| [Likhita japa — typing](#likhita-japa)                  | P1    | easy   |
+| [Silent chanting (manasika)](#silent-chanting-manasika) | P1    | easy   |
+| [Volume-button counting](#hands-free-counting)          | P1    | medium |
+| [Flip face down to pause](#hands-free-counting)         | P1    | easy   |
+| [Voice counting](#voice-counting)                       | P2    | hard   |
+| [Smartwatch](#hands-free-counting)                      | P2    | medium |
+| [Chant along](#chant-along)                             | P2    | easy   |
+| [Listening japa](#listening-japa)                       | P2    | easy   |
+| [Likhita japa — handwriting tracing](#likhita-japa)     | P3    | hard   |
+| [Bluetooth rings / smart malas](#hands-free-counting)   | P4    | medium |
 
 ## Mala tap
 
