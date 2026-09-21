@@ -40,6 +40,8 @@ Prettier formats Markdown and markdownlint checks the rest. The rules are in `.m
 
 In VS Code, install the recommended Prettier and markdownlint extensions (`.vscode/extensions.json`). Markdown is then formatted on save, and markdownlint warnings show in the editor.
 
+Files use LF line endings on every platform (`.gitattributes`), because Prettier writes LF. A Windows clone made before that rule may still have CRLF files that fail the Prettier check. Run `npm run format` once to fix them; git sees no changes.
+
 Export the static web build:
 
 ```bash

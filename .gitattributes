@@ -1,2 +1,6 @@
+# LF everywhere, including Windows checkouts with core.autocrlf=true. Prettier writes LF,
+# so CRLF files fail `prettier --check` and the pre-commit hook.
+* text=auto eol=lf
+
 # Git hooks are shell scripts; CRLF line endings break them on checkout.
 .githooks/* text eol=lf
