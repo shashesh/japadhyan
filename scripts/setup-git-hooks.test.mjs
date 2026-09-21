@@ -14,9 +14,10 @@ function copyProjectInto(dir) {
   return join(dir, 'scripts', 'setup-git-hooks.mjs');
 }
 
+// --local: a global core.hooksPath on the machine must not leak into the assertions.
 function hooksPathOf(repo) {
   try {
-    return execFileSync('git', ['config', '--get', 'core.hooksPath'], {
+    return execFileSync('git', ['config', '--local', '--get', 'core.hooksPath'], {
       cwd: repo,
       encoding: 'utf8',
     }).trim();
