@@ -42,6 +42,17 @@ npx expo export --platform web   # output in apps/mobile/dist
 - Tooling / shared: add to the relevant `package.json` and run `npm install` at the root.
 - Record the version in [TECH-VERSIONS.md](../../TECH-VERSIONS.md).
 
+## Branches and git hooks
+
+All changes reach `master` through a pull request. Work on a feature branch (`feat/…`, `fix/…`, `chore/…`, `docs/…`).
+
+`npm install` points git at the hooks in `.githooks/` (`git config core.hooksPath .githooks`):
+
+- `pre-commit` refuses commits while `master` is checked out.
+- `pre-push` refuses pushes to `master` on the remote.
+
+If the commit is blocked, run `git switch -c feat/<name>`. Your uncommitted changes come with you, then commit again.
+
 ## CI
 
-GitHub Actions runs lint, type-check, tests and a web export on pull requests to `main` and on pushes to `main`. Docs-only changes skip CI.
+GitHub Actions runs lint, type-check, tests and a web export on pull requests to `master` and on pushes to `master`. Docs-only changes skip CI.

@@ -10,9 +10,10 @@ Start with [docs/INDEX.md](./docs/INDEX.md) — the map of every doc. The produc
 
 ## Git workflow
 
-- Work on a **feature branch** (`feat/…`, `fix/…`, `chore/…`, `docs/…`) and open a PR against `main`. Don't commit directly to `main`.
+- **Never commit to `master`.** Work on a feature branch (`feat/…`, `fix/…`, `chore/…`, `docs/…`) and open a PR against `master`.
+- Git hooks in `.githooks/` enforce this: `pre-commit` blocks commits on `master`, `pre-push` blocks pushes to it. `npm install` turns them on. Never bypass them with `--no-verify`.
 - Clear, conventional commit messages.
-- Never force-push `main`. Merging is the owner's call.
+- Never force-push `master`. Merging is the owner's call.
 
 ## Commands
 

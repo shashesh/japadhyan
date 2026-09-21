@@ -1,0 +1,13 @@
+#!/bin/sh
+# Changes reach master only through pull requests, so refuse commits made
+# while master is checked out. Enabled by `npm install` (core.hooksPath).
+
+protected_branch="master"
+current_branch=$(git symbolic-ref --short -q HEAD)
+
+if [ "$current_branch" = "$protected_branch" ]; then
+  echo "Commit blocked: you are on '$protected_branch'." >&2
+  echo "Move your changes to a feature branch and commit there:" >&2
+  echo "  git switch -c feat/<name>" >&2
+  exit 1
+fi
