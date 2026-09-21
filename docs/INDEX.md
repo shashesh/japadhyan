@@ -44,6 +44,7 @@
 - [decisions/2026-09-21-collective-not-competitive.md](decisions/2026-09-21-collective-not-competitive.md) — shared goals instead of leaderboards
 - [decisions/2026-09-21-dharmic-traditions-scope.md](decisions/2026-09-21-dharmic-traditions-scope.md) — Hindu, Sikh, Buddhist and Jain only
 - [decisions/2026-09-21-open-audience.md](decisions/2026-09-21-open-audience.md) — open to everyone, no primary audience
+- [decisions/2026-09-21-tech-stack.md](decisions/2026-09-21-tech-stack.md) — *proposed:* React Native (Expo) vs Flutter; recommends Expo universal app + native watch apps
 
 ## Research
 

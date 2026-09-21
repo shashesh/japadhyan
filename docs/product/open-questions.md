@@ -32,7 +32,7 @@ The audience is open to everyone ([decision](../decisions/2026-09-21-open-audien
 
 ## Tech stack
 
-One codebase for Android, iOS and web (Flutter or React Native / Expo), with native modules for watch apps and on-device voice counting. See [platform principles](../architecture/platform-principles.md).
+Proposed: React Native with Expo as a universal app, plus native watch apps — see the [tech stack decision](../decisions/2026-09-21-tech-stack.md) (status: proposed). See also [platform principles](../architecture/platform-principles.md).
 
 ## Pricing
 
