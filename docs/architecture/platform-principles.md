@@ -33,4 +33,5 @@ The tech stack is not chosen yet ([open question](../product/open-questions.md#t
 ## Data model notes
 
 - Core entities: `Tradition`, `Mantra` (with word split, scripts, round size), `Session`, `CountEvent` (mode, count, timestamp, device), `Sankalpa`, `Program`, `Dedication`, `Group` (P3).
-- Nothing Hindu-specific hard-coded — see [multi-faith](../product/features/multi-faith.md).
+- Nothing Hindu-specific hard-coded — see [dharmic-traditions](../product/features/dharmic-traditions.md).
+- Multilingual UI and content; multiple calendar systems.

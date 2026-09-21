@@ -47,4 +47,4 @@ Each template includes:
 ## Growth
 
 - **P2:** larger library across more deities and sampradayas.
-- **P4:** other traditions — see [multi-faith](multi-faith.md).
+- **P4:** Sikh, Buddhist and Jain — see [dharmic-traditions](dharmic-traditions.md).

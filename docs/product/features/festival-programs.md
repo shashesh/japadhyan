@@ -28,6 +28,14 @@ Special naam japam programs for festivals and observances.
 - **Live worldwide counter** for major festivals (e.g. everyone's Shivratri japa adding up).
 - Family and community festival goals — see [community](community.md).
 
-## P4 — other faiths
+## Regional festivals
 
-- Ramadan dhikr, Vesak, Gurpurab, Paryushana, Lent and others — see [multi-faith](multi-faith.md).
+- Nepal: **Dashain** and **Tihar**, with Vikram Samvat / Nepal Sambat dates (P2).
+- Regional variants of major festivals across India (e.g. Durga Puja, Onam, Pongal) (P2).
+
+## P4 — Sikh, Buddhist and Jain
+
+- Sikh: Gurpurabs (e.g. Guru Nanak Gurpurab), Vaisakhi.
+- Buddhist: Buddha Jayanti / Vesak.
+- Jain: Mahavir Jayanti, Paryushana.
+- See [dharmic-traditions](dharmic-traditions.md).

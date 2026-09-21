@@ -5,7 +5,7 @@ updated: 2026-09-21
 
 # Roadmap
 
-Every feature from the brainstorm is kept ([decision](../decisions/2026-09-21-full-scope-in-phases.md)). Each phase ships something complete for the devotee — not half of everything.
+Every feature from the brainstorm is kept ([decision](../decisions/2026-09-21-full-scope-in-phases.md)). Scope: Dharmic traditions ([decision](../decisions/2026-09-21-dharmic-traditions-scope.md)); audience: open to everyone ([decision](../decisions/2026-09-21-open-audience.md)). Each phase ships something complete for the devotee — not half of everything.
 
 Effort tags: `easy` · `medium` · `hard`. Timelines are not set yet.
 
@@ -46,13 +46,13 @@ Effort tags: `easy` · `medium` · `hard`. Timelines are not set yet.
 | Likhita japa | Handwriting tracing `hard` · Print and offer the japa book | [chanting-modes](features/chanting-modes.md), [dedication-and-offering](features/dedication-and-offering.md) |
 | Every age | Kids mode · Seniors mode · Full accessibility | [age-modes-and-accessibility](features/age-modes-and-accessibility.md) |
 
-## Phase 4 — Every faith and the wider ecosystem
+## Phase 4 — All Dharmic traditions and the wider ecosystem
 
-**Goal:** the one-stop app for people of all faiths, plus hardware and partners that support it.
+**Goal:** the one-stop naam japam app for Hindu, Sikh, Buddhist and Jain practice, plus hardware and partners that support it.
 
 | Area | Features | Spec |
 |---|---|---|
-| Traditions | Buddhist · Sikh · Jain · Islamic dhikr · Christian rosary and Jesus Prayer · Advisor per tradition | [multi-faith](features/multi-faith.md) |
+| Traditions | Sikh (Naam simran) · Buddhist · Jain (Navkar jaap) · Advisor per tradition | [dharmic-traditions](features/dharmic-traditions.md) |
 | Hardware | Bluetooth japa rings and smart malas `medium` | [wearables-and-hardware](features/wearables-and-hardware.md) |
 | Partners | Temple partnerships · Dakshina donations · Teacher-led programs · Later: branded versions for temples and gurus | [partners-and-revenue](features/partners-and-revenue.md) |
 | Revenue | Free core chanting always · Premium programs · No ads during a session | [partners-and-revenue](features/partners-and-revenue.md) |

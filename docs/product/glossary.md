@@ -25,5 +25,8 @@ updated: 2026-09-21
 | **Ekadashi, Pradosh** | Recurring lunar observances, twice a month each. |
 | **Dakshina** | An offering or donation to a temple or teacher. |
 | **Lakh / crore** | 100,000 / 10,000,000. |
-| **Tasbih / dhikr** | Islamic prayer beads (often 33 or 99) / remembrance of God. |
-| **Simran** | Sikh practice of remembering God through repetition, e.g. "Waheguru". |
+| **Naam Japna / Naam simran** | Sikh practice of remembering God through repetition of the Name, e.g. "Waheguru". One of Guru Nanak's three pillars. |
+| **Simarna** | Sikh prayer beads. |
+| **Nianfo** | Buddhist recitation of the Buddha's name, e.g. "Namo Amituofo". |
+| **Navkar / Namokar Mantra** | The central Jain mantra, recited in jaap. |
+| **Vikram Samvat / Nepal Sambat** | Calendar systems used in Nepal and India. |

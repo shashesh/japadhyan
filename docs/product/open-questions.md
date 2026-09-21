@@ -14,6 +14,8 @@ Working name: `naam-japam`. Shortlist:
 | Name | Notes |
 |---|---|
 | Smaran | "Remembrance"; used across Hindu and Sikh traditions |
+
+The name should work across Hindu, Sikh, Buddhist and Jain users and read well in English, Hindi and Nepali.
 | Naam | Simple; strong in Sikh and Vaishnava usage |
 | Mala | Understood by Hindus and Buddhists |
 | Sankalpa | Emphasises vows and intention |
@@ -24,13 +26,9 @@ Working name: `naam-japam`. Shortlist:
 
 To check for each: app store availability, domain, trademark, meaning across languages.
 
-## First audience
+## Languages at launch
 
-- Indians in India
-- Diaspora (US, UK, Nepal, elsewhere)
-- Western yoga and meditation practitioners
-
-This affects language, pricing, festivals emphasized, and the name.
+The audience is open to everyone ([decision](../decisions/2026-09-21-open-audience.md)). Which UI and content languages ship in P1? Candidates: English, Hindi, Nepali, then Tamil, Telugu, Gujarati, Bengali, Marathi, Punjabi (Gurmukhi)…
 
 ## Tech stack
 

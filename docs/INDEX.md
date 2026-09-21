@@ -14,7 +14,7 @@
 
 - [product/vision.md](product/vision.md) — who the app is for, the core loop, guiding principles
 - [product/roadmap.md](product/roadmap.md) — all features grouped into four phases
-- [product/open-questions.md](product/open-questions.md) — undecided: name, first audience, tech stack, pricing
+- [product/open-questions.md](product/open-questions.md) — undecided: name, tech stack, languages, pricing
 - [product/glossary.md](product/glossary.md) — japa, mala, sankalpa, likhita japa and other terms
 
 ### Feature specs
@@ -29,7 +29,7 @@
 - [product/features/content-and-learning.md](product/features/content-and-learning.md) — articles, pronunciation, ambient sound
 - [product/features/community.md](product/features/community.md) — family goals, festival counters, live chanting rooms
 - [product/features/age-modes-and-accessibility.md](product/features/age-modes-and-accessibility.md) — kids, seniors, accessibility
-- [product/features/multi-faith.md](product/features/multi-faith.md) — other traditions and how to add them respectfully
+- [product/features/dharmic-traditions.md](product/features/dharmic-traditions.md) — Hindu, Sikh, Buddhist, Jain: practices and sensitivities
 - [product/features/wearables-and-hardware.md](product/features/wearables-and-hardware.md) — watches, volume buttons, Bluetooth rings
 - [product/features/partners-and-revenue.md](product/features/partners-and-revenue.md) — temples, teachers, donations, premium
 
@@ -42,6 +42,8 @@
 - [decisions/2026-09-21-devotee-first.md](decisions/2026-09-21-devotee-first.md) — build for individual devotees before temples and gurus
 - [decisions/2026-09-21-full-scope-in-phases.md](decisions/2026-09-21-full-scope-in-phases.md) — keep every brainstormed feature, deliver in four phases
 - [decisions/2026-09-21-collective-not-competitive.md](decisions/2026-09-21-collective-not-competitive.md) — shared goals instead of leaderboards
+- [decisions/2026-09-21-dharmic-traditions-scope.md](decisions/2026-09-21-dharmic-traditions-scope.md) — Hindu, Sikh, Buddhist and Jain only
+- [decisions/2026-09-21-open-audience.md](decisions/2026-09-21-open-audience.md) — open to everyone, no primary audience
 
 ## Research
 
