@@ -8,7 +8,14 @@
 
 ## Repo root
 
-- [../README.md](../README.md) — project overview
+- [../README.md](../README.md) — project overview and quick start
+- [../CLAUDE.md](../CLAUDE.md) — rules for coding agents working in this repo
+- [../TECH-VERSIONS.md](../TECH-VERSIONS.md) — pinned technology versions
+
+## Guides
+
+- [README.md](README.md) — folder guide and conventions
+- [guides/setup.md](guides/setup.md) — install, run on iOS/Android/web, checks, adding packages, CI
 
 ## Product
 
@@ -35,7 +42,13 @@
 
 ## Architecture
 
+- [architecture/monorepo-structure.md](architecture/monorepo-structure.md) — apps/packages layout and import rules
 - [architecture/platform-principles.md](architecture/platform-principles.md) — offline-first, privacy, sync, platform targets (Expo)
+
+## Plans
+
+- [plans/_template.md](plans/_template.md) — template for new plans
+- [plans/active/2026-09-21-phase-1-plan.md](plans/active/2026-09-21-phase-1-plan.md) — Phase 1 build plan: milestones M0–M9 and early spikes
 
 ## Decisions
 

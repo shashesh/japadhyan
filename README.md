@@ -10,7 +10,17 @@ For the Dharmic traditions of India and Indo-Asia that share name chanting as a 
 
 ## Status
 
-**Stage:** product definition — no code yet.
+**Stage:** Phase 1 in progress — monorepo skeleton with a first working chanting screen (mala tap and word-by-word). See the [Phase 1 plan](docs/plans/active/2026-09-21-phase-1-plan.md).
+
+## Quick start
+
+```bash
+npm install
+npm run mobile   # press a (Android), i (iOS) or w (web)
+npm run check    # lint + type-check + tests
+```
+
+Full setup: [docs/guides/setup.md](docs/guides/setup.md). Rules for coding agents: [CLAUDE.md](CLAUDE.md).
 
 ## Documentation
 
@@ -25,11 +35,15 @@ Start with the [docs index](docs/INDEX.md). Highlights:
 ## Repository layout
 
 ```
+apps/mobile/        Expo app — iOS, Android and web (Expo Router)
+packages/shared/    platform-agnostic types, logic and constants
 docs/
   INDEX.md          every doc with a one-line purpose
   README.md         folder guide and conventions
   product/          vision, roadmap, feature specs, open questions
-  architecture/     platform principles
+  architecture/     platform principles, monorepo structure
+  guides/           setup and how to work in the repo
+  plans/            active build plans
   decisions/        dated decision records
   research/         inspiration and competitor notes
 ```

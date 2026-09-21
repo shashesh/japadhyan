@@ -1,4 +1,26 @@
+# dependencies
+node_modules/
+
+# Expo / build output
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+coverage/
+*.tsbuildinfo
+
+# Generated native folders (Continuous Native Generation)
+apps/mobile/ios/
+apps/mobile/android/
+
+# env
+.env
+.env*.local
+
+# logs
+npm-debug.*
+*.log
+
+# OS
 .DS_Store
 Thumbs.db
-node_modules/
-.env

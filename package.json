@@ -1,0 +1,38 @@
+{
+  "name": "naam-japam-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "naam-japam (working name) - devotee-first naam japam app for iOS, Android and web",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "mobile": "npm run start --workspace=apps/mobile",
+    "web": "npm run web --workspace=apps/mobile",
+    "test": "npm run test --workspaces --if-present",
+    "lint": "eslint .",
+    "type-check": "npm run type-check --workspaces --if-present",
+    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\"",
+    "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json}\"",
+    "check": "npm run lint && npm run type-check && npm run test"
+  },
+  "engines": {
+    "node": "^22.13.0 || ^24.3.0 || >=25.0.0",
+    "npm": ">=10.0.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.10.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^16.5.0",
+    "prettier": "^3.2.5",
+    "typescript-eslint": "^8.70.0"
+  },
+  "overrides": {
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "vite": "^7"
+  }
+}
