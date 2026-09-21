@@ -1,0 +1,48 @@
+# Documentation Index
+
+> Flat list of every document in `docs/` with a one-line purpose.
+> Add, move or retire a doc → update this file in the same commit.
+> See [README.md](README.md) for folder conventions.
+
+**Last verified:** 2026-09-21
+
+## Repo root
+
+- [../README.md](../README.md) — project overview
+
+## Product
+
+- [product/vision.md](product/vision.md) — who the app is for, the core loop, guiding principles
+- [product/roadmap.md](product/roadmap.md) — all features grouped into four phases
+- [product/open-questions.md](product/open-questions.md) — undecided: name, first audience, tech stack, pricing
+- [product/glossary.md](product/glossary.md) — japa, mala, sankalpa, likhita japa and other terms
+
+### Feature specs
+
+- [product/features/chanting-modes.md](product/features/chanting-modes.md) — tap, word-by-word, typing, voice, silent, hands-free, listening
+- [product/features/session-experience.md](product/features/session-experience.md) — the chanting screen and the offering moment
+- [product/features/mantra-library.md](product/features/mantra-library.md) — deity templates, custom mantras, private guru mantras
+- [product/features/onboarding.md](product/features/onboarding.md) — first-run flow under one minute
+- [product/features/sankalpa-and-progress.md](product/features/sankalpa-and-progress.md) — vows, streaks, charts, milestones, reflection
+- [product/features/festival-programs.md](product/features/festival-programs.md) — Navaratri, Shivratri, Janmashtami and the festival calendar
+- [product/features/dedication-and-offering.md](product/features/dedication-and-offering.md) — dedicating japa, printed japa books, temple offerings
+- [product/features/content-and-learning.md](product/features/content-and-learning.md) — articles, pronunciation, ambient sound
+- [product/features/community.md](product/features/community.md) — family goals, festival counters, live chanting rooms
+- [product/features/age-modes-and-accessibility.md](product/features/age-modes-and-accessibility.md) — kids, seniors, accessibility
+- [product/features/multi-faith.md](product/features/multi-faith.md) — other traditions and how to add them respectfully
+- [product/features/wearables-and-hardware.md](product/features/wearables-and-hardware.md) — watches, volume buttons, Bluetooth rings
+- [product/features/partners-and-revenue.md](product/features/partners-and-revenue.md) — temples, teachers, donations, premium
+
+## Architecture
+
+- [architecture/platform-principles.md](architecture/platform-principles.md) — offline-first, privacy, sync, platform targets
+
+## Decisions
+
+- [decisions/2026-09-21-devotee-first.md](decisions/2026-09-21-devotee-first.md) — build for individual devotees before temples and gurus
+- [decisions/2026-09-21-full-scope-in-phases.md](decisions/2026-09-21-full-scope-in-phases.md) — keep every brainstormed feature, deliver in four phases
+- [decisions/2026-09-21-collective-not-competitive.md](decisions/2026-09-21-collective-not-competitive.md) — shared goals instead of leaderboards
+
+## Research
+
+- [research/inspiration-sai-nama-japam.md](research/inspiration-sai-nama-japam.md) — notes on the Sai app screen that inspired this project

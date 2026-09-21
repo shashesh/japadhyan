@@ -1,0 +1,91 @@
+---
+status: draft
+updated: 2026-09-21
+phases: P1, P2, P3
+---
+
+# Chanting modes
+
+The heart of the app: many ways to chant, one count.
+
+## The key rule — one count, many inputs
+
+- Every mode adds repetitions to the **same** total for the active mantra and sankalpa.
+- A devotee can **switch modes mid-session** (tap on the bus, voice at home, silent in bed).
+- Each count records **which mode** produced it, so progress can show a mode mix ("60% spoken, 30% tap, 10% written").
+- A **round** (mala) size is configurable per mantra: 108 (default), 54, 27, 33, or custom.
+
+## Summary
+
+| Mode | Phase | Effort |
+|---|---|---|
+| [Mala tap](#mala-tap) | P1 | easy |
+| [Word-by-word tap](#word-by-word-tap) | P1 | easy |
+| [Likhita japa — typing](#likhita-japa) | P1 | easy |
+| [Silent chanting (manasika)](#silent-chanting-manasika) | P1 | easy |
+| [Volume-button counting](#hands-free-counting) | P1 | medium |
+| [Flip face down to pause](#hands-free-counting) | P1 | easy |
+| [Voice counting](#voice-counting) | P2 | hard |
+| [Smartwatch](#hands-free-counting) | P2 | medium |
+| [Chant along](#chant-along) | P2 | easy |
+| [Listening japa](#listening-japa) | P2 | easy |
+| [Likhita japa — handwriting tracing](#likhita-japa) | P3 | hard |
+| [Bluetooth rings / smart malas](#hands-free-counting) | P4 | medium |
+
+## Mala tap
+
+- An on-screen bead ring that advances with each tap.
+- Light haptic on every bead; stronger haptic (and optional bell) at the meru bead.
+- Tap **anywhere** on the screen so it works with eyes closed.
+- Optional: after completing a round, reverse direction (traditional practice of not crossing the meru).
+
+## Word-by-word tap
+
+Inspired by the [Sai app](../../research/inspiration-sai-nama-japam.md).
+
+- The mantra is split into word tiles (e.g. `AUM` `SRI` `SAI` `RAM`).
+- Tapping them **in order** completes one repetition; a wrong tile is gently ignored.
+- **Memory mode:** tiles hide their words once the devotee knows the mantra.
+- Encourages attention — the opposite of a mindless counter.
+
+## Likhita japa
+
+- **Typing (P1):** type the name/mantra in any supported script. Each correct entry is one repetition.
+- Completed entries fill pages of a **digital japa book**, like a Rama Koti notebook.
+- **Handwriting tracing (P3):** write with a finger; the app checks the shape.
+- The book can be **printed and offered at a temple** — see [dedication-and-offering](dedication-and-offering.md).
+
+## Silent chanting (manasika)
+
+- **Pace mode:** the devotee times one repetition once (e.g. 4 seconds); the app estimates the count during silent sitting.
+- **Breath mode:** one mantra per breath, guided by a soft visual/haptic pulse.
+- Counts from this mode are marked as estimated.
+
+## Voice counting
+
+The headline P2 feature and the hardest to build.
+
+- **Approach:** the devotee records their mantra three times; the app learns that sound pattern and counts repeats of it. This works for any language, accent, or custom mantra — unlike speech-to-text, which handles Sanskrit and regional languages poorly.
+- **Entirely on-device and offline.** Audio is never uploaded or stored beyond the session.
+- **Confidence indicator** while chanting, and a quick way to correct the count afterward.
+- Must handle: fast chanting, background noise, chanting in a group.
+- Validate early with a prototype before committing to a design.
+
+## Hands-free counting
+
+Many devotees chant with eyes closed or while walking. Details in [wearables-and-hardware](wearables-and-hardware.md).
+
+- **Volume buttons (P1):** count with the phone in a pocket. Full support on Android; iOS support is limited.
+- **Flip face down (P1):** pauses the session.
+- **Smartwatch (P2):** Apple Watch and Wear OS, wrist tap per count.
+- **Bluetooth japa rings and smart malas (P4).**
+
+## Chant along
+
+- Play a teacher's recording and chant with it; repetitions count as the recording loops.
+- Good for beginners learning pronunciation.
+
+## Listening japa
+
+- For illness, travel or tiredness: the mantra plays on a loop.
+- Counted **separately** as "listened", not mixed with chanted counts, since traditions differ on how they regard it.
