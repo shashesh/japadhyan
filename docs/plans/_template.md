@@ -4,7 +4,7 @@ status: planned # planned | in-progress | implemented | abandoned
 created: YYYY-MM-DD
 ---
 
-# <Plan title>
+# \<Plan title>
 
 ## Goal
 

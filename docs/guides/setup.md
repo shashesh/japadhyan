@@ -24,10 +24,21 @@ Scan the QR code with Expo Go to run on your phone.
 
 ```bash
 npm run check         # lint + type-check + tests (run before every PR)
-npm run lint
+npm run lint          # ESLint, then the Markdown checks
+npm run lint:md       # markdownlint + Prettier check on every .md file
 npm run type-check
 npm test
+npm run format        # Prettier: fixes formatting, including Markdown tables
 ```
+
+### Markdown
+
+Prettier formats Markdown and markdownlint checks the rest. The rules are in `.markdownlint-cli2.jsonc`:
+
+- Prettier's formatting wins where the two overlap. For example, lines aren't wrapped, and tables are padded so their pipes line up.
+- A few files start without a heading on purpose: the PR template, and `apps/mobile/AGENTS.md` and `CLAUDE.md`.
+
+In VS Code, install the recommended Prettier and markdownlint extensions (`.vscode/extensions.json`). Markdown is then formatted on save, and markdownlint warnings show in the editor.
 
 Export the static web build:
 
@@ -48,10 +59,10 @@ All changes reach `master` through a pull request. Work on a feature branch (`fe
 
 `npm install` points git at the hooks in `.githooks/` (`git config core.hooksPath .githooks`):
 
-- `pre-commit` refuses commits while `master` is checked out.
+- `pre-commit` refuses commits while `master` is checked out. When `.md` files are staged, it also runs `npm run lint:md`, because CI skips docs-only changes.
 - `pre-push` refuses pushes to `master` on the remote.
 
-If the commit is blocked, run `git switch -c feat/<name>`. Your uncommitted changes come with you, then commit again.
+If a commit is blocked because you're on `master`, run `git switch -c feat/<name>`. Your uncommitted changes come with you, then commit again. If the Markdown checks block it, run `npm run format`, fix any markdownlint issues left, and commit again.
 
 ## Pull requests
 

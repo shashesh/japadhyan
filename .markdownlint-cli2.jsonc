@@ -1,0 +1,26 @@
+// markdownlint settings, read by `npm run lint:md` and the VS Code markdownlint extension.
+// Prettier formats Markdown (`npm run format`); markdownlint checks what formatting can't.
+{
+  "config": {
+    // Turn off the rules Prettier already handles, such as line length and list indentation.
+    "extends": "markdownlint/style/prettier",
+    // Prettier pads table cells so the pipes line up.
+    "table-column-style": { "style": "aligned" },
+    // Front matter `title:` is metadata; the H1 below it is the page title.
+    "single-title": { "front_matter_title": "" },
+  },
+  "overrides": [
+    {
+      // Read by GitHub and coding agents, not as pages: they start without a heading on purpose.
+      "filter": [
+        ".github/pull_request_template.md",
+        "apps/mobile/AGENTS.md",
+        "apps/mobile/CLAUDE.md",
+      ],
+      "config": { "first-line-heading": false },
+      "combine": "merge",
+    },
+  ],
+  "globs": ["**/*.md"],
+  "gitignore": true,
+}

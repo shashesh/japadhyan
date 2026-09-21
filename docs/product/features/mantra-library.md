@@ -10,30 +10,30 @@ phases: P1, P2
 
 A curated library of the 10–15 most chanted deities and names at launch, for example:
 
-- Ram — *Sri Ram Jai Ram Jai Jai Ram*
-- Krishna — *Hare Krishna maha-mantra*, *Om Namo Bhagavate Vasudevaya*
-- Shiva — *Om Namah Shivaya*
-- Devi / Durga — *Om Dum Durgayei Namaha*
-- Ganesh — *Om Gam Ganapataye Namaha*
-- Hanuman — *Om Hanumate Namah*
+- Ram — _Sri Ram Jai Ram Jai Jai Ram_
+- Krishna — _Hare Krishna maha-mantra_, _Om Namo Bhagavate Vasudevaya_
+- Shiva — _Om Namah Shivaya_
+- Devi / Durga — _Om Dum Durgayei Namaha_
+- Ganesh — _Om Gam Ganapataye Namaha_
+- Hanuman — _Om Hanumate Namah_
 - Gayatri mantra
 - Mahamrityunjaya mantra
-- Sai — *Aum Sri Sai Ram*
+- Sai — _Aum Sri Sai Ram_
 - Vishnu / Narayana, Lakshmi, Saraswati
 
 Final list to be confirmed with advisors.
 
 Each template includes:
 
-| Field | Notes |
-|---|---|
-| Mantra text | Devanagari plus transliteration (Roman, Tamil, Telugu, Kannada, Bengali, Gujarati…) |
-| Word split | For [word-by-word tap](chanting-modes.md#word-by-word-tap) |
-| Meaning | Short translation and explanation |
-| Pronunciation audio | Recorded by a qualified reciter |
-| Suggested round size | e.g. 108 |
-| Deity / tradition tags | For browsing and [festival programs](festival-programs.md) |
-| Image | Optional, licensed |
+| Field                  | Notes                                                                               |
+| ---------------------- | ----------------------------------------------------------------------------------- |
+| Mantra text            | Devanagari plus transliteration (Roman, Tamil, Telugu, Kannada, Bengali, Gujarati…) |
+| Word split             | For [word-by-word tap](chanting-modes.md#word-by-word-tap)                          |
+| Meaning                | Short translation and explanation                                                   |
+| Pronunciation audio    | Recorded by a qualified reciter                                                     |
+| Suggested round size   | e.g. 108                                                                            |
+| Deity / tradition tags | For browsing and [festival programs](festival-programs.md)                          |
+| Image                  | Optional, licensed                                                                  |
 
 ## Custom mantras (P1)
 

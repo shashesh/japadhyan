@@ -1,6 +1,8 @@
 #!/bin/sh
-# Changes reach master only through pull requests, so refuse commits made
-# while master is checked out. Enabled by `npm install` (core.hooksPath).
+# Enabled by `npm install` (core.hooksPath).
+# 1. Changes reach master only through pull requests, so refuse commits made
+#    while master is checked out.
+# 2. CI skips docs-only changes, so check Markdown here whenever a .md file is staged.
 
 protected_branch="master"
 current_branch=$(git symbolic-ref --short -q HEAD)
@@ -10,4 +12,12 @@ if [ "$current_branch" = "$protected_branch" ]; then
   echo "Move your changes to a feature branch and commit there:" >&2
   echo "  git switch -c feat/<name>" >&2
   exit 1
+fi
+
+if git diff --cached --name-only --diff-filter=ACMR | grep -q '\.md$'; then
+  if ! npm run --silent lint:md; then
+    echo "Commit blocked: Markdown checks failed (see above)." >&2
+    echo "Run 'npm run format' to fix formatting, then fix any markdownlint issues left." >&2
+    exit 1
+  fi
 fi

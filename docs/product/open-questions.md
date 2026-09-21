@@ -11,8 +11,8 @@ Decisions still to make. When one is settled, record it in `decisions/` and remo
 
 Working name: `naam-japam`. Shortlist:
 
-| Name | Notes |
-|---|---|
+| Name   | Notes                                                |
+| ------ | ---------------------------------------------------- |
 | Smaran | "Remembrance"; used across Hindu and Sikh traditions |
 
 The name should work across Hindu, Sikh, Buddhist and Jain users and read well in English, Hindi and Nepali.

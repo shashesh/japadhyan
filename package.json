@@ -12,7 +12,8 @@
     "web": "npm run web --workspace=apps/mobile",
     "test": "npm run test:scripts && npm run test --workspaces --if-present",
     "test:scripts": "node --test \"scripts/**/*.test.mjs\"",
-    "lint": "eslint .",
+    "lint": "eslint . && npm run lint:md",
+    "lint:md": "markdownlint-cli2 && prettier --check \"**/*.md\"",
     "type-check": "npm run type-check --workspaces --if-present",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\"",
     "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json}\"",
@@ -29,6 +30,7 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^16.5.0",
+    "markdownlint-cli2": "^0.23.3",
     "prettier": "^3.2.5",
     "typescript-eslint": "^8.70.0",
     "yaml": "^2.9.1"

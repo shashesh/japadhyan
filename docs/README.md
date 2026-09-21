@@ -2,15 +2,15 @@
 
 How the documentation in this repo is organized.
 
-| Folder | What lives here |
-|---|---|
-| `product/` | Vision, roadmap, open questions |
-| `product/features/` | One spec per feature area — what it is, why, and which phase it ships in |
-| `architecture/` | How the system is built: platform principles, monorepo structure |
-| `guides/` | How to work in the repo: setup, running, checks |
-| `plans/` | Build plans. In-flight in `plans/active/`; move finished plans to `archive/plans/` with `status: implemented` |
-| `decisions/` | Dated decision records (`YYYY-MM-DD-short-name.md`). Never edited after acceptance — supersede with a new record |
-| `research/` | Inspiration, competitor notes, user research |
+| Folder              | What lives here                                                                                                  |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `product/`          | Vision, roadmap, open questions                                                                                  |
+| `product/features/` | One spec per feature area — what it is, why, and which phase it ships in                                         |
+| `architecture/`     | How the system is built: platform principles, monorepo structure                                                 |
+| `guides/`           | How to work in the repo: setup, running, checks                                                                  |
+| `plans/`            | Build plans. In-flight in `plans/active/`; move finished plans to `archive/plans/` with `status: implemented`    |
+| `decisions/`        | Dated decision records (`YYYY-MM-DD-short-name.md`). Never edited after acceptance — supersede with a new record |
+| `research/`         | Inspiration, competitor notes, user research                                                                     |
 
 ## Conventions
 
