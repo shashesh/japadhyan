@@ -7,6 +7,7 @@ import test from 'node:test';
 import { parse } from 'yaml';
 
 const WORKFLOWS_DIR = join(import.meta.dirname, '../../.github/workflows');
+const PR_TRIGGERS = ['pull_request', 'pull_request_target'];
 const PR_TYPES = ['opened', 'synchronize', 'reopened', 'ready_for_review', 'converted_to_draft'];
 const DRAFT_GUARD = '!github.event.pull_request.draft';
 
@@ -16,6 +17,19 @@ function triggersOf(workflow) {
   if (typeof on === 'string') return { [on]: null };
   if (Array.isArray(on)) return Object.fromEntries(on.map((name) => [name, null]));
   return on;
+}
+
+function prTriggersOf(workflow) {
+  const triggers = triggersOf(workflow);
+  return PR_TRIGGERS.filter((name) => name in triggers);
+}
+
+// The concurrency group must be per PR, or one PR going back to draft cancels another PR's run.
+// github.ref is per PR for pull_request, but is the base branch for pull_request_target.
+function perPrGroupPattern(prTriggers) {
+  return prTriggers.includes('pull_request_target')
+    ? /github\.event\.pull_request\.number\b/
+    : /github\.(ref|event\.pull_request\.number)\b/;
 }
 
 // The guard may be the whole condition or ANDed with more; `||` would let drafts through.
@@ -29,7 +43,7 @@ function isDraftGuarded(condition) {
 const pullRequestWorkflows = readdirSync(WORKFLOWS_DIR)
   .filter((file) => /\.ya?ml$/.test(file))
   .map((file) => ({ file, workflow: parse(readFileSync(join(WORKFLOWS_DIR, file), 'utf8')) }))
-  .filter(({ workflow }) => 'pull_request' in triggersOf(workflow));
+  .filter(({ workflow }) => prTriggersOf(workflow).length > 0);
 
 test('at least one workflow runs on pull requests', () => {
   assert.ok(pullRequestWorkflows.length > 0);
@@ -37,7 +51,15 @@ test('at least one workflow runs on pull requests', () => {
 
 for (const { file, workflow } of pullRequestWorkflows) {
   test(`${file} starts on ready_for_review and cancels in-flight runs on converted_to_draft`, () => {
-    assert.deepEqual(triggersOf(workflow).pull_request?.types, PR_TYPES);
+    const prTriggers = prTriggersOf(workflow);
+    for (const name of prTriggers) {
+      assert.deepEqual(triggersOf(workflow)[name]?.types, PR_TYPES, `${file}: ${name} types`);
+    }
+    assert.match(
+      String(workflow.concurrency?.group ?? ''),
+      perPrGroupPattern(prTriggers),
+      `${file} needs a concurrency group keyed per PR (github.event.pull_request.number)`,
+    );
     assert.equal(
       workflow.concurrency?.['cancel-in-progress'],
       true,

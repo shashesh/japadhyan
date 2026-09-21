@@ -9,8 +9,8 @@ protected_ref="refs/heads/master"
 while read -r _local_ref _local_sha remote_ref _remote_sha; do
   if [ "$remote_ref" = "$protected_ref" ]; then
     echo "Push blocked: pushing to 'master' is not allowed." >&2
-    echo "Push your feature branch and open a pull request against master:" >&2
-    echo "  git push -u origin HEAD && gh pr create --base master" >&2
+    echo "Push your feature branch and open a draft pull request against master:" >&2
+    echo "  git push -u origin HEAD && gh pr create --draft --base master" >&2
     exit 1
   fi
 done
