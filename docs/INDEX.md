@@ -30,15 +30,15 @@
 - [product/features/session-experience.md](product/features/session-experience.md) — the chanting screen and the offering moment
 - [product/features/mantra-library.md](product/features/mantra-library.md) — deity templates, custom mantras, private guru mantras
 - [product/features/onboarding.md](product/features/onboarding.md) — first-run flow under one minute
-- [product/features/sankalpa-and-progress.md](product/features/sankalpa-and-progress.md) — vows, streaks, charts, milestones, reflection
+- [product/features/sankalpa-and-progress.md](product/features/sankalpa-and-progress.md) — vows and intentions, streaks, charts, milestones, reflection
 - [product/features/festival-programs.md](product/features/festival-programs.md) — Navaratri, Shivratri, Janmashtami and the festival calendar
 - [product/features/dedication-and-offering.md](product/features/dedication-and-offering.md) — dedicating japa, printed japa books, temple offerings
 - [product/features/content-and-learning.md](product/features/content-and-learning.md) — articles, pronunciation, ambient sound
-- [product/features/community.md](product/features/community.md) — family goals, festival counters, live chanting rooms
+- [product/features/community.md](product/features/community.md) — family goals, festival counters, scheduled and leader-led chanting rooms
 - [product/features/age-modes-and-accessibility.md](product/features/age-modes-and-accessibility.md) — kids, seniors, accessibility
 - [product/features/dharmic-traditions.md](product/features/dharmic-traditions.md) — Hindu, Sikh, Buddhist, Jain: practices and sensitivities
 - [product/features/wearables-and-hardware.md](product/features/wearables-and-hardware.md) — watches, volume buttons, Bluetooth rings
-- [product/features/partners-and-revenue.md](product/features/partners-and-revenue.md) — temples, teachers, donations, premium
+- [product/features/partners-and-revenue.md](product/features/partners-and-revenue.md) — temples, verified teachers, seva, donations, premium
 
 ## Architecture
 

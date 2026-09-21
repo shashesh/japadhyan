@@ -34,8 +34,6 @@ The audience is open to everyone ([decision](../decisions/2026-09-21-open-audien
 
 What stays free forever (core chanting, at minimum) and what is premium. See [partners-and-revenue](features/partners-and-revenue.md).
 
-The [free-flow principle](../decisions/2026-09-21-free-flow-nothing-locked.md) says nothing is locked behind progress. Does it also rule out paying for parts of practice? Premium today lists anushthanas, the full festival calendar, insights and extra audio.
-
 ## Content sourcing
 
 Who records pronunciation audio and writes/reviews articles for each tradition, and under what licence.

@@ -21,5 +21,6 @@ Practice in the app is **free flow**: every devotee can use every part of their 
 ## Consequences
 
 - Motivation comes from the practice itself, sankalpas and shared goals, not from rewards.
-- No unlockable malas, sounds, mantras, programs or themes.
-- How premium fits this principle is still open — see [open questions](../product/open-questions.md#pricing).
+- No malas, sounds, mantras, programs or themes are unlocked through practice.
+- Milestones are traditional markers (first lakh, 108 days in a row), not bronze, silver and gold badge tiers.
+- **Premium stays as planned** for premium content ([partners-and-revenue](../product/features/partners-and-revenue.md)). Free flow means nothing is earned through counts or streaks; it does not change what is premium.

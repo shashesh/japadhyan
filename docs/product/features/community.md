@@ -19,9 +19,20 @@ Shared practice without competition ([decision](../../decisions/2026-09-21-colle
 - During major festivals, everyone's japa adds to one live total.
 - Anonymous by default.
 
-## Group chanting rooms `hard`
+## Group chanting rooms
 
-- Chant together in real time, like a virtual satsang.
+Chant together in real time, like a virtual satsang.
+
+### Scheduled counter rooms `medium` — first
+
+- Rooms open at set times for a deity, mantra or festival, e.g. _Om Namah Shivaya_ at 6:00 AM.
+- Everyone chants on their own phone, in any mode, and one shared counter rises as the room chants.
+- No voice and no chat, so there is nothing to moderate.
+- "6:00 AM local time" needs a design choice: one room per time zone, or a rolling room that follows dawn around the world.
+- Private guru mantra counts and listening japa never add to a room's counter.
+
+### Leader-led rooms `hard` — later
+
 - A leader chants; others follow; the room's total grows.
 - Needs moderation and safety design before launch.
 
