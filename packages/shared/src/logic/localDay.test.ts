@@ -59,6 +59,47 @@ describe('localDay', () => {
   });
 });
 
+describe('localDay: day_start_minutes', () => {
+  const IST = 330;
+  const THREE_AM = 180;
+
+  test('defaults to midnight', () => {
+    expect(localDay('2026-09-22T18:31:00.000Z', IST)).toBe(
+      localDay('2026-09-22T18:31:00.000Z', IST, 0),
+    );
+  });
+
+  test('a 3 AM start keeps 02:00 on the day before', () => {
+    // 20:30 UTC on the 21st is 02:00 IST on the 22nd — still the 21st's practice.
+    expect(localDay('2026-09-21T20:30:00.000Z', IST, THREE_AM)).toBe('2026-09-21');
+  });
+
+  test('a 3 AM start begins the new day at 03:00', () => {
+    // 21:30 UTC on the 21st is exactly 03:00 IST on the 22nd.
+    expect(localDay('2026-09-21T21:30:00.000Z', IST, THREE_AM)).toBe('2026-09-22');
+  });
+
+  test('the last moment before 03:00 is still the old day', () => {
+    expect(localDay('2026-09-21T21:29:59.999Z', IST, THREE_AM)).toBe('2026-09-21');
+  });
+
+  test('late evening is unaffected by a 3 AM start', () => {
+    // 17:30 UTC is 23:00 IST on the 22nd.
+    expect(localDay('2026-09-22T17:30:00.000Z', IST, THREE_AM)).toBe('2026-09-22');
+  });
+
+  test('Brahma muhurta at 04:30 belongs to the day it begins', () => {
+    // 23:00 UTC on the 21st is 04:30 IST on the 22nd, after a 3 AM start.
+    expect(localDay('2026-09-21T23:00:00.000Z', IST, THREE_AM)).toBe('2026-09-22');
+  });
+
+  test('rejects a day start outside a day', () => {
+    expect(() => localDay('2026-09-22T00:00:00.000Z', 0, MINUTES_PER_DAY)).toThrow(RangeError);
+    expect(() => localDay('2026-09-22T00:00:00.000Z', 0, -1)).toThrow(RangeError);
+    expect(() => localDay('2026-09-22T00:00:00.000Z', 0, 1.5)).toThrow(RangeError);
+  });
+});
+
 describe('tzOffsetMinutes', () => {
   test('is positive east of UTC', () => {
     // Date#getTimezoneOffset is minutes *behind* UTC, so it inverts.

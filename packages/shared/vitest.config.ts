@@ -5,13 +5,7 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       include: ['src/**/*.ts'],
-      exclude: [
-        'src/**/*.test.ts',
-        'src/index.ts',
-        'src/**/index.ts',
-        // Development fixtures, deleted in M6 when the catalog lands.
-        'src/constants/**',
-      ],
+      exclude: ['src/**/*.test.ts', 'src/index.ts', 'src/**/index.ts'],
       reporter: ['text', 'lcov'],
       // The repo's floor. Shared holds the counting and sync rules, so it
       // should sit well above this.

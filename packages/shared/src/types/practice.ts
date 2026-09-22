@@ -1,10 +1,11 @@
 /**
  * The devotee's own records: what they chant, when, and where they are in it.
  * Written on the device first, synced only after sign-in and consent.
- * See docs/architecture/data-model.md#your-data.
+ *
+ * Every field here follows the tables in docs/architecture/data-model.md.
  */
 
-import type { PracticeKind, Script, TextByScript, TraditionId } from './catalog';
+import type { LanguageTag, PracticeKind, Script, TextByScript, TraditionId } from './catalog';
 import type { OwnedRecord, SyncFields } from './sync';
 
 /**
@@ -20,7 +21,7 @@ export type ChantMode =
   | 'silent_breath' // P1 - estimated
   | 'volume_button' // P1
   | 'manual' // P1 - practice done elsewhere, logged by hand
-  | 'correction' // P1 - a fix; may be negative
+  | 'correction' // P1 - adjusts a session, may be negative
   | 'voice' // P2
   | 'watch' // P2
   | 'chant_along' // P2
@@ -37,42 +38,111 @@ export type PracticeId = string;
 /** A local day key, YYYY-MM-DD. Days are grouped by this, never by UTC. */
 export type DayKey = string;
 
-/**
- * A practice the devotee wrote themselves. Same shape as a catalog Practice,
- * owned by them. P1: custom mantra and private guru mantra; custom namavali
- * is P2.
- */
-export interface CustomPractice extends OwnedRecord, SyncFields {
-  kind: PracticeKind;
-  title: string;
-  steps: readonly { text: TextByScript; words: readonly string[] | null }[];
-  default_round: number;
-  deity_ids: readonly string[] | null;
-  tradition_id: TraditionId | null;
-  source_script: Script | null;
+/** One per user. Before sign-in there is a local profile. */
+export interface Profile extends OwnedRecord, SyncFields {
+  display_name: string | null;
+  /** From the phone's setting at first launch. */
+  ui_language: LanguageTag;
+  /** Script the mantra is shown in. */
+  primary_script: Script;
+  /** Show a second line in Latin script. */
+  show_transliteration: boolean;
+  /** Traditions to browse. P1: Hindu. */
+  traditions: readonly TraditionId[];
   /**
-   * A private guru (diksha) mantra: one step with no text, shown only as the
-   * label the devotee chose. Its words are never typed, stored or shared.
+   * When the devotee's day starts, in minutes after midnight. `0` by
+   * default; `180` is 3 AM, for someone who rises for Brahma muhurta.
    */
-  is_private: boolean;
+  day_start_minutes: number;
+  default_mala_style: string | null;
+  haptics: boolean;
+  sounds: boolean;
+  /** `false` by default. */
+  analytics_opt_in: boolean;
+  /** Set when onboarding finishes; a returning user who signs in skips it. */
+  onboarded_at: string | null;
+}
+
+/** One step of a practice the devotee wrote themselves. */
+export interface CustomStep {
+  text: TextByScript;
+  words: readonly string[] | null;
+}
+
+interface CustomPracticeBase extends OwnedRecord, SyncFields {
+  title: string;
+  default_round: number;
   created_at: string;
 }
 
-/** The devotee's relationship with one practice: their own settings for it. */
-export interface SavedPractice extends OwnedRecord, SyncFields {
-  practice_id: PracticeId;
-  round_size: number;
-  mala_style: string | null;
-  preferred_mode: ChantMode | null;
-  preferred_script: Script | null;
-  /** Repetitions between offering moments, e.g. 11 or 108. */
-  offer_every: number | null;
-  daily_target: number | null;
-  starred: boolean;
-  last_chanted_at: string | null;
+/**
+ * A practice the devotee wrote themselves. P1: custom mantra and private
+ * guru mantra; custom namavali is P2.
+ */
+export interface OpenCustomPractice extends CustomPracticeBase {
+  is_private: false;
+  kind: PracticeKind;
+  steps: readonly CustomStep[];
+  deity_ids: readonly string[] | null;
+  tradition_id: TraditionId | null;
+  source_script: Script | null;
 }
 
-/** Which practice opens when the devotee picks a deity. */
+/**
+ * A private guru (diksha) mantra. It has **no `steps` field at all**: the
+ * words are never typed, stored, synced or shared, so there is nowhere for
+ * them to live. It is one step long and shown only as the devotee's own
+ * label, e.g. "My guru mantra".
+ *
+ * Word-by-word and typing are unavailable for it because they need the words.
+ */
+export interface PrivateGuruPractice extends CustomPracticeBase {
+  is_private: true;
+  kind: 'mantra';
+  /** Always one step, which carries no text. */
+  step_count: 1;
+}
+
+export type CustomPractice = OpenCustomPractice | PrivateGuruPractice;
+
+/** True when this practice's words are never stored. Narrows the union. */
+export function isPrivateGuruPractice(practice: CustomPractice): practice is PrivateGuruPractice {
+  return practice.is_private;
+}
+
+/**
+ * The devotee's relationship with one practice: their own settings for it.
+ * Created the first time they chant it or star it; one per practice.
+ */
+export interface SavedPractice extends OwnedRecord, SyncFields {
+  practice_id: PracticeId;
+  /** Starred. */
+  is_favourite: boolean;
+  /** Order in the Favourites list. */
+  favourite_order: number | null;
+  /** Drives Recent and "open to your current practice". */
+  last_used_at: string | null;
+  /** Repetitions per day, e.g. 324 (3 malas) or 1 recitation. */
+  daily_goal: number | null;
+  /**
+   * Mantras only; falls back to the practice's `default_round`. A namavali's
+   * round is always one recitation.
+   */
+  round_size: number | null;
+  /** Override; falls back to the profile. */
+  mala_style: string | null;
+  /** Mode the chant screen opens in. */
+  preferred_mode: ChantMode | null;
+  /** Repetitions between offerings: 11, 108, …; empty means end of round. */
+  offer_every: number | null;
+  /** Override of the profile's script. */
+  script: Script | null;
+  bell_at_meru: boolean;
+  /** The traditional practice of not crossing the meru. */
+  reverse_at_meru: boolean;
+}
+
+/** Which practice opens when the devotee picks a deity. One row per deity. */
 export interface DeityDefault extends OwnedRecord, SyncFields {
   deity_id: string;
   practice_id: PracticeId;
@@ -80,51 +150,65 @@ export interface DeityDefault extends OwnedRecord, SyncFields {
 
 /**
  * One sitting. Set once, then never changed, except to fill in an empty
- * `ended_at`. Carries the content it was chanted with, so a later content
- * update never makes its counts ambiguous.
+ * `ended_at`.
+ *
+ * **A session never crosses a local day**, and ends when its practice's
+ * content updates, so every event and correction in it shares one
+ * `local_day` and one `steps_per_repetition`.
  */
 export interface Session extends OwnedRecord {
   practice_id: PracticeId;
-  /** The practice version chanted. A content update ends the session. */
-  practice_version: number;
-  /** Steps per repetition at the time: 1 for a mantra, 108 for an Ashtottara. */
-  steps_per_repetition: number;
   device_id: string;
+  /** Created at the first count. */
   started_at: string;
+  /**
+   * Set when the devotee leaves the chant screen, after 30 minutes idle, at
+   * the day boundary, or when the practice's content updates.
+   */
   ended_at: string | null;
+  /** The one local day this session belongs to. */
+  local_day: DayKey;
+  tz_offset_min: number;
+  /** The practice as it was when the session began. */
+  practice_version: number;
+  /** 1 for a mantra, 108 for an Ashtottara. Every event shares it. */
+  steps_per_repetition: number;
 }
 
 /**
- * An append-only record of repetitions. Totals are always derived from
- * events, which makes offline sync safe: merging never loses or doubles
+ * An append-only record of completed repetitions. Totals are always derived
+ * from events, which makes offline sync safe: merging never loses or doubles
  * counts. Sealed on write, then never edited — fixes are `correction` events.
  */
 export interface CountEvent extends OwnedRecord {
   practice_id: PracticeId;
   session_id: string;
   mode: ChantMode;
-  /** Repetitions in this event. Negative only for a `correction`. */
+  /** Completed repetitions; recitations for a namavali. Negative only for a correction. */
   count: number;
-  /**
-   * Steps per repetition **as chanted**, never the practice's current step
-   * count. Names chanted is always `count × steps_per_repetition`.
-   */
-  steps_per_repetition: number;
-  /** True for modes that estimate, e.g. silent pace. */
+  /** True for silent pace and breath. */
   estimated: boolean;
   device_id: string;
-  /** ISO 8601 timestamp. */
+  /** UTC. For ordering. */
   created_at: string;
-  /** The local day it was chanted. Days are grouped by this. */
+  /**
+   * The source of truth for which day this count belongs to, using the
+   * devotee's `day_start_minutes` at the time, so history doesn't move when
+   * they travel.
+   */
   local_day: DayKey;
-  /** Minutes east of UTC when it was chanted, e.g. 330 for IST. */
+  /** Time zone offset when the event was created. */
   tz_offset_min: number;
+  /**
+   * The practice's step count **when chanted**. Copied from the session, so
+   * a later content update never changes past totals.
+   */
+  steps_per_repetition: number;
 }
 
 /**
  * The devotee's place in a namavali (and, in P2, a stotra). It is not a
  * count: totals always come from count events.
- * See docs/architecture/data-model.md#practiceposition.
  */
 export interface PracticePosition extends OwnedRecord, SyncFields {
   practice_id: PracticeId;

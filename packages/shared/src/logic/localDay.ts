@@ -14,12 +14,18 @@ export const MINUTES_PER_DAY = 24 * 60;
 const MS_PER_MINUTE = 60 * 1000;
 
 /**
- * The local day a moment falls on.
+ * The local day a moment falls on, honouring the devotee's own day start.
+ *
+ * A devotee who rises for Brahma muhurta may set their day to begin at 3 AM,
+ * so chanting at 02:00 still belongs to the day before. Sealed onto each
+ * event as `local_day`, which is then the source of truth — history does not
+ * move when the devotee travels or changes this setting.
  *
  * @param isoTimestamp ISO 8601 instant, e.g. `2026-09-21T23:30:00.000Z`
  * @param tzOffsetMin minutes **east** of UTC, e.g. 330 for IST
+ * @param dayStartMinutes minutes after midnight the day begins; `180` is 3 AM
  */
-export function localDay(isoTimestamp: string, tzOffsetMin: number): DayKey {
+export function localDay(isoTimestamp: string, tzOffsetMin: number, dayStartMinutes = 0): DayKey {
   const ms = Date.parse(isoTimestamp);
   if (Number.isNaN(ms)) {
     throw new RangeError(`Cannot parse timestamp: ${isoTimestamp}`);
@@ -29,7 +35,17 @@ export function localDay(isoTimestamp: string, tzOffsetMin: number): DayKey {
       `tzOffsetMin must be a whole number of minutes within a day, got ${tzOffsetMin}`,
     );
   }
-  return new Date(ms + tzOffsetMin * MS_PER_MINUTE).toISOString().slice(0, 10);
+  if (
+    !Number.isInteger(dayStartMinutes) ||
+    dayStartMinutes < 0 ||
+    dayStartMinutes >= MINUTES_PER_DAY
+  ) {
+    throw new RangeError(
+      `dayStartMinutes must be a whole number of 0..${MINUTES_PER_DAY - 1}, got ${dayStartMinutes}`,
+    );
+  }
+  const shifted = ms + (tzOffsetMin - dayStartMinutes) * MS_PER_MINUTE;
+  return new Date(shifted).toISOString().slice(0, 10);
 }
 
 /**

@@ -9,9 +9,13 @@ import type { Practice } from '../types';
  * something to chant, so these few practices stand in. They are unreviewed
  * (`review: null`) and must never ship in a production build.
  *
+ * Read them through {@link devPractices}, which refuses to hand them out in
+ * a production build: `review: null` only labels the content, it does not
+ * keep it out of a bundle.
+ *
  * See docs/plans/active/2026-09-21-phase-1-plan.md — M6 removes this file.
  */
-export const DEV_PRACTICES: readonly Practice[] = [
+const DEV_PRACTICES: readonly Practice[] = [
   {
     id: 'om-namah-shivaya',
     version: 1,
@@ -174,6 +178,27 @@ export const DEV_PRACTICES: readonly Practice[] = [
     review: null,
   },
 ];
+
+/**
+ * The development fixtures, or a hard failure in a production build.
+ *
+ * Production packs refuse unreviewed content
+ * ([content-pipeline](../../../../docs/architecture/content-pipeline.md)), and
+ * these fixtures are unreviewed. A production build that reaches for them
+ * fails loudly and immediately rather than shipping them to a devotee.
+ */
+export function devPractices(): readonly Practice[] {
+  const env = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process
+    ?.env;
+  if (env?.NODE_ENV === 'production') {
+    throw new Error(
+      'devPractices() holds unreviewed development fixtures and must not run in a ' +
+        'production build. Real content arrives as signed packs; see M2/M3 in ' +
+        'docs/plans/active/2026-09-21-phase-1-plan.md.',
+    );
+  }
+  return DEV_PRACTICES;
+}
 
 /** Round sizes offered in settings: mala, half, quarter, and 33 for other traditions. */
 export const ROUND_SIZE_OPTIONS = [108, 54, 27, 33] as const;

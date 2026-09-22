@@ -4,7 +4,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   type Practice,
-  DEV_PRACTICES,
+  devPractices,
   createWordTapState,
   roundProgress,
   tapWord,
@@ -20,7 +20,8 @@ const MODE_LABELS: Record<Mode, string> = {
   word_tap: 'Word by word',
 };
 
-const DEFAULT_PRACTICE = DEV_PRACTICES[0]!;
+const PRACTICES = devPractices();
+const DEFAULT_PRACTICE = PRACTICES[0]!;
 
 /** The English title, until i18n lands in M3. */
 const titleOf = (p: Practice): string => p.title.en ?? p.id;
@@ -69,7 +70,7 @@ function ChantSession({
         contentContainerStyle={styles.chips}
         style={styles.chipRow}
       >
-        {DEV_PRACTICES.map((p) => (
+        {PRACTICES.map((p) => (
           <Pressable
             key={p.id}
             accessibilityRole="button"
