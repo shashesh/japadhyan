@@ -56,7 +56,8 @@ A script, run locally in P1 (GitHub Actions minutes are limited, see [ci-only-wh
 2. **Generate** scripts from the master text.
 3. **Build packs:** compressed JSON, versioned.
 4. **Write the manifest:** each pack's id, version, size, SHA-256 and schema version.
-5. **Publish** packs and manifest to the CDN (Supabase Storage or Cloudflare R2, chosen in M2).
+5. **Sign the manifest** with the content signing key (Ed25519).
+6. **Publish** packs, manifest and signature to the CDN (Supabase Storage or Cloudflare R2, chosen in M2).
 
 Schema validation also runs in `npm run check`.
 
@@ -73,6 +74,12 @@ Schema validation also runs in `npm run check`.
 
 A pack with a newer schema major version than the app understands is ignored; the app keeps what it has and suggests updating.
 
+### Signing
+
+- The **private key** never goes to CI or the CDN. The owner holds it (password manager or hardware key) and signs when publishing.
+- The app ships the **current and next public keys**, so the key can be rotated without breaking installed apps. A compromised key is retired by an app release that drops it.
+- Packs are **data only**: text and references, never code or markup. The app renders text as text.
+
 ## Device
 
 | Layer                | What                                                                                | When                                                                        |
@@ -84,5 +91,5 @@ A pack with a newer schema major version than the app understands is ignored; th
 - **Browsing and search work offline** because the index is bundled. A deity that hasn't been downloaded shows "Download to open", not an empty screen.
 - **Settings → Storage** lists downloaded packs and audio, with sizes, and offers "Download everything for offline".
 - **Updates:** the app checks the manifest when online and fetches only packs that changed. Content fixes need no app release.
-- **Integrity:** every download is checked against its SHA-256.
+- **Authenticity:** the app has the content signing public key built in and rejects a manifest whose signature doesn't verify. Every pack must match the SHA-256 listed in the signed manifest, so a compromised CDN can't swap in altered text. Audio and images must match the SHA-256 recorded in their pack. The core bundle is covered by the app's own store signature.
 - **Unpublished content** stays on devices that have it, and its counts remain; it is hidden from browsing.

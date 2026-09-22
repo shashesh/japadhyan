@@ -95,7 +95,7 @@ For everyone, including guests.
 
 ## Security and privacy
 
-- Row-level security on every user table: devotees can only read and write their own rows.
+- Every synced record carries its owner's `user_id`. Row-level security on every user table: devotees can only read and write their own rows ([data-model](../../architecture/data-model.md#ownership-and-shared-fields)).
 - Count events can be inserted, never updated or deleted, except by deleting the account.
 - Private fields never appear in analytics or logs ([data-model](../../architecture/data-model.md#private-fields)).
 

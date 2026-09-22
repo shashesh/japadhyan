@@ -114,7 +114,19 @@ Catalog templates for [sankalpas](../product/features/sankalpa-and-progress.md) 
 
 ## Your data
 
-Written on the device first. Synced only when the devotee signs in and consents ([accounts-and-sync](../product/features/accounts-and-sync.md)). Every record created by the devotee has a **UUIDv7** id generated on the device, so it works offline and sorts by time.
+Written on the device first. Synced only when the devotee signs in and consents ([accounts-and-sync](../product/features/accounts-and-sync.md)).
+
+### Ownership and shared fields
+
+Every record in this section has:
+
+| Field                      | Notes                                                                                                                                                                                          |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`                       | **UUIDv7**, generated on the device, so it works offline and sorts by time. The profile's id is the `user_id`                                                                                  |
+| `user_id`                  | The owner. Before sign-in: the local profile id. On first sign-in, the device's rows are given the account's id **before their first upload**. On the server: the Supabase auth user, not null |
+| `updated_at`, `deleted_at` | On records where the latest edit wins (see [tables by behaviour](#tables-by-behaviour))                                                                                                        |
+
+Uniqueness is per user: one saved practice per `(user_id, practice_id)`, one default per `(user_id, deity_id)`, one position per `(user_id, practice_id)`.
 
 ### Profile
 
@@ -327,7 +339,10 @@ Lean: PowerSync if it passes; the offline queue, retries, web storage and live q
 ### Server (Supabase)
 
 - Tables mirror the shared types, in snake_case.
-- `user_id = auth.uid()` row-level security on every user table.
+- Every user table has `user_id uuid not null` referencing `auth.users` **with cascade delete**, so deleting the user deletes everything they own.
+- `user_id = auth.uid()` row-level security on every user table, for reading and writing.
+- **Links stay within one user:** `count_events (user_id, session_id)` references `sessions (user_id, id)`, so an event can't point at another user's session. The same pattern applies to any future link between user tables.
+- `practice_id` is not a foreign key: it can be a catalog slug, and the catalog isn't in the database.
 - `consents`: user, policy version, date agreed.
 - `delete-account` Edge Function: deletes the user; their data goes with them.
 - Content packs are files on a CDN, not database tables.
