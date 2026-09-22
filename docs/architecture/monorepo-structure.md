@@ -8,7 +8,7 @@ updated: 2026-09-21
 npm workspaces, one app for three platforms, one shared package.
 
 ```text
-naam-japam/
+japadhyan/
 ├─ apps/
 │  └─ mobile/                 Expo app — iOS, Android AND web (Expo Router)
 │     ├─ app.json             Expo config (name, scheme, web output: static)
@@ -18,7 +18,7 @@ naam-japam/
 │        ├─ features/<name>/  Screens, hooks and platform code per feature
 │        └─ theme.ts          Colours and spacing tokens
 ├─ packages/
-│  └─ shared/                 @naam-japam/shared — platform-agnostic
+│  └─ shared/                 @japadhyan/shared — platform-agnostic
 │     └─ src/
 │        ├─ types/            Domain types (snake_case fields)
 │        ├─ logic/            Pure business logic + Vitest tests
@@ -41,7 +41,7 @@ Per the [tech stack decision](../decisions/2026-09-21-tech-stack.md), the web ap
 
 | From              | May import                                                                                     |
 | ----------------- | ---------------------------------------------------------------------------------------------- |
-| `apps/mobile`     | `@naam-japam/shared`, React, React Native, Expo packages                                       |
+| `apps/mobile`     | `@japadhyan/shared`, React, React Native, Expo packages                                        |
 | `packages/shared` | Nothing platform-specific. No `react`, `react-native`, `expo-*`, `next` — ESLint enforces this |
 
 Shared code is consumed as TypeScript source (`main: src/index.ts`); Metro transpiles it, so there is no build step.

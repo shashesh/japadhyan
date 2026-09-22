@@ -4,7 +4,7 @@ Guidance for Claude Code and other coding agents working in this repository.
 
 ## Project
 
-**naam-japam** (working name — the app name is not decided yet) is a devotee-first naam japam (name chanting) app for **iOS, Android and web**, for Hindu, Sikh, Buddhist and Jain practice, open to everyone. Stack: **React Native with Expo** (one Expo Router codebase for all three platforms), TypeScript, npm workspaces. Exact versions: [TECH-VERSIONS.md](./TECH-VERSIONS.md).
+**JapaDhyan** ([name decision](./docs/decisions/2026-09-21-app-name-japadhyan.md)) is a devotee-first naam japam (name chanting) app for **iOS, Android and web**, for Hindu, Sikh, Buddhist and Jain practice, open to everyone. Stack: **React Native with Expo** (one Expo Router codebase for all three platforms), TypeScript, npm workspaces. Exact versions: [TECH-VERSIONS.md](./TECH-VERSIONS.md).
 
 Start with [docs/INDEX.md](./docs/INDEX.md) — the map of every doc. The product vision is in [docs/product/vision.md](./docs/product/vision.md); the current build plan is in [docs/plans/active/](./docs/plans/active/).
 
@@ -44,7 +44,7 @@ Everything else (types, logic, data)    → packages/shared/src/
 ```
 
 - `packages/shared` **must not** import `react`, `react-native`, `expo-*` or any platform package (ESLint enforces this).
-- Apps import from `@naam-japam/shared` — never redefine shared types or logic locally.
+- Apps import from `@japadhyan/shared` — never redefine shared types or logic locally.
 - Shared types use **snake_case** field names (future Supabase columns).
 - Routes live in `apps/mobile/src/app/` (Expo Router). Keep route files thin; put screens in `src/features/<feature>/`.
 - Styles: `StyleSheet.create()` at the bottom of the file; colours and spacing from `src/theme.ts`, no literals.

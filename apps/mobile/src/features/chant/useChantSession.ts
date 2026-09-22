@@ -5,7 +5,7 @@ import {
   type Mantra,
   roundProgress,
   totalCount,
-} from '@naam-japam/shared';
+} from '@japadhyan/shared';
 
 // Placeholder until device identity and local storage (SQLite) land in P1.
 const DEVICE_ID = 'local-device';

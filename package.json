@@ -1,8 +1,8 @@
 {
-  "name": "naam-japam-monorepo",
+  "name": "japadhyan-monorepo",
   "version": "0.1.0",
   "private": true,
-  "description": "naam-japam (working name) - devotee-first naam japam app for iOS, Android and web",
+  "description": "JapaDhyan - devotee-first naam japam app for iOS, Android and web",
   "workspaces": [
     "apps/*",
     "packages/*"
