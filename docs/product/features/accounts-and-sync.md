@@ -102,6 +102,8 @@ For everyone, including guests.
 
 - **Settings → Backup → Export** saves a file with the profile, saved and custom practices, deity defaults, namavali positions, sessions, count events and sankalpas.
 - **Import** combines using the same rules as signing in, so importing the same file twice changes nothing.
+- **Import ignores who owned the file.** Every imported record is re-keyed to whoever is using the app now: the local profile, or the signed-in account. Record ids are kept, which is what makes a repeat import harmless. Nothing imported can ever be uploaded under someone else's account.
+- If the file came from a **different account**, the app says so before importing, since those counts will join the devotee's own practice.
 - The file contains private fields (intentions, private labels), and the export screen says so.
 
 ## Web

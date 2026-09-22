@@ -32,13 +32,13 @@ Read-only on the device. Authored in `content/`, reviewed, and delivered as pack
 
 ### Tradition
 
-| Field                    | Notes                                                                                                                        |
-| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
-| `id`                     | **UUIDv7**, generated on the device, so it works offline and sorts by time. The profile has one too; it is not the owner key |
-| `deity_label`            | What the app calls a deity: "Deity", "The Name" (Sikh), "Buddhas and Bodhisattvas", "Tirthankaras"                           |
-| `offering_label`         | "Offer at the lotus feet", "Dedicate the merit", …                                                                           |
-| `default_round_size`     | 108                                                                                                                          |
-| `show_images_by_default` | `false` for Sikh practice, which does not depict God                                                                         |
+| Field                    | Notes                                                                                              |
+| ------------------------ | -------------------------------------------------------------------------------------------------- |
+| `id`                     | `hindu` · `sikh` · `buddhist` · `jain`                                                             |
+| `deity_label`            | What the app calls a deity: "Deity", "The Name" (Sikh), "Buddhas and Bodhisattvas", "Tirthankaras" |
+| `offering_label`         | "Offer at the lotus feet", "Dedicate the merit", …                                                 |
+| `default_round_size`     | 108                                                                                                |
+| `show_images_by_default` | `false` for Sikh practice, which does not depict God                                               |
 
 "Deity" is the name in code only. Nothing Hindu-specific is hard-coded ([dharmic-traditions](../product/features/dharmic-traditions.md)).
 
@@ -122,7 +122,7 @@ Every record in this section has:
 
 | Field               | Notes                                                                                                                                                                                                                                                                                                                                                                                                               |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`                | **UUIDv7**, generated on the device, so it works offline and sorts by time. The profile's id is the `user_id`                                                                                                                                                                                                                                                                                                       |
+| `id`                | **UUIDv7**, generated on the device, so it works offline and sorts by time. The profile has one too; it is not the owner key                                                                                                                                                                                                                                                                                        |
 | `user_id`           | The owner. Before sign-in: the local profile id. On first sign-in, the device's rows are combined with the account's first, and only then given the account's id, before their first upload ([order of steps](../product/features/accounts-and-sync.md#signing-in-on-a-device-that-already-has-data)). On the server: the Supabase auth user id, a UUID but not necessarily v7, not null. One profile per `user_id` |
 | `hlc`, `deleted_at` | On records where the latest edit wins: `hlc` orders edits ([conflict rule](#conflict-rule)); `deleted_at` marks a deletion so it syncs                                                                                                                                                                                                                                                                              |
 
@@ -242,14 +242,21 @@ Only sealed events sync. An event left open by a crash is sealed on next launch,
 
 The devotee's place in a namavali (and, in P2, a stotra). It is not a count.
 
-| Field              | Notes                                                                                                                                                                                                                                                                                                                                                                                                       |
-| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `practice_id`      |                                                                                                                                                                                                                                                                                                                                                                                                             |
-| `practice_version` | The version the marks belong to. If the practice's version changes for any reason, the position and `chanted_steps` reset and the app says why: the saved marks may no longer match the names. **Positions are compared by `practice_version` first, then `hlc`**, so a device still on an old version can never overwrite a newer version's reset, however late it syncs. The server applies the same rule |
-| `step_index`       | The name on screen                                                                                                                                                                                                                                                                                                                                                                                          |
-| `chanted_steps`    | Which steps have been chanted **in the current pass**: a bitset, 14 bytes for 108 names                                                                                                                                                                                                                                                                                                                     |
-| `pass_id`          | Identifies the recitation in progress. A new one starts with each pass                                                                                                                                                                                                                                                                                                                                      |
-| `hlc`              | Saved after every step                                                                                                                                                                                                                                                                                                                                                                                      |
+| Field              | Notes                                                                                                                                                            |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `practice_id`      |                                                                                                                                                                  |
+| `practice_version` | The version the marks belong to. Any version change resets the position and `chanted_steps`, and the app says why: the saved marks may no longer match the names |
+| `step_index`       | The name on screen                                                                                                                                               |
+| `chanted_steps`    | Which steps have been chanted **in the current pass**: a bitset, 14 bytes for 108 names                                                                          |
+| `pass_id`          | Identifies the recitation in progress. A new one starts with each pass                                                                                           |
+| `pass_ordinal`     | How many passes have been finished for this practice. Goes up by one each time a recitation counts                                                               |
+| `hlc`              | Saved after every step                                                                                                                                           |
+
+**Merging positions across devices.** Positions are compared in this order, on the device and on the server:
+
+1. **`practice_version`** — a position saved against an older version never wins, so a content reset holds however late an old device syncs.
+2. **`pass_ordinal`** — a higher one wins, so a device still on pass 4 can never bring it back over another device's pass 5. The finished pass's count event is already recorded under its own id, so nothing is counted twice or lost.
+3. **Same version and same pass:** the marks are **combined**, so a name chanted on either device counts as chanted, and `step_index` comes from the higher `hlc`. Two devices in the same recitation add up instead of overwriting each other.
 
 **Finishing a pass is one write.** Recording the recitation and resetting `chanted_steps` happen in a single local transaction, so a crash can't do one without the other. The count event's id is derived from `pass_id`, so even a repeated write can't count the same recitation twice.
 
@@ -343,7 +350,7 @@ Records where the latest edit wins are ordered by a **hybrid logical clock** (`h
 - Every edit takes an `hlc` greater than any the device has made **or received**. Receiving records during sync moves the device's clock forward, so an edit made after seeing another edit always wins, even when the phone's clock is behind.
 - Edits made offline on two devices at the same time are ordered by `hlc`, and exact ties by device id, so every device and the server settle on the same result.
 - The server applies a write only if its `hlc` is higher than the stored one, whatever order uploads arrive in. It rejects an `hlc` more than 5 minutes ahead of server time; the app then corrects its clock offset from the server's time and retries, so a phone with a wildly wrong clock can't keep winning.
-- **Namavali positions** compare `practice_version` first and then `hlc`, so an old version's marks never win over a reset.
+- **Namavali positions** compare `practice_version`, then `pass_ordinal`, then `hlc`, and marks within the same pass are combined ([merging positions](#practiceposition)), so neither an old version nor a finished pass can come back.
 - Count events and sessions don't use this rule: they are inserted by id, and an id the server already has is ignored.
 
 ### Sync engine
