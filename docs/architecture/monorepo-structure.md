@@ -8,7 +8,7 @@ updated: 2026-09-21
 npm workspaces, one app for three platforms, one shared package.
 
 ```text
-naam-japam/
+japadhyan/
 ├─ apps/
 │  └─ mobile/                 Expo app — iOS, Android AND web (Expo Router)
 │     ├─ app.json             Expo config (name, scheme, web output: static)

@@ -17,6 +17,7 @@ The app is called **JapaDhyan** (जपध्यान): _japa_, repeating the N
 - **Store listings:** brand first, then what the app does — see [store-listing](../product/store-listing.md).
 - **Web:** japadhyan.com, with japadhyan.app redirecting to it. Neither is registered yet; both were free on 2026-09-21.
 - **App identifiers:** iOS bundle ID and Android package `com.japadhyan.app`, URL scheme `japadhyan`, Expo slug `japadhyan`, workspace packages `@japadhyan/*`.
+- **Repository:** `shashesh/japadhyan` on GitHub, renamed from `naam-japam` (GitHub redirects the old URL).
 
 ## Why JapaDhyan
 
@@ -36,5 +37,4 @@ The app is called **JapaDhyan** (जपध्यान): _japa_, repeating the N
 - Register japadhyan.com and japadhyan.app soon, before someone else does.
 - Some English speakers will misspell it (JapaDhyaan, JapaDyan, Japa Dhyana). Consider registering the common misspellings as domains.
 - The bundle ID and Android package can't change once the app is uploaded to a store.
-- The GitHub repository is still called `naam-japam`. Renaming it is a separate step; GitHub redirects the old URL.
 - Before launch: trademark search (India, Nepal, US), claim social handles, and ask each tradition's advisor to check the name.

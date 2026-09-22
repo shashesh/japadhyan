@@ -4,7 +4,7 @@ Guidance for Claude Code and other coding agents working in this repository.
 
 ## Project
 
-**JapaDhyan** ([name decision](./docs/decisions/2026-09-21-app-name-japadhyan.md); the repo is still called `naam-japam`) is a devotee-first naam japam (name chanting) app for **iOS, Android and web**, for Hindu, Sikh, Buddhist and Jain practice, open to everyone. Stack: **React Native with Expo** (one Expo Router codebase for all three platforms), TypeScript, npm workspaces. Exact versions: [TECH-VERSIONS.md](./TECH-VERSIONS.md).
+**JapaDhyan** ([name decision](./docs/decisions/2026-09-21-app-name-japadhyan.md)) is a devotee-first naam japam (name chanting) app for **iOS, Android and web**, for Hindu, Sikh, Buddhist and Jain practice, open to everyone. Stack: **React Native with Expo** (one Expo Router codebase for all three platforms), TypeScript, npm workspaces. Exact versions: [TECH-VERSIONS.md](./TECH-VERSIONS.md).
 
 Start with [docs/INDEX.md](./docs/INDEX.md) — the map of every doc. The product vision is in [docs/product/vision.md](./docs/product/vision.md); the current build plan is in [docs/plans/active/](./docs/plans/active/).
 
