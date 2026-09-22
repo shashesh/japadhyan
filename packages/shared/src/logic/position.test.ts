@@ -161,6 +161,49 @@ describe('mergePositions: deletions', () => {
   });
 });
 
+describe('mergePositions: associativity', () => {
+  // Devices and the server merge in whatever order rows arrive, so the
+  // grouping must not change the answer or replicas never converge.
+  const deletedAt = '2026-09-22T12:00:00.000Z';
+
+  test('a tombstone between two live edits does not depend on grouping', () => {
+    const a = withMarks([0], { id: 'pos-a', hlc: hlc(1) });
+    const tombstone = position({ id: 'pos-t', deleted_at: deletedAt, hlc: hlc(2) });
+    const b = withMarks([1], { id: 'pos-b', hlc: hlc(3) });
+
+    const left = mergePositions(mergePositions(a, tombstone, STEPS), b, STEPS);
+    const right = mergePositions(a, mergePositions(tombstone, b, STEPS), STEPS);
+
+    expect([...left.chanted_steps]).toEqual([...right.chanted_steps]);
+    expect(left.deleted_at).toBe(right.deleted_at);
+    expect(left.step_index).toBe(right.step_index);
+  });
+
+  test('three live edits do not depend on grouping', () => {
+    const a = withMarks([0], { id: 'pos-a', hlc: hlc(1) });
+    const b = withMarks([1], { id: 'pos-b', hlc: hlc(2) });
+    const c = withMarks([2], { id: 'pos-c', hlc: hlc(3) });
+
+    const left = mergePositions(mergePositions(a, b, STEPS), c, STEPS);
+    const right = mergePositions(a, mergePositions(b, c, STEPS), STEPS);
+
+    expect([...left.chanted_steps]).toEqual([...right.chanted_steps]);
+    expect(left.step_index).toBe(right.step_index);
+  });
+
+  test('a newer version among three does not depend on grouping', () => {
+    const a = withMarks([0], { id: 'pos-a', practice_version: 1, hlc: hlc(1) });
+    const reset = withMarks([], { id: 'pos-r', practice_version: 2, hlc: hlc(2) });
+    const c = withMarks([2], { id: 'pos-c', practice_version: 1, hlc: hlc(3) });
+
+    const left = mergePositions(mergePositions(a, reset, STEPS), c, STEPS);
+    const right = mergePositions(a, mergePositions(reset, c, STEPS), STEPS);
+
+    expect(left.practice_version).toBe(right.practice_version);
+    expect([...left.chanted_steps]).toEqual([...right.chanted_steps]);
+  });
+});
+
 describe('mergePositions: general', () => {
   test('gives the same result whichever way round the devices merge', () => {
     const phone = withMarks([0, 1], { step_index: 5, hlc: hlc(1000, 'phone') });

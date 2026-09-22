@@ -29,7 +29,16 @@ const titleOf = (p: Practice): string => p.title.en ?? p.id;
 export function ChantScreen() {
   useKeepAwake();
   const [practice, setPractice] = useState<Practice>(DEFAULT_PRACTICE);
-  return <ChantSession key={practice.id} practice={practice} onChangePractice={setPractice} />;
+  // The version is part of the key: a content update keeps the practice id
+  // but may change the words, and stale word-tap state would then point at
+  // names that are no longer there.
+  return (
+    <ChantSession
+      key={`${practice.id}@${practice.version}`}
+      practice={practice}
+      onChangePractice={setPractice}
+    />
+  );
 }
 
 function ChantSession({

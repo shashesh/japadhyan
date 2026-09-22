@@ -11,7 +11,7 @@
 
 import type { PracticePosition } from '../types';
 import { compareHlc } from './hlc';
-import { assertMarksSize, unionMarks } from './marks';
+import { assertMarksSize, marksFit, unionMarks } from './marks';
 
 /**
  * A total order over two positions in the same version and pass.
@@ -80,8 +80,20 @@ function select(a: PracticePosition, b: PracticePosition, stepCount: number): Pr
   // bookmark that was deleted must not come back because another device's
   // stale row carries a higher version or pass; equally, chanting again
   // after a deletion brings it back.
+  //
+  // The marks are still combined rather than dropped. A tombstone that
+  // erased them would not be associative: with a live edit either side of a
+  // deletion, `(live ⊔ tombstone) ⊔ live` would lose the first device's
+  // names while `live ⊔ (tombstone ⊔ live)` kept them, and replicas that
+  // merged in different orders would never converge. Whether a revived
+  // bookmark *should* keep names chanted before the deletion is a design
+  // question: docs/product/open-questions.md#marks-across-a-deleted-position.
   if (a.deleted_at !== null || b.deleted_at !== null) {
-    return comparePositions(a, b) >= 0 ? a : b;
+    const winner = comparePositions(a, b) >= 0 ? a : b;
+    const canCombine = marksFit(a.chanted_steps, stepCount) && marksFit(b.chanted_steps, stepCount);
+    return canCombine
+      ? { ...winner, chanted_steps: unionMarks(a.chanted_steps, b.chanted_steps, stepCount) }
+      : winner;
   }
 
   // A position saved against an older version never wins, so a content reset

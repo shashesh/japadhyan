@@ -34,6 +34,12 @@ export function assertMarksSize(marks: Uint8Array, stepCount: number): void {
   assertMarks(marks, stepCount);
 }
 
+/** Whether a bitset is the right size for a practice of `stepCount` steps. */
+export function marksFit(marks: Uint8Array, stepCount: number): boolean {
+  assertStepCount(stepCount);
+  return marks.length === bytesFor(stepCount);
+}
+
 function assertMarks(marks: Uint8Array, stepCount: number): void {
   assertStepCount(stepCount);
   const expected = bytesFor(stepCount);

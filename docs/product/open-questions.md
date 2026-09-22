@@ -49,3 +49,19 @@ Two ways out, to decide when listening japa is built in P2:
 
 P1 is unaffected: listening japa is P2, so no session can hold both today.
 See [data-model](../architecture/data-model.md#counting).
+
+## Marks across a deleted position
+
+A namavali position carries one `hlc` for the whole row, not one per mark, so a
+merge cannot tell which names were chanted before a deletion and which after.
+Merging therefore combines the marks either side of a tombstone: a bookmark
+deleted and then chanted again keeps the names marked before the deletion.
+
+The alternative is to record the deletion as a barrier on the row — the `hlc` it
+happened at — so marks older than it can be discarded. That is one more field on
+a record that syncs, and it is the only way to drop pre-deletion marks _and_
+still converge: erasing them without a barrier is not associative, so two devices
+merging the same three edits in different orders end up with different positions.
+
+Decide before positions can be deleted in the app. See
+[data-model](../architecture/data-model.md#practiceposition).
