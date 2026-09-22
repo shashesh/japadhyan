@@ -8,8 +8,8 @@ import {
   roundProgress,
   totalCount,
   tzOffsetMinutes,
-  uuidv7,
 } from '@japadhyan/shared';
+import { newId } from '@/lib/id';
 
 // Placeholders until device identity, the local profile and storage land in M3.
 const DEVICE_ID = 'local-device';
@@ -21,10 +21,15 @@ interface OpenSession {
   id: string;
   /** A session never crosses a local day; it is replaced at the boundary. */
   local_day: DayKey;
+  /**
+   * The practice as it was when the session began. A content update ends the
+   * session, so every event in it shares one steps_per_repetition.
+   */
+  practice_version: number;
 }
 
-function startSession(createdAt: string, tzOffsetMin: number): OpenSession {
-  return { id: uuidv7(), local_day: localDay(createdAt, tzOffsetMin, DAY_START_MINUTES) };
+function startSession(local_day: DayKey, practice_version: number): OpenSession {
+  return { id: newId(), local_day, practice_version };
 }
 
 /**
@@ -53,13 +58,15 @@ export function useChantSession(practice: Practice) {
       // so every event in a session shares one local_day.
       const open = sessionRef.current;
       const session =
-        open && open.local_day === today ? open : startSession(createdAt, tzOffsetMin);
+        open && open.local_day === today && open.practice_version === practice.version
+          ? open
+          : startSession(today, practice.version);
       sessionRef.current = session;
 
       setEvents((prev) => [
         ...prev,
         {
-          id: uuidv7(),
+          id: newId(),
           user_id: LOCAL_USER_ID,
           practice_id: practice.id,
           session_id: session.id,
@@ -74,7 +81,7 @@ export function useChantSession(practice: Practice) {
         },
       ]);
     },
-    [practice.id, stepsPerRepetition],
+    [practice.id, practice.version, stepsPerRepetition],
   );
 
   const total = useMemo(

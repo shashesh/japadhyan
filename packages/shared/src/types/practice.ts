@@ -224,12 +224,17 @@ export interface PracticePosition extends OwnedRecord, SyncFields {
 
 export type SankalpaStatus = 'active' | 'completed' | 'released';
 
-export interface Sankalpa extends OwnedRecord, SyncFields {
+/**
+ * A sankalpa targets **either** one practice **or** one program, never both
+ * and never neither, so resolving its progress is never ambiguous.
+ */
+export type SankalpaTarget =
+  | { practice_id: PracticeId; program_id: null }
+  /** For programs with a different practice each day (Navaratri). */
+  | { practice_id: null; program_id: string };
+
+interface SankalpaBase extends OwnedRecord, SyncFields {
   title: string;
-  /** Either this… */
-  practice_id: PracticeId | null;
-  /** …or this, for programs with a different practice each day (Navaratri). */
-  program_id: string | null;
   /** Repetitions. */
   daily_target: number | null;
   /** Repetitions, e.g. 2,400,000 for a Gayatri anushthana. */
@@ -242,3 +247,5 @@ export interface Sankalpa extends OwnedRecord, SyncFields {
   /** `released` is the gentle word for letting a sankalpa go. */
   status: SankalpaStatus;
 }
+
+export type Sankalpa = SankalpaBase & SankalpaTarget;

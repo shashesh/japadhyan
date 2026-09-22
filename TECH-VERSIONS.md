@@ -1,6 +1,6 @@
 # Technology Versions
 
-**Last updated:** 2026-09-21
+**Last updated:** 2026-09-22
 
 Single source of truth for versions used in this repo. Update in the same PR as any dependency change.
 
@@ -22,6 +22,7 @@ Single source of truth for versions used in this repo. Update in the same PR as 
 | react-native-web               | ~0.21.2  | Web target                                            |
 | expo-haptics                   | ~57.0.3  | Bead and meru feedback                                |
 | expo-keep-awake                | ~57.0.2  | Screen stays on while chanting                        |
+| expo-crypto                    | ~57.0.3  | Native RNG for UUIDv7; injected in `src/lib/id.ts`    |
 | react-native-safe-area-context | ~5.7.0   |                                                       |
 | react-native-screens           | ~4.26.0  |                                                       |
 
@@ -42,7 +43,7 @@ Single source of truth for versions used in this repo. Update in the same PR as 
 | Prettier                      | ^3                            | `.prettierrc`; also formats Markdown                                                   |
 | markdownlint-cli2             | ^0.23.3 (markdownlint 0.41.1) | `.markdownlint-cli2.jsonc`; same markdownlint as the VS Code extension                 |
 | Vitest                        | ^4.1.11                       | `packages/shared` tests                                                                |
-| @vitest/coverage-v8           | ^4.1.11                       | `npm run test:coverage -w @japadhyan/shared`; 80% thresholds in `vitest.config.ts`     |
+| @vitest/coverage-v8           | ^4.1.11                       | Runs as part of `npm test`; 80% thresholds in `packages/shared/vitest.config.ts`       |
 | Jest                          | ^30.5                         | `apps/mobile` tests, `jest-expo` preset                                                |
 | jest-expo                     | ^57.0.5                       |                                                                                        |
 | @testing-library/react-native | ^14.0.1                       | `render` and `fireEvent` are async — always `await` them                               |

@@ -26,7 +26,7 @@ function position(overrides: Partial<PracticePosition> = {}): PracticePosition {
 /** A position with the given steps marked as chanted. */
 function withMarks(indices: readonly number[], overrides: Partial<PracticePosition> = {}) {
   let marks = createMarks(STEPS);
-  for (const i of indices) marks = markStep(marks, i);
+  for (const i of indices) marks = markStep(marks, i, STEPS);
   return position({ chanted_steps: marks, ...overrides });
 }
 
@@ -38,7 +38,7 @@ describe('mergePositions: practice_version', () => {
     const merged = mergePositions(old, reset);
 
     expect(merged.practice_version).toBe(2);
-    expect(countMarks(merged.chanted_steps)).toBe(0);
+    expect(countMarks(merged.chanted_steps, STEPS)).toBe(0);
   });
 
   test('an old version never wins however late it syncs', () => {
@@ -58,8 +58,8 @@ describe('mergePositions: pass_ordinal', () => {
     const merged = mergePositions(behind, ahead);
 
     expect(merged.pass_ordinal).toBe(5);
-    expect(isStepChanted(merged.chanted_steps, 7)).toBe(true);
-    expect(isStepChanted(merged.chanted_steps, 0)).toBe(false);
+    expect(isStepChanted(merged.chanted_steps, 7, STEPS)).toBe(true);
+    expect(isStepChanted(merged.chanted_steps, 0, STEPS)).toBe(false);
   });
 
   test('pass_ordinal is only compared within the same version', () => {
@@ -80,10 +80,10 @@ describe('mergePositions: same version and pass', () => {
 
     const merged = mergePositions(phone, tablet);
 
-    expect(isStepChanted(merged.chanted_steps, 0)).toBe(true);
-    expect(isStepChanted(merged.chanted_steps, 1)).toBe(true);
-    expect(isStepChanted(merged.chanted_steps, 2)).toBe(true);
-    expect(countMarks(merged.chanted_steps)).toBe(3);
+    expect(isStepChanted(merged.chanted_steps, 0, STEPS)).toBe(true);
+    expect(isStepChanted(merged.chanted_steps, 1, STEPS)).toBe(true);
+    expect(isStepChanted(merged.chanted_steps, 2, STEPS)).toBe(true);
+    expect(countMarks(merged.chanted_steps, STEPS)).toBe(3);
   });
 
   test('takes step_index from the higher hlc, not the higher index', () => {
@@ -108,7 +108,7 @@ describe('mergePositions: same version and pass', () => {
 
     const merged = mergePositions(losesOnHlc, winsOnHlc);
 
-    expect(countMarks(merged.chanted_steps)).toBe(4);
+    expect(countMarks(merged.chanted_steps, STEPS)).toBe(4);
   });
 });
 
@@ -131,7 +131,7 @@ describe('mergePositions: general', () => {
     const merged = mergePositions(only, only);
 
     expect(merged.step_index).toBe(3);
-    expect(countMarks(merged.chanted_steps)).toBe(3);
+    expect(countMarks(merged.chanted_steps, STEPS)).toBe(3);
   });
 
   test('does not mutate either side', () => {
@@ -140,8 +140,8 @@ describe('mergePositions: general', () => {
 
     mergePositions(phone, tablet);
 
-    expect(countMarks(phone.chanted_steps)).toBe(1);
-    expect(countMarks(tablet.chanted_steps)).toBe(1);
+    expect(countMarks(phone.chanted_steps, STEPS)).toBe(1);
+    expect(countMarks(tablet.chanted_steps, STEPS)).toBe(1);
   });
 
   test('refuses to merge positions for different practices', () => {

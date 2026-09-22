@@ -3,6 +3,11 @@
  * 14 bytes for 108 names. Kept apart from counting — marks are a bookmark,
  * totals always come from count events.
  *
+ * **A bitset does not know its own length.** 108 names round up to 14 bytes,
+ * so bits 108–111 exist without being names. Every operation therefore takes
+ * the practice's `stepCount` and ignores the padding, so a spare bit can
+ * neither be set locally nor arrive from another device and be counted.
+ *
  * Every function returns a new bitset; none mutates its arguments, so two
  * devices can merge their marks without either losing a name it chanted.
  * See docs/architecture/data-model.md#practiceposition.
@@ -16,10 +21,11 @@ function assertStepCount(stepCount: number): void {
   }
 }
 
-function assertIndex(marks: Uint8Array, index: number): void {
-  const capacity = marks.length * BITS_PER_BYTE;
-  if (!Number.isInteger(index) || index < 0 || index >= capacity) {
-    throw new RangeError(`step index must be 0..${capacity - 1}, got ${index}`);
+/** Bounds an index against the real names, not the padded capacity. */
+function assertIndex(index: number, stepCount: number): void {
+  assertStepCount(stepCount);
+  if (!Number.isInteger(index) || index < 0 || index >= stepCount) {
+    throw new RangeError(`step index must be 0..${stepCount - 1}, got ${index}`);
   }
 }
 
@@ -30,17 +36,16 @@ export function createMarks(stepCount: number): Uint8Array {
 }
 
 /** A copy of `marks` with `index` chanted. Marking twice counts once. */
-export function markStep(marks: Uint8Array, index: number): Uint8Array {
-  assertIndex(marks, index);
+export function markStep(marks: Uint8Array, index: number, stepCount: number): Uint8Array {
+  assertIndex(index, stepCount);
   const next = Uint8Array.from(marks);
   const byte = Math.floor(index / BITS_PER_BYTE);
-  // Safe: assertIndex has already bounded `index` to the bitset.
   next[byte] = next[byte]! | (1 << (index % BITS_PER_BYTE));
   return next;
 }
 
-export function isStepChanted(marks: Uint8Array, index: number): boolean {
-  assertIndex(marks, index);
+export function isStepChanted(marks: Uint8Array, index: number, stepCount: number): boolean {
+  assertIndex(index, stepCount);
   return (marks[Math.floor(index / BITS_PER_BYTE)]! & (1 << (index % BITS_PER_BYTE))) !== 0;
 }
 
@@ -57,15 +62,15 @@ export function unionMarks(a: Uint8Array, b: Uint8Array): Uint8Array {
   return merged;
 }
 
-/** How many steps have been chanted in this pass. */
-export function countMarks(marks: Uint8Array): number {
+/**
+ * How many of the practice's steps have been chanted in this pass. Padding
+ * bits are never counted, even if a bitset arrives from sync with them set.
+ */
+export function countMarks(marks: Uint8Array, stepCount: number): number {
+  assertStepCount(stepCount);
   let total = 0;
-  for (const byte of marks) {
-    let bits = byte;
-    while (bits !== 0) {
-      bits &= bits - 1;
-      total += 1;
-    }
+  for (let i = 0; i < stepCount; i += 1) {
+    if ((marks[Math.floor(i / BITS_PER_BYTE)]! & (1 << (i % BITS_PER_BYTE))) !== 0) total += 1;
   }
   return total;
 }
@@ -75,9 +80,5 @@ export function countMarks(marks: Uint8Array): number {
  * Spare bits in the last byte are ignored.
  */
 export function isPassComplete(marks: Uint8Array, stepCount: number): boolean {
-  assertStepCount(stepCount);
-  for (let i = 0; i < stepCount; i += 1) {
-    if (!isStepChanted(marks, i)) return false;
-  }
-  return true;
+  return countMarks(marks, stepCount) === stepCount;
 }
