@@ -16,7 +16,7 @@ japadhyan/
 │     └─ src/
 │        ├─ app/              Routes only (file-based). Keep thin.
 │        ├─ features/<name>/  Screens, hooks and platform code per feature
-│        ├─ data/             Repositories: the only code that touches local storage and sync (M3)
+│        ├─ data/             Repositories: the only code that touches local storage and sync (P1)
 │        └─ theme.ts          Colours and spacing tokens
 ├─ packages/
 │  └─ shared/                 @japadhyan/shared — platform-agnostic
@@ -24,7 +24,7 @@ japadhyan/
 │        ├─ types/            Domain types (snake_case fields)
 │        ├─ logic/            Pure business logic + Vitest tests
 │        └─ constants/        Round sizes and other fixed values
-├─ content/                   Deities, practices, programs as YAML — built into packs (M2)
+├─ content/                   Deities, practices, programs as YAML — built into packs (P1)
 ├─ docs/                      Product, architecture, decisions, plans
 ├─ scripts/                   Repo tooling: git hooks setup, CI guard tests (node:test)
 ├─ .githooks/                 Git hooks: no commits or pushes to master; Markdown checks

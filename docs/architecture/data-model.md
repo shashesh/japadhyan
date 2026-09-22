@@ -32,13 +32,13 @@ Read-only on the device. Authored in `content/`, reviewed, and delivered as pack
 
 ### Tradition
 
-| Field                    | Notes                                                                                              |
-| ------------------------ | -------------------------------------------------------------------------------------------------- |
-| `id`                     | `hindu` · `sikh` · `buddhist` · `jain`                                                             |
-| `deity_label`            | What the app calls a deity: "Deity", "The Name" (Sikh), "Buddhas and Bodhisattvas", "Tirthankaras" |
-| `offering_label`         | "Offer at the lotus feet", "Dedicate the merit", …                                                 |
-| `default_round_size`     | 108                                                                                                |
-| `show_images_by_default` | `false` for Sikh practice, which does not depict God                                               |
+| Field                    | Notes                                                                                                                        |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| `id`                     | **UUIDv7**, generated on the device, so it works offline and sorts by time. The profile has one too; it is not the owner key |
+| `deity_label`            | What the app calls a deity: "Deity", "The Name" (Sikh), "Buddhas and Bodhisattvas", "Tirthankaras"                           |
+| `offering_label`         | "Offer at the lotus feet", "Dedicate the merit", …                                                                           |
+| `default_round_size`     | 108                                                                                                                          |
+| `show_images_by_default` | `false` for Sikh practice, which does not depict God                                                                         |
 
 "Deity" is the name in code only. Nothing Hindu-specific is hard-coded ([dharmic-traditions](../product/features/dharmic-traditions.md)).
 
@@ -120,11 +120,11 @@ Written on the device first. Synced only when the devotee signs in and consents 
 
 Every record in this section has:
 
-| Field               | Notes                                                                                                                                                                                                                                                                                                                                                  |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `id`                | **UUIDv7**, generated on the device, so it works offline and sorts by time. The profile's id is the `user_id`                                                                                                                                                                                                                                          |
-| `user_id`           | The owner. Before sign-in: the local profile id. On first sign-in, the device's rows are combined with the account's first, and only then given the account's id, before their first upload ([order of steps](../product/features/accounts-and-sync.md#signing-in-on-a-device-that-already-has-data)). On the server: the Supabase auth user, not null |
-| `hlc`, `deleted_at` | On records where the latest edit wins: `hlc` orders edits ([conflict rule](#conflict-rule)); `deleted_at` marks a deletion so it syncs                                                                                                                                                                                                                 |
+| Field               | Notes                                                                                                                                                                                                                                                                                                                                                                                                               |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`                | **UUIDv7**, generated on the device, so it works offline and sorts by time. The profile's id is the `user_id`                                                                                                                                                                                                                                                                                                       |
+| `user_id`           | The owner. Before sign-in: the local profile id. On first sign-in, the device's rows are combined with the account's first, and only then given the account's id, before their first upload ([order of steps](../product/features/accounts-and-sync.md#signing-in-on-a-device-that-already-has-data)). On the server: the Supabase auth user id, a UUID but not necessarily v7, not null. One profile per `user_id` |
+| `hlc`, `deleted_at` | On records where the latest edit wins: `hlc` orders edits ([conflict rule](#conflict-rule)); `deleted_at` marks a deletion so it syncs                                                                                                                                                                                                                                                                              |
 
 Uniqueness is per user: one saved practice per `(user_id, practice_id)`, one default per `(user_id, deity_id)`, one position per `(user_id, practice_id)`.
 
@@ -188,15 +188,18 @@ The app opens to the saved practice with the latest `last_used_at`.
 
 ### Session
 
-| Field                        | Notes                                                                                       |
-| ---------------------------- | ------------------------------------------------------------------------------------------- |
-| `practice_id`                |                                                                                             |
-| `device_id`                  |                                                                                             |
-| `started_at`                 | Created at the first count                                                                  |
-| `ended_at`                   | Set when the devotee leaves the chant screen, after 30 minutes idle, or at the day boundary |
-| `local_day`, `tz_offset_min` | The one local day the session belongs to                                                    |
-| `dedication_id`              | P2                                                                                          |
-| `reflection`                 | P2: stillness 1–5 and an optional note (private)                                            |
+| Field                                      | Notes                                                                                                                            |
+| ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
+| `practice_id`                              |                                                                                                                                  |
+| `device_id`                                |                                                                                                                                  |
+| `started_at`                               | Created at the first count                                                                                                       |
+| `ended_at`                                 | Set when the devotee leaves the chant screen, after 30 minutes idle, at the day boundary, or when the practice's content updates |
+| `local_day`, `tz_offset_min`               | The one local day the session belongs to                                                                                         |
+| `practice_version`, `steps_per_repetition` | The practice as it was when the session began. Every event in the session shares them                                            |
+| `dedication_id`                            | P2                                                                                                                               |
+| `reflection`                               | P2: stillness 1–5 and an optional note (private)                                                                                 |
+
+**A session ends when its practice's content updates**, so every event and correction in it shares one `steps_per_repetition`. A new session starts on the new version, and the devotee sees nothing change.
 
 **A session never crosses a local day.** At the devotee's day boundary the current session ends and a new one begins; the devotee sees nothing change. Every event and correction in a session therefore has the same `local_day`, and each session's floored net belongs to exactly one day.
 
@@ -204,19 +207,19 @@ The app opens to the saved practice with the latest `last_used_at`.
 
 An append-only record of completed repetitions. **Totals are always derived from events.** Once sealed, an event never changes.
 
-| Field                  | Notes                                                                                                                                                                                               |
-| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`                   | UUIDv7                                                                                                                                                                                              |
-| `practice_id`          |                                                                                                                                                                                                     |
-| `session_id`           |                                                                                                                                                                                                     |
-| `mode`                 | A [chanting mode](../product/features/chanting-modes.md), or `manual` / `correction`                                                                                                                |
-| `count`                | **Completed repetitions**. For a namavali, recitations. Positive, except for corrections                                                                                                            |
-| `estimated`            | True for silent pace and breath                                                                                                                                                                     |
-| `device_id`            |                                                                                                                                                                                                     |
-| `created_at`           | UTC. For ordering                                                                                                                                                                                   |
-| `local_day`            | `YYYY-MM-DD`, using the devotee's `day_start_minutes` at the time. **The source of truth for which day a count belongs to**, so history doesn't move when the devotee travels                       |
-| `tz_offset_min`        | Time zone offset when the event was created                                                                                                                                                         |
-| `steps_per_repetition` | The practice's step count when chanted: 1 for a mantra, 108 for an Ashtottara. Used for names chanted, so a later content update never changes past totals. A correction copies it from its session |
+| Field                  | Notes                                                                                                                                                                                                                         |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`                   | UUIDv7                                                                                                                                                                                                                        |
+| `practice_id`          |                                                                                                                                                                                                                               |
+| `session_id`           |                                                                                                                                                                                                                               |
+| `mode`                 | A [chanting mode](../product/features/chanting-modes.md), or `manual` / `correction`                                                                                                                                          |
+| `count`                | **Completed repetitions**. For a namavali, recitations. Positive, except for corrections                                                                                                                                      |
+| `estimated`            | True for silent pace and breath                                                                                                                                                                                               |
+| `device_id`            |                                                                                                                                                                                                                               |
+| `created_at`           | UTC. For ordering                                                                                                                                                                                                             |
+| `local_day`            | `YYYY-MM-DD`, using the devotee's `day_start_minutes` at the time. **The source of truth for which day a count belongs to**, so history doesn't move when the devotee travels                                                 |
+| `tz_offset_min`        | Time zone offset when the event was created                                                                                                                                                                                   |
+| `steps_per_repetition` | The practice's step count when chanted: 1 for a mantra, 108 for an Ashtottara. Used for names chanted, so a later content update never changes past totals. Copied from the session, which holds one value for all its events |
 
 **Grouped, then sealed.** Taps are not stored one by one; that would be about 36 million rows a year for someone chanting a lakh a day. The current event is kept open on the device and updated in place as the devotee taps. It is **sealed** when:
 
@@ -239,13 +242,16 @@ Only sealed events sync. An event left open by a crash is sealed on next launch,
 
 The devotee's place in a namavali (and, in P2, a stotra). It is not a count.
 
-| Field              | Notes                                                                                                                                                        |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `practice_id`      |                                                                                                                                                              |
-| `practice_version` | If the practice's version changes for any reason, the position and `chanted_steps` reset and the app says why: the saved marks may no longer match the names |
-| `step_index`       | The name on screen                                                                                                                                           |
-| `chanted_steps`    | Which steps have been chanted **in the current pass**: a bitset, 14 bytes for 108 names                                                                      |
-| `hlc`              | Saved after every step                                                                                                                                       |
+| Field              | Notes                                                                                                                                                                                                                                                                                                                                                                                                       |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `practice_id`      |                                                                                                                                                                                                                                                                                                                                                                                                             |
+| `practice_version` | The version the marks belong to. If the practice's version changes for any reason, the position and `chanted_steps` reset and the app says why: the saved marks may no longer match the names. **Positions are compared by `practice_version` first, then `hlc`**, so a device still on an old version can never overwrite a newer version's reset, however late it syncs. The server applies the same rule |
+| `step_index`       | The name on screen                                                                                                                                                                                                                                                                                                                                                                                          |
+| `chanted_steps`    | Which steps have been chanted **in the current pass**: a bitset, 14 bytes for 108 names                                                                                                                                                                                                                                                                                                                     |
+| `pass_id`          | Identifies the recitation in progress. A new one starts with each pass                                                                                                                                                                                                                                                                                                                                      |
+| `hlc`              | Saved after every step                                                                                                                                                                                                                                                                                                                                                                                      |
+
+**Finishing a pass is one write.** Recording the recitation and resetting `chanted_steps` happen in a single local transaction, so a crash can't do one without the other. The count event's id is derived from `pass_id`, so even a repeated write can't count the same recitation twice.
 
 **When a recitation counts.** A step is chanted when the devotee moves forward from it (tap, volume button, or chant along in P2). A recitation counts only when **every step in the pass has been chanted**, and it counts once: the pass then resets to step 1 with an empty `chanted_steps`, and back can't cross into the finished pass. Jumping from the list view moves `step_index` without marking anything. Going back and forward again re-chants a name without counting it twice.
 
@@ -337,11 +343,12 @@ Records where the latest edit wins are ordered by a **hybrid logical clock** (`h
 - Every edit takes an `hlc` greater than any the device has made **or received**. Receiving records during sync moves the device's clock forward, so an edit made after seeing another edit always wins, even when the phone's clock is behind.
 - Edits made offline on two devices at the same time are ordered by `hlc`, and exact ties by device id, so every device and the server settle on the same result.
 - The server applies a write only if its `hlc` is higher than the stored one, whatever order uploads arrive in. It rejects an `hlc` more than 5 minutes ahead of server time; the app then corrects its clock offset from the server's time and retries, so a phone with a wildly wrong clock can't keep winning.
-- Count events don't need this: they are append-only.
+- **Namavali positions** compare `practice_version` first and then `hlc`, so an old version's marks never win over a reset.
+- Count events and sessions don't use this rule: they are inserted by id, and an id the server already has is ignored.
 
 ### Sync engine
 
-Chosen by spike **S4**, which runs **before local storage is built**: PowerSync ships its own SQLite layer (op-sqlite on phones, wa-sqlite on web), so choosing it after building on expo-sqlite would mean migrating twice. S4 must show:
+Chosen by spike **S4**, which is a prerequisite for the local storage milestone in the [Phase 1 plan](../plans/active/2026-09-21-phase-1-plan.md): PowerSync ships its own SQLite layer (op-sqlite on phones, wa-sqlite on web), so choosing it after building on expo-sqlite would mean migrating twice. S4 must show:
 
 1. A guest's data becomes account data following the [combine rules](../product/features/accounts-and-sync.md#signing-in-on-a-device-that-already-has-data).
 2. Two devices go offline, both keep chanting, reconnect, and totals are exact.

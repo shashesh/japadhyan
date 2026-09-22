@@ -41,7 +41,7 @@ Through Supabase Auth.
 
 Knowing which deities and mantras someone chants reveals their religion: **special-category data** under GDPR Article 9, and personal data under India's DPDP Act.
 
-- Before anything syncs, a plain-language screen explains what is stored (practices, counts, sankalpas, favourites; private guru mantras only as their label), where, and why, and asks for **explicit agreement**.
+- Consent comes **before any data is downloaded or uploaded**, including the account's own data on sign-in. A plain-language screen explains what is stored (practices, counts, sankalpas, favourites; private guru mantras only as their label), where, and why, and asks for **explicit agreement**.
 - The policy version and date agreed are recorded in `consents`.
 - **"Not now"** keeps the devotee as a guest. Nothing is uploaded.
 
@@ -65,10 +65,12 @@ Nothing is asked, and **no count is ever lost**: counts are append-only events, 
 
 **Order of steps**, so per-user uniqueness (one saved practice per practice, one default per deity, one position per practice) always holds:
 
-1. **Download** the account's data completely. The device's rows keep the local profile id meanwhile. If the download fails, nothing changes and the app retries later.
-2. **Combine** on the device, using the table above. Where both sides have a row for the same practice or deity, one row survives: the account's row, updated with the combined values.
-3. **Re-key** the device's remaining rows to the account's id.
-4. **Upload.** As a backstop, the server applies each write only if it is newer by the [conflict rule](../../architecture/data-model.md#conflict-rule), keyed per user, so a retry can never create a duplicate or undo a newer edit.
+1. **Seal the open count event**, so nothing is left that can't sync and no count stays behind under the local profile.
+2. **Consent**, before anything is downloaded or uploaded. If the devotee says "Not now", the app stops here and they stay a guest: nothing leaves or reaches the device. If the account already recorded agreement to the current policy version, the app doesn't ask again; that check reads only the consent record.
+3. **Download** the account's data completely. The device's rows keep the local profile id meanwhile. If the download fails, nothing changes and the app retries later.
+4. **Combine** on the device, using the table above. Where both sides have a row for the same practice or deity, one row survives: the account's row, updated with the combined values.
+5. **Re-key** the device's remaining rows to the account's id.
+6. **Upload.** Count events and sessions are inserted by id, and an id the server already has is ignored, so a retry can't double-count; a session also allows the one-time filling in of `ended_at`. Rows where the latest edit wins go through the [conflict rule](../../architecture/data-model.md#conflict-rule), so a retry can never undo a newer edit.
 
 Afterwards the devotee sees what happened, e.g. "Added 2,340 repetitions from this device to your account."
 
@@ -90,6 +92,7 @@ Required by both app stores. Google Play also requires a web page for it.
 - **Settings → Account → Delete account**, in the app and on the web.
 - Deletes the account and all its server data, and signs out every device.
 - **On the phone or browser used to delete**, the devotee then chooses: **keep my practice on this device as a guest**, or **erase everything**.
+- **Keeping it as a guest** creates a new local profile, moves the kept records to it, and clears the sign-in details, the stored consent and everything the sync kept track of. The device is then exactly as it would be for someone who never signed in.
 - **Every other device clears the account's data the next time it connects.** The app checks the account whenever it comes online, and a deleted account fails that check. The device then removes the account's data and says why: "This account was deleted, so its practice has been removed from this device." If that device has counts that never synced, the devotee can export them first; nothing else is kept.
 - **A device that stays offline** keeps its copy until it next connects. The deletion screen says this plainly.
 

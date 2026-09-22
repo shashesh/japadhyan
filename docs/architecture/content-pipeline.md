@@ -82,14 +82,25 @@ A pack with a newer schema major version than the app understands is ignored; th
 
 ## Device
 
-| Layer                | What                                                                                | When                                                                        |
-| -------------------- | ----------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| **Core bundle**      | The `index` pack, `programs`, and the base packs of the deities shown in onboarding | Inside the app. Works offline from the moment it's installed                |
-| **Downloaded packs** | Base and add-on packs, stored in the local catalog tables and search index          | When a deity is opened, and **automatically for anything saved or starred** |
-| **Audio**            | Per practice                                                                        | On demand, or "Download for offline"                                        |
+| Layer                | What                                                                                                  | When                                                                                    |
+| -------------------- | ----------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| **Core bundle**      | The `index` pack, `programs`, and the base packs of **every launch deity** (about 2 MB of text in P1) | Inside the app. Works offline from the moment it's installed, with no request to anyone |
+| **Downloaded packs** | Base and add-on packs, stored in the local catalog tables and search index                            | When a deity is opened, and **automatically for anything saved or starred**             |
+| **Audio**            | Per practice                                                                                          | On demand, or "Download for offline"                                                    |
 
+- **In P1 no text is downloaded at all:** the whole launch library is in the app. Downloads begin when the library grows beyond it, and for audio.
 - **Browsing and search work offline** because the index is bundled. A deity that hasn't been downloaded shows "Download to open", not an empty screen.
 - **Settings → Storage** lists downloaded packs and audio, with sizes, and offers "Download everything for offline".
 - **Updates:** the app checks the manifest when online and fetches only packs that changed. Content fixes need no app release.
 - **Authenticity:** the app has the content signing public key built in and rejects a manifest whose signature doesn't verify. Every pack must match the SHA-256 listed in the signed manifest, so a compromised CDN can't swap in altered text. Audio and images must match the SHA-256 recorded in their pack. The core bundle is covered by the app's own store signature.
 - **Unpublished content** stays on devices that have it, and its counts remain; it is hidden from browsing.
+
+## Privacy of downloads
+
+Which deity someone chants to reveals their religion, so a request for that deity's content is sensitive even for a guest with no account ([platform principles](platform-principles.md#privacy)).
+
+- **Requests carry nothing that identifies the devotee:** no account token, no device id, no cookies. They are plain anonymous fetches of static files, over HTTPS, so only the CDN operator sees which file was fetched.
+- **P1 avoids the problem:** the launch library's text ships in the app, so opening a deity needs no request.
+- **As the library grows,** packs are fetched in **groups** (a tradition, or a batch of deities including ones the devotee didn't open) rather than one deity at a time, and "Download everything for offline" is offered, so one request doesn't map to one deity.
+- **Audio stays per practice.** Whoever runs the CDN can see which recording was fetched, and from which IP address. The privacy policy says so plainly, logs are kept for the shortest period the provider allows, and audio can be downloaded in bulk instead.
+- If this turns out to matter more than expected, the next step is serving content through a proxy that strips the IP address. Not needed for P1, since nothing is fetched.
