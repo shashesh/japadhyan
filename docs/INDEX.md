@@ -52,7 +52,7 @@
 ## Plans
 
 - [plans/_template.md](plans/_template.md) — template for new plans
-- [plans/active/2026-09-21-phase-1-plan.md](plans/active/2026-09-21-phase-1-plan.md) — Phase 1 build plan: milestones M0–M9 and early spikes
+- [plans/active/2026-09-21-phase-1-plan.md](plans/active/2026-09-21-phase-1-plan.md) — Phase 1 build plan: milestones M0–M11 and early spikes
 
 ## Decisions
 
