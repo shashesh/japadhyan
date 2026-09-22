@@ -2,51 +2,62 @@ import { useCallback, useMemo, useState } from 'react';
 import {
   type ChantMode,
   type CountEvent,
-  type Mantra,
+  type Practice,
+  localDay,
   roundProgress,
   totalCount,
+  tzOffsetMinutes,
+  uuidv7,
 } from '@japadhyan/shared';
 
-// Placeholder until device identity and local storage (SQLite) land in P1.
+// Placeholders until device identity, the local profile and storage land in M3.
 const DEVICE_ID = 'local-device';
-
-let eventSeq = 0;
-function newEventId(): string {
-  eventSeq += 1;
-  return `${Date.now().toString(36)}-${eventSeq}`;
-}
+const LOCAL_USER_ID = 'local-profile';
 
 /**
  * In-memory chanting session. Every mode records CountEvents; totals are
- * always derived from events ("one count, many inputs").
+ * always derived from events ("one count, many inputs"). Events are sealed
+ * with the local day and the steps they were chanted with, so a later
+ * content update never changes what this session counted.
  */
-export function useChantSession(mantra: Mantra) {
-  const [sessionId] = useState(newEventId);
+export function useChantSession(practice: Practice) {
+  const [sessionId] = useState(() => uuidv7());
   const [events, setEvents] = useState<CountEvent[]>([]);
+
+  const stepsPerRepetition = practice.steps.length;
 
   const addRepetitions = useCallback(
     (mode: ChantMode, count = 1, estimated = false) => {
+      const createdAt = new Date().toISOString();
+      const tzOffsetMin = tzOffsetMinutes();
       setEvents((prev) => [
         ...prev,
         {
-          id: newEventId(),
-          mantra_id: mantra.id,
+          id: uuidv7(),
+          user_id: LOCAL_USER_ID,
+          practice_id: practice.id,
           session_id: sessionId,
           mode,
           count,
+          steps_per_repetition: stepsPerRepetition,
           estimated,
           device_id: DEVICE_ID,
-          created_at: new Date().toISOString(),
+          created_at: createdAt,
+          local_day: localDay(createdAt, tzOffsetMin),
+          tz_offset_min: tzOffsetMin,
         },
       ]);
     },
-    [mantra.id, sessionId],
+    [practice.id, sessionId, stepsPerRepetition],
   );
 
-  const total = useMemo(() => totalCount(events, { mantraId: mantra.id }), [events, mantra.id]);
+  const total = useMemo(
+    () => totalCount(events, { practiceId: practice.id }),
+    [events, practice.id],
+  );
   const progress = useMemo(
-    () => roundProgress(total, mantra.round_size),
-    [total, mantra.round_size],
+    () => roundProgress(total, practice.default_round),
+    [total, practice.default_round],
   );
 
   return { events, total, progress, addRepetitions };
