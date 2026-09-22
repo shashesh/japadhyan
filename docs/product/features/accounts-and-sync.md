@@ -55,7 +55,7 @@ Nothing is asked, and **no count is ever lost**: counts are append-only events, 
 
 | Data                   | Rule                                                                                                                                                                                            |
 | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Count events, sessions | Combined. Ids are unique, so nothing is counted twice                                                                                                                                           |
+| Count events, sessions | Combined. Ids are unique, so nothing is counted twice. Chanting done on two devices adds up, because it really was chanted twice                                                                |
 | Saved practices        | Matched by practice. A practice is a favourite if it's starred on either side; other settings: the latest edit wins ([conflict rule](../../architecture/data-model.md#conflict-rule))           |
 | Deity defaults         | The account's value wins                                                                                                                                                                        |
 | Profile                | The account's value wins                                                                                                                                                                        |
@@ -69,7 +69,7 @@ Nothing is asked, and **no count is ever lost**: counts are append-only events, 
 2. **Consent**, before anything is downloaded or uploaded. If the devotee says "Not now", the app stops here and they stay a guest: nothing leaves or reaches the device. If the account already recorded agreement to the current policy version, the app doesn't ask again; that check reads only the consent record.
 3. **Download** the account's data completely. The device's rows keep the local profile id meanwhile. If the download fails, nothing changes and the app retries later.
 4. **Combine** on the device, using the table above. Where both sides have a row for the same practice or deity, one row survives: the account's row, updated with the combined values.
-5. **Re-key** the device's remaining rows to the account's id. A namavali recitation in progress needs nothing special: its key is worked out when the recitation finishes, from the owner at that moment.
+5. **Re-key** the device's remaining rows to the account's id.
 6. **Upload.** Count events and sessions are inserted by id, and an id the server already has is ignored, so a retry can't double-count; a session also allows the one-time filling in of `ended_at`. Rows where the latest edit wins go through the [conflict rule](../../architecture/data-model.md#conflict-rule), so a retry can never undo a newer edit.
 
 Afterwards the devotee sees what happened, e.g. "Added 2,340 repetitions from this device to your account."
