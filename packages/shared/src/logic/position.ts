@@ -11,7 +11,21 @@
 
 import type { PracticePosition } from '../types';
 import { compareHlc } from './hlc';
-import { unionMarks } from './marks';
+import { assertMarksSize, unionMarks } from './marks';
+
+/**
+ * A total order over two positions in the same version and pass.
+ *
+ * `compareHlc` returns 0 for the very same clock, which would leave the
+ * winner depending on argument order and let two devices diverge. Falling
+ * back to `id`, then `step_index`, keeps the result identical on both.
+ */
+function comparePositions(a: PracticePosition, b: PracticePosition): number {
+  const byHlc = compareHlc(a.hlc, b.hlc);
+  if (byHlc !== 0) return byHlc;
+  if (a.id !== b.id) return a.id < b.id ? -1 : 1;
+  return a.step_index - b.step_index;
+}
 
 /**
  * Combine two devices' positions for the same practice. Compared by
@@ -21,8 +35,10 @@ import { unionMarks } from './marks';
  * The result is the same whichever way round the two are merged, so every
  * device and the server settle on it.
  *
- * @param stepCount the practice's step count, so a malformed bitset arriving
- *   from sync is rejected rather than propagated
+ * @param stepCount the practice's step count at the version being merged
+ *   into. Only the **winner** is checked against it: a version bump may
+ *   change the number of steps, so a losing position from an older version
+ *   is legitimately a different size rather than corrupt.
  */
 export function mergePositions(
   a: PracticePosition,
@@ -42,6 +58,14 @@ export function mergePositions(
     );
   }
 
+  const merged = select(a, b, stepCount);
+  // Every path out of this function is checked, including the early exits
+  // that never reach unionMarks, so a malformed bitset can't be propagated.
+  assertMarksSize(merged.chanted_steps, stepCount);
+  return merged;
+}
+
+function select(a: PracticePosition, b: PracticePosition, stepCount: number): PracticePosition {
   // A position saved against an older version never wins, so a content reset
   // holds however late an old device syncs.
   if (a.practice_version !== b.practice_version) {
@@ -55,7 +79,7 @@ export function mergePositions(
   }
 
   // Same version, same pass: both devices are in this recitation together.
-  const [behind, ahead] = compareHlc(a.hlc, b.hlc) >= 0 ? [b, a] : [a, b];
+  const [behind, ahead] = comparePositions(a, b) >= 0 ? [b, a] : [a, b];
   return {
     ...ahead,
     chanted_steps: unionMarks(behind.chanted_steps, ahead.chanted_steps, stepCount),

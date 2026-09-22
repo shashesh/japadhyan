@@ -145,6 +145,43 @@ describe('mergePositions: general', () => {
     expect(countMarks(tablet.chanted_steps, STEPS)).toBe(1);
   });
 
+  test('refuses to return a malformed position through the early-exit paths', () => {
+    // A newer version wins outright, so it never reaches unionMarks. It must
+    // still be rejected rather than propagated to the rest of the app.
+    const valid = withMarks([0], { practice_version: 1 });
+    const malformed = position({ practice_version: 2, chanted_steps: new Uint8Array(1) });
+
+    expect(() => mergePositions(valid, malformed, STEPS)).toThrow(RangeError);
+    expect(() => mergePositions(malformed, valid, STEPS)).toThrow(RangeError);
+  });
+
+  test('a losing position of a different size does not block the merge', () => {
+    // A version bump may change the step count, so the older position's
+    // bitset is legitimately a different size. It loses; it is not corrupt.
+    const oldVersionNineSteps = position({
+      practice_version: 1,
+      chanted_steps: createMarks(9),
+    });
+    const current = withMarks([0], { practice_version: 2 });
+
+    expect(mergePositions(oldVersionNineSteps, current, STEPS).practice_version).toBe(2);
+  });
+
+  test('settles the same way on both devices when the clocks are identical', () => {
+    // compareHlc returns 0 only for the very same clock; without a further
+    // tie-break the first argument would always win and replicas diverge.
+    const sameClock = hlc(1000, 'same-device');
+    const a = withMarks([0], { id: 'pos-a', step_index: 5, hlc: sameClock });
+    const b = withMarks([1], { id: 'pos-b', step_index: 9, hlc: sameClock });
+
+    const ab = mergePositions(a, b, STEPS);
+    const ba = mergePositions(b, a, STEPS);
+
+    expect(ab.step_index).toBe(ba.step_index);
+    expect(ab.id).toBe(ba.id);
+    expect([...ab.chanted_steps]).toEqual([...ba.chanted_steps]);
+  });
+
   test('refuses to merge two devotees’ positions for the same practice', () => {
     // Positions are unique per (user_id, practice_id). Combining across
     // owners would pool their marks and return them under one devotee.

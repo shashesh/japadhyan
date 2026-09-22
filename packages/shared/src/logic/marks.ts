@@ -30,6 +30,10 @@ function bytesFor(stepCount: number): number {
  * drops writes past its end — typed arrays ignore out-of-bounds assignment —
  * so malformed synced data would lose a chanted name without failing.
  */
+export function assertMarksSize(marks: Uint8Array, stepCount: number): void {
+  assertMarks(marks, stepCount);
+}
+
 function assertMarks(marks: Uint8Array, stepCount: number): void {
   assertStepCount(stepCount);
   const expected = bytesFor(stepCount);
