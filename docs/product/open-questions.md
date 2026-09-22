@@ -30,3 +30,22 @@ PowerSync or our own Supabase sync. Decided by spike S4 before local storage is 
 ## Content hosting and transliteration
 
 Where packs and audio are hosted (Supabase Storage or Cloudflare R2), and which transliteration library generates scripts. Decided in the content pipeline milestone ([content-pipeline](../architecture/content-pipeline.md)).
+
+## Corrections to listening japa (P2)
+
+Listening japa is counted separately and never added to the chanted total, but
+a `correction` event carries `mode: 'correction'`, not the mode it adjusts. If
+one session ever held both chanted and listening counts, a correction meant for
+the listening total would be subtracted from the chanted one: 10 chanted + 100
+listened + a −100 correction would report 0 chanted instead of 10.
+
+Two ways out, to decide when listening japa is built in P2:
+
+- **A session never mixes listening with chanted modes**, so a correction can
+  only mean the total its session holds. Simplest, and it fits "one count, many
+  inputs" — listening is the one input that isn't part of that count.
+- **A correction names what it adjusts**, with a target field on the event.
+  More flexible, one more field on an append-only record that is never edited.
+
+P1 is unaffected: listening japa is P2, so no session can hold both today.
+See [data-model](../architecture/data-model.md#counting).

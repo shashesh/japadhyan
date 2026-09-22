@@ -41,12 +41,16 @@ function ChantSession({
 }) {
   // P1 mantras are a single step; namavalis arrive with the catalog in M4.
   const step = practice.steps[0]!;
+  // `Step.words` is nullable: a namavali has none, and a mantra need not be
+  // segmented. Word-by-word needs them, so it is only offered when they exist.
   const words = step.words?.latin ?? [];
+  const hasWords = words.length > 0;
+  const modes: readonly Mode[] = hasWords ? ['mala_tap', 'word_tap'] : ['mala_tap'];
   const roundSize = practice.default_round;
 
   const { total, progress, addRepetitions } = useChantSession(practice);
   const [mode, setMode] = useState<Mode>('mala_tap');
-  const [wordState, setWordState] = useState(() => createWordTapState(words));
+  const [wordState, setWordState] = useState(() => (hasWords ? createWordTapState(words) : null));
   const [offeringDue, setOfferingDue] = useState(false);
 
   function countOne(fromMode: Mode) {
@@ -57,6 +61,7 @@ function ChantSession({
   }
 
   function onWordTap(index: number) {
+    if (wordState === null) return;
     const result = tapWord(wordState, index);
     setWordState(result.state);
     if (result.completed) countOne('word_tap');
@@ -116,7 +121,7 @@ function ChantSession({
       ) : null}
 
       <View style={styles.modes}>
-        {(Object.keys(MODE_LABELS) as Mode[]).map((m) => (
+        {modes.map((m) => (
           <Pressable
             key={m}
             accessibilityRole="tab"
@@ -131,7 +136,7 @@ function ChantSession({
         ))}
       </View>
 
-      {mode === 'mala_tap' ? (
+      {mode === 'mala_tap' || wordState === null ? (
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Count one repetition"

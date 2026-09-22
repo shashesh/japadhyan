@@ -19,6 +19,13 @@ export interface TotalOptions {
   includeListening?: boolean;
 }
 
+/**
+ * A `correction` carries `mode: 'correction'`, not the mode it adjusts, so it
+ * is filtered with the session it belongs to rather than with a mode. That
+ * holds only while a session never mixes listening with chanted counts, which
+ * is true in P1 because listening japa is P2. Settle it before building
+ * listening: docs/product/open-questions.md#corrections-to-listening-japa-p2.
+ */
 function isIncluded(event: CountEvent, options: TotalOptions): boolean {
   if (options.practiceId !== undefined && event.practice_id !== options.practiceId) return false;
   if (!options.includeListening && SEPARATELY_COUNTED_MODES.includes(event.mode)) return false;

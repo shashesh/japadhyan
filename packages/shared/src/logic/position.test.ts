@@ -113,6 +113,54 @@ describe('mergePositions: same version and pass', () => {
   });
 });
 
+describe('mergePositions: deletions', () => {
+  test('a deletion is not resurrected by a higher pass from an earlier edit', () => {
+    const deleted = withMarks([], { deleted_at: '2026-09-22T12:00:00.000Z', hlc: hlc(9000) });
+    const livePastIt = withMarks([0], { pass_ordinal: 99, hlc: hlc(1000) });
+
+    expect(mergePositions(deleted, livePastIt, STEPS).deleted_at).not.toBeNull();
+  });
+
+  test('a deletion is not resurrected by a newer practice version from an earlier edit', () => {
+    const deleted = withMarks([], {
+      practice_version: 1,
+      deleted_at: '2026-09-22T12:00:00.000Z',
+      hlc: hlc(9000),
+    });
+    const livePastIt = withMarks([0], { practice_version: 2, hlc: hlc(1000) });
+
+    expect(mergePositions(deleted, livePastIt, STEPS).deleted_at).not.toBeNull();
+  });
+
+  test('chanting again after a deletion brings the position back', () => {
+    const deleted = withMarks([], { deleted_at: '2026-09-22T12:00:00.000Z', hlc: hlc(1000) });
+    const chantedSince = withMarks([0], { hlc: hlc(9000) });
+
+    expect(mergePositions(deleted, chantedSince, STEPS).deleted_at).toBeNull();
+  });
+
+  test('settles the same way whichever device merges', () => {
+    const deleted = withMarks([], { deleted_at: '2026-09-22T12:00:00.000Z', hlc: hlc(9000) });
+    const live = withMarks([0], { pass_ordinal: 99, hlc: hlc(1000) });
+
+    expect(mergePositions(deleted, live, STEPS).deleted_at).toBe(
+      mergePositions(live, deleted, STEPS).deleted_at,
+    );
+  });
+
+  test('a tombstone is accepted even when its bitset is a stale size', () => {
+    // A deleted bookmark's marks mean nothing, so they are not worth rejecting.
+    const deleted = position({
+      deleted_at: '2026-09-22T12:00:00.000Z',
+      chanted_steps: createMarks(9),
+      hlc: hlc(9000),
+    });
+    const live = withMarks([0], { hlc: hlc(1000) });
+
+    expect(() => mergePositions(deleted, live, STEPS)).not.toThrow();
+  });
+});
+
 describe('mergePositions: general', () => {
   test('gives the same result whichever way round the devices merge', () => {
     const phone = withMarks([0, 1], { step_index: 5, hlc: hlc(1000, 'phone') });

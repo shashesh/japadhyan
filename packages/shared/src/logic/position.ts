@@ -61,11 +61,20 @@ export function mergePositions(
   const merged = select(a, b, stepCount);
   // Every path out of this function is checked, including the early exits
   // that never reach unionMarks, so a malformed bitset can't be propagated.
-  assertMarksSize(merged.chanted_steps, stepCount);
+  // A deleted bookmark's marks mean nothing, so they are not worth rejecting.
+  if (merged.deleted_at === null) assertMarksSize(merged.chanted_steps, stepCount);
   return merged;
 }
 
 function select(a: PracticePosition, b: PracticePosition, stepCount: number): PracticePosition {
+  // Deletion is settled first, by the ordinary latest-edit-wins rule. A
+  // bookmark that was deleted must not come back because another device's
+  // stale row carries a higher version or pass; equally, chanting again
+  // after a deletion brings it back.
+  if (a.deleted_at !== null || b.deleted_at !== null) {
+    return comparePositions(a, b) >= 0 ? a : b;
+  }
+
   // A position saved against an older version never wins, so a content reset
   // holds however late an old device syncs.
   if (a.practice_version !== b.practice_version) {
