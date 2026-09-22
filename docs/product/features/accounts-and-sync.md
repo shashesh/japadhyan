@@ -53,22 +53,22 @@ India's DPDP Act treats anyone under 18 as a child and requires verifiable paren
 
 Nothing is asked, and **no count is ever lost**: counts are append-only events, so combining them is always safe. Settings and preferences are different: where the device and the account disagree, one value has to win, as the table shows.
 
-| Data                   | Rule                                                                                                                |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| Count events, sessions | Combined. Ids are unique, so nothing is counted twice                                                               |
-| Saved practices        | Matched by practice. A practice is a favourite if it's starred on either side; other settings: the newest edit wins |
-| Deity defaults         | The account's value wins                                                                                            |
-| Profile                | The account's value wins                                                                                            |
-| Sankalpas              | Both kept. The devotee can release one                                                                              |
-| Custom practices       | Both kept                                                                                                           |
-| Namavali position      | The newest one wins                                                                                                 |
+| Data                   | Rule                                                                                                                                                                                  |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Count events, sessions | Combined. Ids are unique, so nothing is counted twice                                                                                                                                 |
+| Saved practices        | Matched by practice. A practice is a favourite if it's starred on either side; other settings: the latest edit wins ([conflict rule](../../architecture/data-model.md#conflict-rule)) |
+| Deity defaults         | The account's value wins                                                                                                                                                              |
+| Profile                | The account's value wins                                                                                                                                                              |
+| Sankalpas              | Both kept. The devotee can release one                                                                                                                                                |
+| Custom practices       | Both kept                                                                                                                                                                             |
+| Namavali position      | The latest edit wins                                                                                                                                                                  |
 
 **Order of steps**, so per-user uniqueness (one saved practice per practice, one default per deity, one position per practice) always holds:
 
 1. **Download** the account's data completely. The device's rows keep the local profile id meanwhile. If the download fails, nothing changes and the app retries later.
 2. **Combine** on the device, using the table above. Where both sides have a row for the same practice or deity, one row survives: the account's row, updated with the combined values.
 3. **Re-key** the device's remaining rows to the account's id.
-4. **Upload.** As a backstop, the server writes rows keyed per user with latest-edit-wins, so a retry can never create a duplicate.
+4. **Upload.** As a backstop, the server applies each write only if it is newer by the [conflict rule](../../architecture/data-model.md#conflict-rule), keyed per user, so a retry can never create a duplicate or undo a newer edit.
 
 Afterwards the devotee sees what happened, e.g. "Added 2,340 repetitions from this device to your account."
 
@@ -88,8 +88,10 @@ A devotee signing in on a fresh install whose account has `onboarded_at` set ski
 Required by both app stores. Google Play also requires a web page for it.
 
 - **Settings → Account → Delete account**, in the app and on the web.
-- Deletes the account and all its server data.
-- The devotee then chooses: **keep my practice on this device as a guest**, or **erase everything**.
+- Deletes the account and all its server data, and signs out every device.
+- **On the phone or browser used to delete**, the devotee then chooses: **keep my practice on this device as a guest**, or **erase everything**.
+- **Every other device clears the account's data the next time it connects.** The app checks the account whenever it comes online, and a deleted account fails that check. The device then removes the account's data and says why: "This account was deleted, so its practice has been removed from this device." If that device has counts that never synced, the devotee can export them first; nothing else is kept.
+- **A device that stays offline** keeps its copy until it next connects. The deletion screen says this plainly.
 
 ## Export and import (P1)
 

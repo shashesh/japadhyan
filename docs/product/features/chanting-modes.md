@@ -64,7 +64,7 @@ For an Ashtottara Shatanamavali or other namavali ([mantra-library](mantra-libra
 - A **list view** shows all the names, with the ones already chanted in this recitation marked; tapping one jumps to it. **Jumping never counts a name.**
 - A recitation counts only when **every name in it has been chanted**. Tapping the last name with some still unchanted says how many remain and takes the devotee to the first of them.
 - When every name is chanted, the [offering moment](session-experience.md#the-offering-moment) comes and **one recitation** is added, once. The next recitation starts at name 1, and back can't return into the finished one.
-- If a content update changes the number of names, the saved place resets and the app says why.
+- If a content update changes the namavali in any way, the saved place and the names chanted so far in that recitation reset, and the app says why.
 
 ## Mala tap
 

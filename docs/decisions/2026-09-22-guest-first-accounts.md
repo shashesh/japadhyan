@@ -16,7 +16,7 @@ The core app must work offline and without registration. Some devotees want back
 - **Where it appears:** an "I already have an account" link on the welcome screen, a limited backup offer after a few days of practice, and Settings. Never between opening the app and chanting.
 - **Explicit consent** before the first sync.
 - **Signing in combines** device and account data without asking; append-only counts make this safe.
-- **Signing out clears the device.** Deleting an account is available in the app and on the web.
+- **Signing out clears the device.** Deleting an account is available in the app and on the web, and every other device clears the account's data the next time it connects.
 - **Export and import** are available to everyone, including guests.
 - No anonymous server accounts: a guest's data is never uploaded without consent.
 

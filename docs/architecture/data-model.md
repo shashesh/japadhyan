@@ -60,24 +60,24 @@ Read-only on the device. Authored in `content/`, reviewed, and delivered as pack
 
 Every practice is an **ordered list of steps**. One pass through the steps is one **repetition**.
 
-| Field             | Notes                                                                                                                                                                  |
-| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`              | Slug, e.g. `om-namah-shivaya`, `vishnu-ashtottara`                                                                                                                     |
-| `version`         | Bumped on any text change. The number of steps may only change with a version bump. Count events store the step count they were chanted with, so history never changes |
-| `tradition_id`    |                                                                                                                                                                        |
-| `kind`            | `mantra` (P1) · `namavali` (P1) · `stotra` (P2)                                                                                                                        |
-| `deity_ids`       | First is the primary deity. Hare Krishna is `['krishna', 'ram']`                                                                                                       |
-| `title`           | Per language, e.g. "Vishnu Ashtottara Shatanamavali"                                                                                                                   |
-| `subtitle`        | Per language, e.g. "108 names"                                                                                                                                         |
-| `source_script`   | Script the text was authored in: Devanagari for Sanskrit, Gurmukhi for Sikh practice, …                                                                                |
-| `steps`           | `Step[]`. A mantra has 1 step; an Ashtottara has 108; a stotra has one per verse                                                                                       |
-| `default_round`   | Repetitions per round: 108 for a mantra, 1 for a namavali (the names are the beads)                                                                                    |
-| `repetition_word` | Shown in the app: `japa` for a mantra, `paath` for a namavali or stotra                                                                                                |
-| `intro`           | Meaning and short explanation, per language                                                                                                                            |
-| `audio`           | Optional media reference for the full recording                                                                                                                        |
-| `source`          | Where the text comes from                                                                                                                                              |
-| `licence`         | Licence of the text, transliteration and translation                                                                                                                   |
-| `review`          | `{ advisor, reviewed_on }`. Unreviewed practices never ship in production packs                                                                                        |
+| Field             | Notes                                                                                                                                                                                                                       |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`              | Slug, e.g. `om-namah-shivaya`, `vishnu-ashtottara`                                                                                                                                                                          |
+| `version`         | Bumped on any text change. The number of steps may only change with a version bump. Count events store the step count they were chanted with, so history never changes. Any version change resets a saved namavali position |
+| `tradition_id`    |                                                                                                                                                                                                                             |
+| `kind`            | `mantra` (P1) · `namavali` (P1) · `stotra` (P2)                                                                                                                                                                             |
+| `deity_ids`       | First is the primary deity. Hare Krishna is `['krishna', 'ram']`                                                                                                                                                            |
+| `title`           | Per language, e.g. "Vishnu Ashtottara Shatanamavali"                                                                                                                                                                        |
+| `subtitle`        | Per language, e.g. "108 names"                                                                                                                                                                                              |
+| `source_script`   | Script the text was authored in: Devanagari for Sanskrit, Gurmukhi for Sikh practice, …                                                                                                                                     |
+| `steps`           | `Step[]`. A mantra has 1 step; an Ashtottara has 108; a stotra has one per verse                                                                                                                                            |
+| `default_round`   | Repetitions per round: 108 for a mantra, 1 for a namavali (the names are the beads)                                                                                                                                         |
+| `repetition_word` | Shown in the app: `japa` for a mantra, `paath` for a namavali or stotra                                                                                                                                                     |
+| `intro`           | Meaning and short explanation, per language                                                                                                                                                                                 |
+| `audio`           | Optional media reference for the full recording                                                                                                                                                                             |
+| `source`          | Where the text comes from                                                                                                                                                                                                   |
+| `licence`         | Licence of the text, transliteration and translation                                                                                                                                                                        |
+| `review`          | `{ advisor, reviewed_on }`. Unreviewed practices never ship in production packs                                                                                                                                             |
 
 ### Step
 
@@ -120,11 +120,11 @@ Written on the device first. Synced only when the devotee signs in and consents 
 
 Every record in this section has:
 
-| Field                      | Notes                                                                                                                                                                                                                                                                                                                                                  |
-| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `id`                       | **UUIDv7**, generated on the device, so it works offline and sorts by time. The profile's id is the `user_id`                                                                                                                                                                                                                                          |
-| `user_id`                  | The owner. Before sign-in: the local profile id. On first sign-in, the device's rows are combined with the account's first, and only then given the account's id, before their first upload ([order of steps](../product/features/accounts-and-sync.md#signing-in-on-a-device-that-already-has-data)). On the server: the Supabase auth user, not null |
-| `updated_at`, `deleted_at` | On records where the latest edit wins (see [tables by behaviour](#tables-by-behaviour))                                                                                                                                                                                                                                                                |
+| Field               | Notes                                                                                                                                                                                                                                                                                                                                                  |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `id`                | **UUIDv7**, generated on the device, so it works offline and sorts by time. The profile's id is the `user_id`                                                                                                                                                                                                                                          |
+| `user_id`           | The owner. Before sign-in: the local profile id. On first sign-in, the device's rows are combined with the account's first, and only then given the account's id, before their first upload ([order of steps](../product/features/accounts-and-sync.md#signing-in-on-a-device-that-already-has-data)). On the server: the Supabase auth user, not null |
+| `hlc`, `deleted_at` | On records where the latest edit wins: `hlc` orders edits ([conflict rule](#conflict-rule)); `deleted_at` marks a deletion so it syncs                                                                                                                                                                                                                 |
 
 Uniqueness is per user: one saved practice per `(user_id, practice_id)`, one default per `(user_id, deity_id)`, one position per `(user_id, practice_id)`.
 
@@ -147,7 +147,7 @@ One per user. Before sign-in there is a local profile; on first sign-in the acco
 
 ### CustomPractice
 
-Same shape as a catalog Practice, owned by the devotee: `kind`, `title`, `steps`, `default_round`, optional `deity_ids`, plus `is_private`, `created_at`, `updated_at`, `deleted_at`.
+Same shape as a catalog Practice, owned by the devotee: `kind`, `title`, `steps`, `default_round`, optional `deity_ids`, plus `is_private`, `created_at`, `hlc`, `deleted_at`.
 
 - **P1:** custom mantra; private guru mantra.
 - **P2:** custom namavali (paste names, one per line).
@@ -157,21 +157,21 @@ Same shape as a catalog Practice, owned by the devotee: `kind`, `title`, `steps`
 
 The devotee's relationship with one practice. Created the first time they chant it or star it; one per practice.
 
-| Field                      | Notes                                                                                                   |
-| -------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `practice_id`              | Catalog slug or custom UUID                                                                             |
-| `is_favourite`             | Starred                                                                                                 |
-| `favourite_order`          | Order in the Favourites list                                                                            |
-| `last_used_at`             | Drives Recent and "open to your current practice"                                                       |
-| `daily_goal`               | Repetitions per day, e.g. 324 (3 malas) or 1 recitation. Optional                                       |
-| `round_size`               | Mantras only. Falls back to the practice's `default_round`. A namavali's round is always one recitation |
-| `mala_style`               | Override. Falls back to the profile                                                                     |
-| `preferred_mode`           | Mode the chant screen opens in                                                                          |
-| `offer_every`              | Repetitions between offerings: 11, 108, …; empty means end of round                                     |
-| `script`                   | Override of the profile's script                                                                        |
-| `bell_at_meru`             |                                                                                                         |
-| `reverse_at_meru`          | Traditional practice of not crossing the meru                                                           |
-| `updated_at`, `deleted_at` | For sync                                                                                                |
+| Field               | Notes                                                                                                   |
+| ------------------- | ------------------------------------------------------------------------------------------------------- |
+| `practice_id`       | Catalog slug or custom UUID                                                                             |
+| `is_favourite`      | Starred                                                                                                 |
+| `favourite_order`   | Order in the Favourites list                                                                            |
+| `last_used_at`      | Drives Recent and "open to your current practice"                                                       |
+| `daily_goal`        | Repetitions per day, e.g. 324 (3 malas) or 1 recitation. Optional                                       |
+| `round_size`        | Mantras only. Falls back to the practice's `default_round`. A namavali's round is always one recitation |
+| `mala_style`        | Override. Falls back to the profile                                                                     |
+| `preferred_mode`    | Mode the chant screen opens in                                                                          |
+| `offer_every`       | Repetitions between offerings: 11, 108, …; empty means end of round                                     |
+| `script`            | Override of the profile's script                                                                        |
+| `bell_at_meru`      |                                                                                                         |
+| `reverse_at_meru`   | Traditional practice of not crossing the meru                                                           |
+| `hlc`, `deleted_at` | For sync                                                                                                |
 
 **My practices** shows two lists: **Favourites** (starred, in the devotee's order) and **Recent** (chanted, not starred).
 
@@ -239,29 +239,29 @@ Only sealed events sync. An event left open by a crash is sealed on next launch,
 
 The devotee's place in a namavali (and, in P2, a stotra). It is not a count.
 
-| Field              | Notes                                                                                     |
-| ------------------ | ----------------------------------------------------------------------------------------- |
-| `practice_id`      |                                                                                           |
-| `practice_version` | If a content update changes the number of steps, the position resets and the app says why |
-| `step_index`       | The name on screen                                                                        |
-| `chanted_steps`    | Which steps have been chanted **in the current pass**: a bitset, 14 bytes for 108 names   |
-| `updated_at`       | Saved after every step                                                                    |
+| Field              | Notes                                                                                                                                                        |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `practice_id`      |                                                                                                                                                              |
+| `practice_version` | If the practice's version changes for any reason, the position and `chanted_steps` reset and the app says why: the saved marks may no longer match the names |
+| `step_index`       | The name on screen                                                                                                                                           |
+| `chanted_steps`    | Which steps have been chanted **in the current pass**: a bitset, 14 bytes for 108 names                                                                      |
+| `hlc`              | Saved after every step                                                                                                                                       |
 
 **When a recitation counts.** A step is chanted when the devotee moves forward from it (tap, volume button, or chant along in P2). A recitation counts only when **every step in the pass has been chanted**, and it counts once: the pass then resets to step 1 with an empty `chanted_steps`, and back can't cross into the finished pass. Jumping from the list view moves `step_index` without marking anything. Going back and forward again re-chants a name without counting it twice.
 
 ### Sankalpa
 
-| Field                      | Notes                                                                           |
-| -------------------------- | ------------------------------------------------------------------------------- |
-| `title`                    |                                                                                 |
-| `practice_id`              | Either this…                                                                    |
-| `program_id`               | …or this, for programs with a different practice each day (Navaratri)           |
-| `daily_target`             | Repetitions. Optional                                                           |
-| `total_target`             | Repetitions, e.g. 2,400,000 for a Gayatri anushthana. Optional                  |
-| `start_day`, `end_day`     | Local days. `end_day` is empty for open-ended sankalpas                         |
-| `intention`                | Optional, private                                                               |
-| `status`                   | `active` · `completed` · `released` (the gentle word for letting a sankalpa go) |
-| `updated_at`, `deleted_at` | For sync                                                                        |
+| Field                  | Notes                                                                           |
+| ---------------------- | ------------------------------------------------------------------------------- |
+| `title`                |                                                                                 |
+| `practice_id`          | Either this…                                                                    |
+| `program_id`           | …or this, for programs with a different practice each day (Navaratri)           |
+| `daily_target`         | Repetitions. Optional                                                           |
+| `total_target`         | Repetitions, e.g. 2,400,000 for a Gayatri anushthana. Optional                  |
+| `start_day`, `end_day` | Local days. `end_day` is empty for open-ended sankalpas                         |
+| `intention`            | Optional, private                                                               |
+| `status`               | `active` · `completed` · `released` (the gentle word for letting a sankalpa go) |
+| `hlc`, `deleted_at`    | For sync                                                                        |
 
 Progress is derived from count events for the practice (or the program's practice for each day) within the date range. Rules such as time of day or making up missed days come in P2.
 
@@ -325,11 +325,19 @@ Local SQLite  ── sync engine ──  Supabase Postgres (row-level security)
 | -------------------------------- | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Never changed once sealed        | `count_events`                                                                                         | Server inserts and ignores an id it already has. Row-level security blocks updates and deletes                                                                            |
 | Set once, then never changed     | `sessions`                                                                                             | Inserted like count events. One update is allowed: filling in an empty `ended_at`. Once set, it can't change; a column-level grant and a trigger enforce this. No deletes |
-| Latest edit wins, deletions kept | `profiles`, `saved_practices`, `deity_defaults`, `custom_practices`, `practice_positions`, `sankalpas` | `updated_at` and `deleted_at` on every row; the newest edit wins                                                                                                          |
+| Latest edit wins, deletions kept | `profiles`, `saved_practices`, `deity_defaults`, `custom_practices`, `practice_positions`, `sankalpas` | `hlc` and `deleted_at` on every row; the edit with the highest `hlc` wins ([conflict rule](#conflict-rule))                                                               |
 | Device only                      | reminders, device settings, open events, voice templates                                               | Never synced                                                                                                                                                              |
 | Catalog                          | `catalog_deities`, `catalog_practices`, `catalog_steps`, plus a full-text search index                 | Replaced when a content pack updates; read-only                                                                                                                           |
 
-Latest-edit-wins relies on device clocks. That is acceptable because these records are rarely edited, and by a person, not by background processes.
+### Conflict rule
+
+Records where the latest edit wins are ordered by a **hybrid logical clock** (`hlc`), not by the phone's clock alone.
+
+- An `hlc` is the device's time in milliseconds, a counter and the device id, compared in that order.
+- Every edit takes an `hlc` greater than any the device has made **or received**. Receiving records during sync moves the device's clock forward, so an edit made after seeing another edit always wins, even when the phone's clock is behind.
+- Edits made offline on two devices at the same time are ordered by `hlc`, and exact ties by device id, so every device and the server settle on the same result.
+- The server applies a write only if its `hlc` is higher than the stored one, whatever order uploads arrive in. It rejects an `hlc` more than 5 minutes ahead of server time; the app then corrects its clock offset from the server's time and retries, so a phone with a wildly wrong clock can't keep winning.
+- Count events don't need this: they are append-only.
 
 ### Sync engine
 
@@ -341,6 +349,7 @@ Chosen by spike **S4**, which runs **before local storage is built**: PowerSync 
 4. Local queries update the screen live as counts change.
 5. Monthly cost at 10,000 and 100,000 users.
 6. How much code we have to own.
+7. The [conflict rule](#conflict-rule) is applied on the server (a write that applies only if newer), not by the order uploads arrive in.
 
 Lean: PowerSync if it passes; the offline queue, retries, web storage and live queries are exactly the fiddly parts. Fallback: our own sync, feasible because the data is append-only events plus latest-edit-wins records.
 
@@ -359,7 +368,7 @@ Lean: PowerSync if it passes; the offline queue, retries, web storage and live q
 - **Links stay within one user:** `count_events (user_id, session_id)` references `sessions (user_id, id)`, so an event can't point at another user's session. The same pattern applies to any future link between user tables.
 - `practice_id` is not a foreign key: it can be a catalog slug, and the catalog isn't in the database.
 - `consents`: user, policy version, date agreed.
-- `delete-account` Edge Function: deletes the user; their data goes with them.
+- `delete-account` Edge Function: deletes the user, which removes their data and revokes their sessions. The app checks the account each time it comes online; a deleted account fails that check and starts the [clear-device flow](../product/features/accounts-and-sync.md#deleting-an-account-p1).
 - Content packs are files on a CDN, not database tables.
 - Migrations live in `supabase/`.
 
@@ -375,3 +384,4 @@ Nothing has shipped, so there is no data to migrate.
 - `STARTER_MANTRAS` moves out of code into `content/`.
 - `totalCount` and `dailyTotals` sum each session's events and floor the session at zero before adding sessions together.
 - `computeStreak` takes days with a positive net count.
+- New in `shared`: hybrid logical clock helpers (create, compare, advance on receive).

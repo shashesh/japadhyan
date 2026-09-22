@@ -11,7 +11,7 @@ Effort tags: `easy` · `medium` · `hard`. Timelines are not set yet.
 
 ## Phase 1 — Launch: a complete daily practice
 
-**Goal:** a devotee can install the app, pick a mantra, chant every day in several ways, and see their progress — all offline.
+**Goal:** a devotee can install the app, pick a practice (a mantra or a deity's 108 names), chant every day in several ways, and see their progress — all offline.
 
 | Area          | Features                                                                                                                                                                                                       | Spec                                                                                                              |
 | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |

@@ -39,7 +39,7 @@ content/
 - **Audio and images are not in git.** They live in object storage, named by their SHA-256. YAML refers to them by id, checksum, size and (for audio) duration.
 - **Schema.** Every file is checked against a schema in `packages/shared`, which is platform-agnostic and also used by the app to read packs.
 - **Review.** Each practice carries `review: { advisor, reviewed_on }`, `source` and `licence`. Production packs refuse unreviewed content; development packs include it, flagged.
-- **Versions.** Any text change bumps the practice's `version`. The number of steps may only change with a version bump. Counts refer to the practice id, so fixing a typo never changes anyone's history ([data-model](data-model.md#practiceposition)).
+- **Versions.** Any text change bumps the practice's `version`. The number of steps may only change with a version bump. Counts refer to the practice id, so fixing a typo never changes anyone's history. A saved place in a namavali resets on any version change ([data-model](data-model.md#practiceposition)).
 - **Changes go through PRs** like code. If advisors aren't comfortable reviewing on GitHub, a CMS can later sit in front of the same build step without changing packs or the app.
 
 ### Transliteration
