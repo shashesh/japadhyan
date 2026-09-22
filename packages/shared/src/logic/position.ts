@@ -60,9 +60,18 @@ export function mergePositions(
 
   const merged = select(a, b, stepCount);
   // Every path out of this function is checked, including the early exits
-  // that never reach unionMarks, so a malformed bitset can't be propagated.
-  // A deleted bookmark's marks mean nothing, so they are not worth rejecting.
-  if (merged.deleted_at === null) assertMarksSize(merged.chanted_steps, stepCount);
+  // that never reach unionMarks, so a malformed position can't be propagated.
+  // A deleted bookmark points nowhere, so its marks and index mean nothing.
+  if (merged.deleted_at === null) {
+    assertMarksSize(merged.chanted_steps, stepCount);
+    if (
+      !Number.isInteger(merged.step_index) ||
+      merged.step_index < 0 ||
+      merged.step_index >= stepCount
+    ) {
+      throw new RangeError(`step_index must be 0..${stepCount - 1}, got ${merged.step_index}`);
+    }
+  }
   return merged;
 }
 

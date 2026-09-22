@@ -193,6 +193,41 @@ describe('mergePositions: general', () => {
     expect(countMarks(tablet.chanted_steps, STEPS)).toBe(1);
   });
 
+  test('refuses a live winner whose step_index is not a real name', () => {
+    // 108 names are indexes 0..107, so 108 addresses nothing.
+    const past = withMarks([0], { step_index: STEPS, practice_version: 2 });
+    const behind = withMarks([0], { practice_version: 1 });
+
+    expect(() => mergePositions(past, behind, STEPS)).toThrow(RangeError);
+    expect(() => mergePositions(behind, past, STEPS)).toThrow(RangeError);
+  });
+
+  test('refuses a live winner with a negative step_index', () => {
+    const negative = withMarks([0], { step_index: -1, practice_version: 2 });
+    const behind = withMarks([0], { practice_version: 1 });
+
+    expect(() => mergePositions(negative, behind, STEPS)).toThrow(RangeError);
+  });
+
+  test('accepts the last real name as a step_index', () => {
+    const onLastName = withMarks([0], { step_index: STEPS - 1, practice_version: 2 });
+    const behind = withMarks([0], { practice_version: 1 });
+
+    expect(mergePositions(onLastName, behind, STEPS).step_index).toBe(STEPS - 1);
+  });
+
+  test('does not police the step_index of a tombstone', () => {
+    // A deleted bookmark points nowhere; its index means as little as its marks.
+    const deleted = position({
+      deleted_at: '2026-09-22T12:00:00.000Z',
+      step_index: STEPS + 5,
+      hlc: hlc(9000),
+    });
+    const live = withMarks([0], { hlc: hlc(1000) });
+
+    expect(() => mergePositions(deleted, live, STEPS)).not.toThrow();
+  });
+
   test('refuses to return a malformed position through the early-exit paths', () => {
     // A newer version wins outright, so it never reaches unionMarks. It must
     // still be rejected rather than propagated to the rest of the app.
