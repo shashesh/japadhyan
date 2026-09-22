@@ -69,7 +69,7 @@ Nothing is asked, and **no count is ever lost**: counts are append-only events, 
 2. **Consent**, before anything is downloaded or uploaded. If the devotee says "Not now", the app stops here and they stay a guest: nothing leaves or reaches the device. If the account already recorded agreement to the current policy version, the app doesn't ask again; that check reads only the consent record.
 3. **Download** the account's data completely. The device's rows keep the local profile id meanwhile. If the download fails, nothing changes and the app retries later.
 4. **Combine** on the device, using the table above. Where both sides have a row for the same practice or deity, one row survives: the account's row, updated with the combined values.
-5. **Re-key** the device's remaining rows to the account's id.
+5. **Re-key** the device's remaining rows to the account's id. A namavali recitation in progress needs nothing special: its key is worked out when the recitation finishes, from the owner at that moment.
 6. **Upload.** Count events and sessions are inserted by id, and an id the server already has is ignored, so a retry can't double-count; a session also allows the one-time filling in of `ended_at`. Rows where the latest edit wins go through the [conflict rule](../../architecture/data-model.md#conflict-rule), so a retry can never undo a newer edit.
 
 Afterwards the devotee sees what happened, e.g. "Added 2,340 repetitions from this device to your account."
@@ -104,7 +104,7 @@ For everyone, including guests.
 - **Settings → Backup → Export** saves a file with the profile, saved and custom practices, deity defaults, namavali positions, sessions, count events and sankalpas.
 - **Import** combines using the same rules as signing in, so importing the same file twice changes nothing.
 - **Import ignores who owned the file.** Every imported record is re-keyed to whoever is using the app now: the local profile, or the signed-in account. Record ids are kept, which is what makes a repeat import harmless. Nothing imported can ever be uploaded under someone else's account.
-- **The profile is the exception.** There is only ever one profile per user, so the file's profile is never added as a second one: its settings are applied to the current profile, the later edit winning field by field, and its id is dropped.
+- **The profile is the exception.** There is only ever one profile per user, so the file's profile is never added as a second one. It is compared with the current profile by the row-level [conflict rule](../../architecture/data-model.md#conflict-rule): if the file's profile was edited later, its settings replace the current ones as a whole; otherwise it is ignored. Its id is dropped either way.
 - If the file came from a **different account**, the app says so before importing, since those counts will join the devotee's own practice.
 - The file contains private fields (intentions, private labels), and the export screen says so.
 

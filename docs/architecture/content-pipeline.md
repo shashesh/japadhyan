@@ -63,14 +63,15 @@ Schema validation also runs in `npm run check`.
 
 ### Packs
 
-| Pack                         | Contents                                                                                        |
-| ---------------------------- | ----------------------------------------------------------------------------------------------- |
-| `index`                      | Every deity and practice: id, titles, deity, kind, step count, pack id, has audio. About 100 KB |
-| `deity/<id>`                 | The deity and its practices in the source script, IAST, `latin` and English                     |
-| `deity/<id>/script/<script>` | The same practices in one extra script                                                          |
-| `deity/<id>/lang/<language>` | Titles, meanings and intros in one extra language                                               |
-| `programs`                   | Sankalpa templates and festival programs                                                        |
-| Audio                        | One file per practice, not packed                                                               |
+| Pack                         | Contents                                                                                                                                                                       |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `index`                      | Every deity and practice: id, titles, deity, kind, step count, pack id, has audio. About 100 KB                                                                                |
+| `core`                       | Everything that ships inside the app: the index, programs and every launch deity's base pack, in one file. Corrections to bundled content arrive as a new version of this pack |
+| `deity/<id>`                 | The deity and its practices in the source script, IAST, `latin` and English                                                                                                    |
+| `deity/<id>/script/<script>` | The same practices in one extra script                                                                                                                                         |
+| `deity/<id>/lang/<language>` | Titles, meanings and intros in one extra language                                                                                                                              |
+| `programs`                   | Sankalpa templates and festival programs                                                                                                                                       |
+| Audio                        | One file per practice, not packed                                                                                                                                              |
 
 A pack with a newer schema major version than the app understands is ignored; the app keeps what it has and suggests updating.
 
@@ -82,13 +83,13 @@ A pack with a newer schema major version than the app understands is ignored; th
 
 ## Device
 
-| Layer                | What                                                                                                  | When                                                                                    |
-| -------------------- | ----------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| **Core bundle**      | The `index` pack, `programs`, and the base packs of **every launch deity** (about 2 MB of text in P1) | Inside the app. Works offline from the moment it's installed, with no request to anyone |
-| **Downloaded packs** | Base and add-on packs, stored in the local catalog tables and search index                            | When a deity is opened, and **automatically for anything saved or starred**             |
-| **Audio**            | Per practice                                                                                          | On demand, or "Download for offline"                                                    |
+| Layer                | What                                                                                                  | When                                                                                                                                                                                                                |
+| -------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Core bundle**      | The `index` pack, `programs`, and the base packs of **every launch deity** (about 2 MB of text in P1) | Inside the app. Works offline from the moment it's installed, with no request to anyone. A **signed `core` pack with a higher version replaces it**, so a correction reaches installed apps without a store release |
+| **Downloaded packs** | Base and add-on packs, stored in the local catalog tables and search index                            | When a deity is opened, and **automatically for anything saved or starred**                                                                                                                                         |
+| **Audio**            | Per practice                                                                                          | On demand, or "Download for offline"                                                                                                                                                                                |
 
-- **In P1 no text is downloaded at all:** the whole launch library is in the app. Downloads begin when the library grows beyond it, and for audio.
+- **In P1 nothing is downloaded to use the library:** it is all in the app. The only text the app fetches is a **corrected `core` pack**, in one piece covering every launch deity, so no request names a deity. Per-deity downloads begin only when the library grows beyond the bundle, and for audio.
 - **Browsing and search work offline** because the index is bundled. A deity that hasn't been downloaded shows "Download to open", not an empty screen.
 - **Settings → Storage** lists downloaded packs and audio, with sizes, and offers "Download everything for offline".
 - **Updates:** the app checks the manifest when online and fetches only packs that changed. Content fixes need no app release.
