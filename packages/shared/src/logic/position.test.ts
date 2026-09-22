@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest';
 
 import type { Hlc, PracticePosition } from '../types';
 import { countMarks, createMarks, isStepChanted, markStep } from './marks';
-import { mergePositions } from './position';
+import { isPositionDeleted, mergePositions } from './position';
 
 const STEPS = 108;
 
@@ -19,6 +19,7 @@ function position(overrides: Partial<PracticePosition> = {}): PracticePosition {
     pass_ordinal: 1,
     hlc: hlc(1000),
     deleted_at: null,
+    deleted_hlc: null,
     ...overrides,
   };
 }
@@ -115,36 +116,49 @@ describe('mergePositions: same version and pass', () => {
 
 describe('mergePositions: deletions', () => {
   test('a deletion is not resurrected by a higher pass from an earlier edit', () => {
-    const deleted = withMarks([], { deleted_at: '2026-09-22T12:00:00.000Z', hlc: hlc(9000) });
+    const deleted = withMarks([], {
+      deleted_at: '2026-09-22T12:00:00.000Z',
+      deleted_hlc: hlc(9000),
+      hlc: hlc(0),
+    });
     const livePastIt = withMarks([0], { pass_ordinal: 99, hlc: hlc(1000) });
 
-    expect(mergePositions(deleted, livePastIt, STEPS).deleted_at).not.toBeNull();
+    expect(isPositionDeleted(mergePositions(deleted, livePastIt, STEPS))).toBe(true);
   });
 
   test('a deletion is not resurrected by a newer practice version from an earlier edit', () => {
     const deleted = withMarks([], {
       practice_version: 1,
       deleted_at: '2026-09-22T12:00:00.000Z',
-      hlc: hlc(9000),
+      deleted_hlc: hlc(9000),
+      hlc: hlc(0),
     });
     const livePastIt = withMarks([0], { practice_version: 2, hlc: hlc(1000) });
 
-    expect(mergePositions(deleted, livePastIt, STEPS).deleted_at).not.toBeNull();
+    expect(isPositionDeleted(mergePositions(deleted, livePastIt, STEPS))).toBe(true);
   });
 
   test('chanting again after a deletion brings the position back', () => {
-    const deleted = withMarks([], { deleted_at: '2026-09-22T12:00:00.000Z', hlc: hlc(1000) });
+    const deleted = withMarks([], {
+      deleted_at: '2026-09-22T12:00:00.000Z',
+      deleted_hlc: hlc(1000),
+      hlc: hlc(0),
+    });
     const chantedSince = withMarks([0], { hlc: hlc(9000) });
 
-    expect(mergePositions(deleted, chantedSince, STEPS).deleted_at).toBeNull();
+    expect(isPositionDeleted(mergePositions(deleted, chantedSince, STEPS))).toBe(false);
   });
 
   test('settles the same way whichever device merges', () => {
-    const deleted = withMarks([], { deleted_at: '2026-09-22T12:00:00.000Z', hlc: hlc(9000) });
+    const deleted = withMarks([], {
+      deleted_at: '2026-09-22T12:00:00.000Z',
+      deleted_hlc: hlc(9000),
+      hlc: hlc(0),
+    });
     const live = withMarks([0], { pass_ordinal: 99, hlc: hlc(1000) });
 
-    expect(mergePositions(deleted, live, STEPS).deleted_at).toBe(
-      mergePositions(live, deleted, STEPS).deleted_at,
+    expect(isPositionDeleted(mergePositions(deleted, live, STEPS))).toBe(
+      isPositionDeleted(mergePositions(live, deleted, STEPS)),
     );
   });
 
@@ -152,8 +166,9 @@ describe('mergePositions: deletions', () => {
     // A deleted bookmark's marks mean nothing, so they are not worth rejecting.
     const deleted = position({
       deleted_at: '2026-09-22T12:00:00.000Z',
+      deleted_hlc: hlc(9000),
       chanted_steps: createMarks(9),
-      hlc: hlc(9000),
+      hlc: hlc(0),
     });
     const live = withMarks([0], { hlc: hlc(1000) });
 
@@ -168,14 +183,19 @@ describe('mergePositions: associativity', () => {
 
   test('a tombstone between two live edits does not depend on grouping', () => {
     const a = withMarks([0], { id: 'pos-a', hlc: hlc(1) });
-    const tombstone = position({ id: 'pos-t', deleted_at: deletedAt, hlc: hlc(2) });
+    const tombstone = position({
+      id: 'pos-t',
+      deleted_at: deletedAt,
+      deleted_hlc: hlc(2),
+      hlc: hlc(0),
+    });
     const b = withMarks([1], { id: 'pos-b', hlc: hlc(3) });
 
     const left = mergePositions(mergePositions(a, tombstone, STEPS), b, STEPS);
     const right = mergePositions(a, mergePositions(tombstone, b, STEPS), STEPS);
 
     expect([...left.chanted_steps]).toEqual([...right.chanted_steps]);
-    expect(left.deleted_at).toBe(right.deleted_at);
+    expect(isPositionDeleted(left)).toBe(isPositionDeleted(right));
     expect(left.step_index).toBe(right.step_index);
   });
 
@@ -263,8 +283,9 @@ describe('mergePositions: general', () => {
     // A deleted bookmark points nowhere; its index means as little as its marks.
     const deleted = position({
       deleted_at: '2026-09-22T12:00:00.000Z',
+      deleted_hlc: hlc(9000),
       step_index: STEPS + 5,
-      hlc: hlc(9000),
+      hlc: hlc(0),
     });
     const live = withMarks([0], { hlc: hlc(1000) });
 

@@ -6,7 +6,7 @@
  */
 
 import type { LanguageTag, PracticeKind, Script, TextByScript, TraditionId } from './catalog';
-import type { OwnedRecord, SyncFields } from './sync';
+import type { Hlc, OwnedRecord, SyncFields } from './sync';
 
 /**
  * Every way a repetition can be counted. All chanted modes feed the same
@@ -228,6 +228,16 @@ export interface PracticePosition extends OwnedRecord, SyncFields {
   chanted_steps: Uint8Array;
   /** Which recitation the marks belong to. A bookmark, never a total. */
   pass_ordinal: number;
+  /**
+   * The clock of the deletion, or empty if never deleted. Deletion is settled
+   * by this alone and never competes with the version or the pass: a position
+   * is deleted when `deleted_hlc` is later than `hlc`, and chanting again
+   * gives it a later `hlc` and brings it back.
+   *
+   * Without it the merge is not associative and devices never converge
+   * (docs/decisions/2026-09-22-position-deletion-barrier.md).
+   */
+  deleted_hlc: Hlc | null;
 }
 
 export type SankalpaStatus = 'active' | 'completed' | 'released';

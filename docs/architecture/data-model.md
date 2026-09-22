@@ -242,20 +242,22 @@ Only sealed events sync. An event left open by a crash is sealed on next launch,
 
 The devotee's place in a namavali (and, in P2, a stotra). It is not a count.
 
-| Field              | Notes                                                                                                                                                            |
-| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `practice_id`      |                                                                                                                                                                  |
-| `practice_version` | The version the marks belong to. Any version change resets the position and `chanted_steps`, and the app says why: the saved marks may no longer match the names |
-| `step_index`       | The name on screen                                                                                                                                               |
-| `chanted_steps`    | Which steps have been chanted **in the current pass**: a bitset, 14 bytes for 108 names                                                                          |
-| `pass_ordinal`     | Which recitation the marks belong to. Goes up by one when a recitation finishes. A bookmark only: totals come from count events                                  |
-| `hlc`              | Saved after every step                                                                                                                                           |
+| Field              | Notes                                                                                                                                                                                                                                                   |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `practice_id`      |                                                                                                                                                                                                                                                         |
+| `practice_version` | The version the marks belong to. Any version change resets the position and `chanted_steps`, and the app says why: the saved marks may no longer match the names                                                                                        |
+| `step_index`       | The name on screen                                                                                                                                                                                                                                      |
+| `chanted_steps`    | Which steps have been chanted **in the current pass**: a bitset, 14 bytes for 108 names                                                                                                                                                                 |
+| `pass_ordinal`     | Which recitation the marks belong to. Goes up by one when a recitation finishes. A bookmark only: totals come from count events                                                                                                                         |
+| `hlc`              | Saved after every step                                                                                                                                                                                                                                  |
+| `deleted_hlc`      | The `hlc` of the deletion, with `deleted_at` as its timestamp. The position **is** deleted when this is later than `hlc`; the pair is kept either way, so a revival doesn't erase it ([decision](../decisions/2026-09-22-position-deletion-barrier.md)) |
 
 **Merging positions across devices.** Positions are compared in this order, on the device and on the server:
 
 1. **`practice_version`** — a position saved against an older version never wins, so a content reset holds however late an old device syncs.
 2. **`pass_ordinal`** — a higher one wins, so a device still on pass 4 can never bring it back over another device's pass 5. Its finished recitation is already recorded as its own count event, so nothing is lost by moving the bookmark on.
 3. **Same version and same pass:** the marks are **combined**, so a name chanted on either device counts as chanted, and `step_index` comes from the higher `hlc`. Two devices in the same recitation add up instead of overwriting each other.
+4. **Deletion is settled separately**, by `deleted_hlc`, and never competes with the version or the pass. A position is deleted when its `deleted_hlc` is later than its `hlc`; chanting again gives it a later `hlc` and brings it back. Settling deletion inside the ordering above is **not associative**, so devices merging the same edits in different groupings would not converge ([decision](../decisions/2026-09-22-position-deletion-barrier.md)).
 
 **Finishing a pass is one write.** Recording the recitation and resetting `chanted_steps` happen in a single local transaction, so a crash can't do one without the other.
 
