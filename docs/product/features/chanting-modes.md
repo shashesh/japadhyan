@@ -1,6 +1,6 @@
 ---
 status: draft
-updated: 2026-09-21
+updated: 2026-09-22
 phases: P1, P2, P3
 ---
 
@@ -10,10 +10,11 @@ The heart of the app: many ways to chant, one count.
 
 ## The key rule — one count, many inputs
 
-- Every mode adds repetitions to the **same** total for the active mantra and sankalpa.
+- Every mode adds repetitions to the **same** total for the active practice and sankalpa.
 - A devotee can **switch modes mid-session** (tap on the bus, voice at home, silent in bed).
 - Each count records **which mode** produced it, so progress can show a mode mix ("60% spoken, 30% tap, 10% written").
-- A **round** (mala) size is configurable per mantra: 108 (default), 54, 27, 33, or custom.
+- A **round** (mala) size is configurable per practice: 108 (default), 54, 27, 33, or custom. For a namavali, one recitation is the round.
+- What counts as one repetition depends on the practice type: one mantra, or one full recitation of a namavali ([data-model](../../architecture/data-model.md#counting)).
 
 ## Summary
 
@@ -25,12 +26,44 @@ The heart of the app: many ways to chant, one count.
 | [Silent chanting (manasika)](#silent-chanting-manasika) | P1    | easy   |
 | [Volume-button counting](#hands-free-counting)          | P1    | medium |
 | [Flip face down to pause](#hands-free-counting)         | P1    | easy   |
+| [Manual log](#manual-log-and-corrections)               | P1    | easy   |
 | [Voice counting](#voice-counting)                       | P2    | hard   |
 | [Smartwatch](#hands-free-counting)                      | P2    | medium |
 | [Chant along](#chant-along)                             | P2    | easy   |
 | [Listening japa](#listening-japa)                       | P2    | easy   |
 | [Likhita japa — handwriting tracing](#likhita-japa)     | P3    | hard   |
 | [Bluetooth rings / smart malas](#hands-free-counting)   | P4    | medium |
+
+## Modes by practice type
+
+Which modes each [practice type](mantra-library.md#practice-types) supports. ~ marks estimated counts.
+
+| Mode                    | Mantra | Private guru mantra | Namavali                 | Stotra (P2) |
+| ----------------------- | ------ | ------------------- | ------------------------ | ----------- |
+| Mala tap                | P1     | P1                  | P1: bead _n_ is name _n_ | —           |
+| Word-by-word tap        | P1     | — (no words)        | —                        | —           |
+| Likhita typing          | P1     | —                   | P2                       | —           |
+| Silent pace / breath    | P1 ~   | P1 ~                | —                        | —           |
+| Volume buttons          | P1     | P1                  | P1: next name            | —           |
+| Flip face down to pause | P1     | P1                  | P1                       | P2          |
+| Manual log              | P1     | P1                  | P1                       | P2          |
+| Voice counting          | P2     | P2                  | —                        | —           |
+| Smartwatch              | P2     | P2                  | P2                       | —           |
+| Chant along             | P2     | —                   | P2                       | P2          |
+| Listening japa          | P2     | —                   | P2                       | P2          |
+| Verse-by-verse reading  | —      | —                   | —                        | P2          |
+
+## Namavali: name by name
+
+For an Ashtottara Shatanamavali or other namavali ([mantra-library](mantra-library.md#practice-types)).
+
+- The **current name** is shown large, in the devotee's script, with the transliteration and a short meaning below (the meaning can be hidden).
+- The **bead ring** shows the place among the 108 names: bead _n_ is name _n_.
+- **Tap anywhere** for the next name; a **back** button goes back one. Going back is safe because the place is not a count.
+- The place is **saved after every name**: stop at name 54 and carry on tomorrow, or on another device when signed in.
+- A **list view** shows all the names; tapping one jumps to it.
+- After the last name comes the [offering moment](session-experience.md#the-offering-moment), and **one recitation** is added to the count.
+- If a content update changes the number of names, the saved place resets and the app says why.
 
 ## Mala tap
 
@@ -80,6 +113,13 @@ Many devotees chant with eyes closed or while walking. Details in [wearables-and
 - **Flip face down (P1):** pauses the session.
 - **Smartwatch (P2):** Apple Watch and Wear OS, wrist tap per count.
 - **Bluetooth japa rings and smart malas (P4).**
+
+## Manual log and corrections
+
+Counts are append-only events, so logging and fixing never edit history ([decision](../../decisions/2026-09-22-grouped-count-events.md)).
+
+- **Manual log (P1):** record practice done elsewhere, e.g. "3 malas on my own beads" or "2 recitations from a book". Entered in malas or repetitions (recitations for a namavali), for today or up to 7 days back. Shown as "logged" in the mode mix.
+- **Corrections (P1):** fix mistaken taps or remove a session by adding or subtracting from it. A day's total can never go below zero. Voice counting (P2) uses the same correction after a session.
 
 ## Chant along
 
