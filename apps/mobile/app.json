@@ -1,15 +1,17 @@
 {
   "expo": {
-    "name": "Naam Japam",
-    "slug": "naam-japam",
+    "name": "JapaDhyan",
+    "slug": "japadhyan",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.japadhyan.app"
     },
     "android": {
+      "package": "com.japadhyan.app",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -24,7 +26,7 @@
       "output": "static"
     },
     "plugins": ["expo-router"],
-    "scheme": "naamjapam",
+    "scheme": "japadhyan",
     "experiments": {
       "typedRoutes": true
     }

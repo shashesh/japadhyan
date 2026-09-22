@@ -1,5 +1,5 @@
 {
-  "name": "@naam-japam/mobile",
+  "name": "@japadhyan/mobile",
   "version": "0.1.0",
   "main": "expo-router/entry",
   "dependencies": {
@@ -16,7 +16,7 @@
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "~4.26.0",
     "react-native-web": "~0.21.0",
-    "@naam-japam/shared": "*"
+    "@japadhyan/shared": "*"
   },
   "devDependencies": {
     "@testing-library/react-native": "^14.0.1",

@@ -21,7 +21,8 @@
 
 - [product/vision.md](product/vision.md) — who the app is for, the core loop, guiding principles
 - [product/roadmap.md](product/roadmap.md) — all features grouped into four phases
-- [product/open-questions.md](product/open-questions.md) — undecided: name, languages, pricing, content sourcing
+- [product/open-questions.md](product/open-questions.md) — undecided: languages, pricing, content sourcing
+- [product/store-listing.md](product/store-listing.md) — App Store and Google Play name, subtitle, keywords; web domains
 - [product/glossary.md](product/glossary.md) — japa, mala, sankalpa, likhita japa and other terms
 
 ### Feature specs
@@ -60,6 +61,7 @@
 - [decisions/2026-09-21-tech-stack.md](decisions/2026-09-21-tech-stack.md) — React Native (Expo) universal app + native watch apps, chosen over Flutter
 - [decisions/2026-09-21-ci-only-when-ready.md](decisions/2026-09-21-ci-only-when-ready.md) — PRs open as drafts, Copilot reviews first, CI runs only once the owner marks a PR ready
 - [decisions/2026-09-21-free-flow-nothing-locked.md](decisions/2026-09-21-free-flow-nothing-locked.md) — every mala, mantra and mode open from day one; nothing unlocked by progress
+- [decisions/2026-09-21-app-name-japadhyan.md](decisions/2026-09-21-app-name-japadhyan.md) — the app is called JapaDhyan; domains and app identifiers
 
 ## Research
 

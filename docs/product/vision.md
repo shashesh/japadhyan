@@ -7,7 +7,7 @@ updated: 2026-09-21
 
 ## One line
 
-A one-stop companion for naam japam and mantra sadhana — for everyone who practises name chanting in the Dharmic traditions of India and Indo-Asia, on web, Android and iOS.
+**JapaDhyan** is a one-stop companion for naam japam and mantra sadhana — for everyone who practises name chanting in the Dharmic traditions of India and Indo-Asia, on web, Android and iOS.
 
 ## Who it is for
 

@@ -11,6 +11,7 @@ updated: 2026-09-21
 | **Mantra**                       | A sacred sound, word or phrase used in repetition.                                                                   |
 | **Sadhana**                      | Regular spiritual practice.                                                                                          |
 | **Japa**                         | Repetition of a mantra or name, aloud, whispered or mental.                                                          |
+| **Dhyana / dhyan**               | Meditation: steady, absorbed attention. The app's name, JapaDhyan, joins japa and dhyan.                             |
 | **Mala**                         | A string of beads (usually 108) used to count japa. One pass is one _mala_ or _round_.                               |
 | **Meru**                         | The larger "summit" bead of a mala, marking the end of a round.                                                      |
 | **Manasika japa**                | Silent, mental repetition.                                                                                           |

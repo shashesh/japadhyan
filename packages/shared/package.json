@@ -1,5 +1,5 @@
 {
-  "name": "@naam-japam/shared",
+  "name": "@japadhyan/shared",
   "version": "0.1.0",
   "private": true,
   "description": "Platform-agnostic types, business logic and constants shared by all apps",

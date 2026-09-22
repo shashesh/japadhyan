@@ -8,7 +8,7 @@ import {
   createWordTapState,
   roundProgress,
   tapWord,
-} from '@naam-japam/shared';
+} from '@japadhyan/shared';
 import { colors, spacing } from '@/theme';
 import { beadFeedback } from './feedback';
 import { useChantSession } from './useChantSession';
