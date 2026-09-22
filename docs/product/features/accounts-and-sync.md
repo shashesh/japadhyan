@@ -53,15 +53,15 @@ India's DPDP Act treats anyone under 18 as a child and requires verifiable paren
 
 Nothing is asked, and **no count is ever lost**: counts are append-only events, so combining them is always safe. Settings and preferences are different: where the device and the account disagree, one value has to win, as the table shows.
 
-| Data                   | Rule                                                                                                                                                                                  |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Count events, sessions | Combined. Ids are unique, so nothing is counted twice                                                                                                                                 |
-| Saved practices        | Matched by practice. A practice is a favourite if it's starred on either side; other settings: the latest edit wins ([conflict rule](../../architecture/data-model.md#conflict-rule)) |
-| Deity defaults         | The account's value wins                                                                                                                                                              |
-| Profile                | The account's value wins                                                                                                                                                              |
-| Sankalpas              | Both kept. The devotee can release one                                                                                                                                                |
-| Custom practices       | Both kept                                                                                                                                                                             |
-| Namavali position      | The latest edit wins                                                                                                                                                                  |
+| Data                   | Rule                                                                                                                                                                                            |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Count events, sessions | Combined. Ids are unique, so nothing is counted twice                                                                                                                                           |
+| Saved practices        | Matched by practice. A practice is a favourite if it's starred on either side; other settings: the latest edit wins ([conflict rule](../../architecture/data-model.md#conflict-rule))           |
+| Deity defaults         | The account's value wins                                                                                                                                                                        |
+| Profile                | The account's value wins                                                                                                                                                                        |
+| Sankalpas              | Both kept. The devotee can release one                                                                                                                                                          |
+| Custom practices       | Both kept                                                                                                                                                                                       |
+| Namavali position      | Merged by the [position rule](../../architecture/data-model.md#practiceposition): content version first, then pass number, with marks inside the same pass combined. Not plain latest-edit-wins |
 
 **Order of steps**, so per-user uniqueness (one saved practice per practice, one default per deity, one position per practice) always holds:
 
@@ -79,10 +79,11 @@ A devotee signing in on a fresh install whose account has `onboarded_at` set ski
 ## Signing out (P1)
 
 - Signing out first **seals the open count event** and **waits for sync**.
-- If some counts can't sync (for example, offline), the devotee chooses:
+- This covers **everything not yet synced**, not only counts: sessions, your place in a namavali, saved practices and their settings, deity defaults, custom practices and sankalpas.
+- If any of it can't sync (for example, offline), the devotee chooses:
   - **Wait** and try again when online (the default);
-  - **Export** those counts to a file first, then sign out;
-  - **Discard** them: the screen shows how many ("12 counts from today will be lost") and asks for confirmation.
+  - **Export** everything pending to a file first, then sign out;
+  - **Discard** it: the screen lists what would be lost ("12 counts from today, and 3 changes to your practices") and asks for confirmation.
 - Only then does signing out **remove the account's data from the device** and return to the Welcome screen. This protects privacy on shared family phones. Everything that synced is safe in the account.
 
 ## Deleting an account (P1)
@@ -103,6 +104,7 @@ For everyone, including guests.
 - **Settings → Backup → Export** saves a file with the profile, saved and custom practices, deity defaults, namavali positions, sessions, count events and sankalpas.
 - **Import** combines using the same rules as signing in, so importing the same file twice changes nothing.
 - **Import ignores who owned the file.** Every imported record is re-keyed to whoever is using the app now: the local profile, or the signed-in account. Record ids are kept, which is what makes a repeat import harmless. Nothing imported can ever be uploaded under someone else's account.
+- **The profile is the exception.** There is only ever one profile per user, so the file's profile is never added as a second one: its settings are applied to the current profile, the later edit winning field by field, and its id is dropped.
 - If the file came from a **different account**, the app says so before importing, since those counts will join the devotee's own practice.
 - The file contains private fields (intentions, private labels), and the export screen says so.
 
