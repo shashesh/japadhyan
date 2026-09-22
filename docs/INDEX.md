@@ -4,7 +4,7 @@
 > Add, move or retire a doc → update this file in the same commit.
 > See [README.md](README.md) for folder conventions.
 
-**Last verified:** 2026-09-21
+**Last verified:** 2026-09-22
 
 ## Repo root
 
@@ -29,8 +29,9 @@
 
 - [product/features/chanting-modes.md](product/features/chanting-modes.md) — tap, word-by-word, typing, voice, silent, hands-free, listening
 - [product/features/session-experience.md](product/features/session-experience.md) — the chanting screen and the offering moment
-- [product/features/mantra-library.md](product/features/mantra-library.md) — deity templates, custom mantras, private guru mantras
-- [product/features/onboarding.md](product/features/onboarding.md) — first-run flow under one minute
+- [product/features/mantra-library.md](product/features/mantra-library.md) — deities and their practices (mantras, 108 names, stotras), favourites and defaults, custom and private guru mantras
+- [product/features/onboarding.md](product/features/onboarding.md) — first-run flow under one minute, no account
+- [product/features/accounts-and-sync.md](product/features/accounts-and-sync.md) — optional account, sign-in methods, consent, combining device data, sign-out, deletion, export
 - [product/features/sankalpa-and-progress.md](product/features/sankalpa-and-progress.md) — vows and intentions, streaks, charts, milestones, reflection
 - [product/features/festival-programs.md](product/features/festival-programs.md) — Navaratri, Shivratri, Janmashtami and the festival calendar
 - [product/features/dedication-and-offering.md](product/features/dedication-and-offering.md) — dedicating japa, printed japa books, temple offerings
@@ -45,6 +46,8 @@
 
 - [architecture/monorepo-structure.md](architecture/monorepo-structure.md) — apps/packages layout and import rules
 - [architecture/platform-principles.md](architecture/platform-principles.md) — offline-first, privacy, sync, platform targets (Expo)
+- [architecture/data-model.md](architecture/data-model.md) — catalog, the devotee's data, counting rules, storage and sync
+- [architecture/content-pipeline.md](architecture/content-pipeline.md) — authoring content in `content/`, building packs, delivery to devices
 
 ## Plans
 
@@ -62,6 +65,10 @@
 - [decisions/2026-09-21-ci-only-when-ready.md](decisions/2026-09-21-ci-only-when-ready.md) — PRs open as drafts, Copilot reviews first, CI runs only once the owner marks a PR ready
 - [decisions/2026-09-21-free-flow-nothing-locked.md](decisions/2026-09-21-free-flow-nothing-locked.md) — every mala, mantra and mode open from day one; nothing unlocked by progress
 - [decisions/2026-09-21-app-name-japadhyan.md](decisions/2026-09-21-app-name-japadhyan.md) — the app is called JapaDhyan; domains and app identifiers
+- [decisions/2026-09-22-practice-model-ordered-steps.md](decisions/2026-09-22-practice-model-ordered-steps.md) — every practice is an ordered list of steps; a namavali recitation counts as one
+- [decisions/2026-09-22-content-packs.md](decisions/2026-09-22-content-packs.md) — content authored in the repo, delivered as packs; small core bundled in the app
+- [decisions/2026-09-22-guest-first-accounts.md](decisions/2026-09-22-guest-first-accounts.md) — no account needed; Google, Apple, email code; consent before sync
+- [decisions/2026-09-22-grouped-count-events.md](decisions/2026-09-22-grouped-count-events.md) — count events grouped then sealed; corrections and manual logs are new events
 
 ## Research
 

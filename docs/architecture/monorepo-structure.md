@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-09-21
+updated: 2026-09-22
 ---
 
 # Monorepo structure
@@ -16,13 +16,15 @@ japadhyan/
 │     └─ src/
 │        ├─ app/              Routes only (file-based). Keep thin.
 │        ├─ features/<name>/  Screens, hooks and platform code per feature
+│        ├─ data/             Repositories: the only code that touches local storage and sync (P1)
 │        └─ theme.ts          Colours and spacing tokens
 ├─ packages/
 │  └─ shared/                 @japadhyan/shared — platform-agnostic
 │     └─ src/
 │        ├─ types/            Domain types (snake_case fields)
 │        ├─ logic/            Pure business logic + Vitest tests
-│        └─ constants/        Starter mantras, round sizes
+│        └─ constants/        Round sizes and other fixed values
+├─ content/                   Deities, practices, programs as YAML — built into packs (P1)
 ├─ docs/                      Product, architecture, decisions, plans
 ├─ scripts/                   Repo tooling: git hooks setup, CI guard tests (node:test)
 ├─ .githooks/                 Git hooks: no commits or pushes to master; Markdown checks
@@ -48,9 +50,10 @@ Shared code is consumed as TypeScript source (`main: src/index.ts`); Metro trans
 
 ## Future apps and packages
 
-| Path                                | Phase | Purpose                                          |
-| ----------------------------------- | ----- | ------------------------------------------------ |
-| `apps/mobile/targets/watch`         | P2    | Apple Watch app (SwiftUI via expo-apple-targets) |
-| `apps/wear`                         | P2    | Wear OS app (Kotlin + Compose)                   |
-| `apps/mobile/modules/voice-counter` | P2    | Native on-device voice counting module           |
-| `supabase/`                         | P1    | Database migrations and policies                 |
+| Path                                | Phase | Purpose                                                     |
+| ----------------------------------- | ----- | ----------------------------------------------------------- |
+| `apps/mobile/targets/watch`         | P2    | Apple Watch app (SwiftUI via expo-apple-targets)            |
+| `apps/wear`                         | P2    | Wear OS app (Kotlin + Compose)                              |
+| `apps/mobile/modules/voice-counter` | P2    | Native on-device voice counting module                      |
+| `supabase/`                         | P1    | Database migrations and policies                            |
+| `content/`                          | P1    | Catalog source; see [content-pipeline](content-pipeline.md) |

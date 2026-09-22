@@ -54,6 +54,9 @@ See [docs/architecture/monorepo-structure.md](./docs/architecture/monorepo-struc
 ## Product rules that affect code
 
 - **One count, many inputs.** Every chanting mode records `CountEvent`s; totals are always derived from events (`totalCount`), never stored as a mutable counter. This keeps offline sync safe.
+- **Every practice is an ordered list of steps** (mantra: 1 step; namavali: one per name). Counts are always in repetitions: a full Ashtottara is 1 recitation. A devotee's place in a namavali is a position, never a count. See [docs/architecture/data-model.md](./docs/architecture/data-model.md).
+- **Count events are sealed, then never edited.** Fixes are `correction` events; practice done elsewhere is a `manual` event. Group days by the event's `local_day`, never by converting `created_at`.
+- **Catalog content lives in `content/`** and reaches the app as packs. Never hard-code mantras or deities in app code ([content pipeline](./docs/architecture/content-pipeline.md)).
 - **Listening japa** is counted separately and never added to the chanted total.
 - **Private guru mantras** never store their words, and are excluded from sharing, community and analytics.
 - **Voice audio never leaves the device.**

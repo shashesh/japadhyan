@@ -1,6 +1,6 @@
 ---
 status: draft
-updated: 2026-09-21
+updated: 2026-09-22
 phases: P1, P2
 ---
 
@@ -8,11 +8,20 @@ phases: P1, P2
 
 Practice as vows and a rhythm, not just a number.
 
+Counts are always in repetitions of a practice: one japa of a mantra, or one recitation of a namavali ([data-model](../../architecture/data-model.md#counting)).
+
+## Daily goal (P1)
+
+- Set in [onboarding](onboarding.md) and changeable on any saved practice: e.g. 3 malas a day, or 1 Ashtottara a day.
+- Lighter than a sankalpa: no start or end date, no vow.
+
 ## Sankalpa programs (P1)
 
-- A sankalpa has: a mantra, a target (daily count and/or total), a duration, and optional rules (time of day, how to make up missed days).
+- A sankalpa has: a practice (or a program with a practice for each day, like Navaratri), a target (daily count and/or total), a duration or none, and an optional intention.
 - Built-in templates: **40-day mandala**, 9-day Navaratri (see [festival-programs](festival-programs.md)), 21-day beginner.
 - Custom sankalpas.
+- A sankalpa ends as **completed**, or the devotee can **release** it. There is no "failed".
+- Optional rules (time of day, how to make up missed days) come in P2.
 - **Written intention (optional):** when taking a sankalpa, the devotee can write why, e.g. "for my mother's health" or "for a steadier mind". It shows on the sankalpa while it runs and again at its end ([closing reflection](#insight-p2)).
 - Intentions are private: never in analytics or community features ([privacy](../../architecture/platform-principles.md#privacy)).
 
@@ -24,12 +33,16 @@ Practice as vows and a rhythm, not just a number.
 ## Streaks (P1)
 
 - Daily streak with **grace days** — a missed day doesn't erase the streak.
+- A day counts if the devotee chanted **any practice** (net of corrections). Meeting a daily goal is shown separately and never affects the streak.
+- A day is the devotee's local day, starting at midnight by default; it can be changed, e.g. to 3 AM so late-night chanting counts for the evening.
 - Warm reminders, never guilt ("Your mala is waiting when you're ready").
 
 ## Charts (P1)
 
 - **Daily** count, **weekly** view, **annual** heatmap.
-- Filters by mantra and by sankalpa.
+- The heatmap and other views across practices use **names chanted**, so one Ashtottara (108 names) weighs about the same as one mala. Tapping a day shows each practice's own count.
+- Estimated counts (silent modes) are marked with "~".
+- Filters by practice and by sankalpa.
 
 ## Insight (P2)
 
