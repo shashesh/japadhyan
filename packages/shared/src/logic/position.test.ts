@@ -144,6 +144,14 @@ describe('mergePositions: general', () => {
     expect(countMarks(tablet.chanted_steps, STEPS)).toBe(1);
   });
 
+  test('refuses to merge two devotees’ positions for the same practice', () => {
+    // Positions are unique per (user_id, practice_id). Combining across
+    // owners would pool their marks and return them under one devotee.
+    expect(() => mergePositions(position(), position({ user_id: 'user-2' }))).toThrow(
+      /different (owners|devotees)/i,
+    );
+  });
+
   test('refuses to merge positions for different practices', () => {
     expect(() => mergePositions(position(), position({ practice_id: 'om-namah-shivaya' }))).toThrow(
       /different practices/i,

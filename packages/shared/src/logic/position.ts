@@ -22,6 +22,13 @@ import { unionMarks } from './marks';
  * device and the server settle on it.
  */
 export function mergePositions(a: PracticePosition, b: PracticePosition): PracticePosition {
+  // A position is unique per (user_id, practice_id). Merging across owners
+  // would pool two devotees' marks and hand them to whichever hlc won.
+  if (a.user_id !== b.user_id) {
+    throw new Error(
+      `Cannot merge positions belonging to different devotees: ${a.user_id} and ${b.user_id}`,
+    );
+  }
   if (a.practice_id !== b.practice_id) {
     throw new Error(
       `Cannot merge positions for different practices: ${a.practice_id} and ${b.practice_id}`,

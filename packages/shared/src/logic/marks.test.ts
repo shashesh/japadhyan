@@ -81,6 +81,36 @@ describe('isStepChanted', () => {
   });
 });
 
+describe('a bitset that is the wrong size for the practice', () => {
+  // A 9-step practice needs 2 bytes. A 1-byte bitset arriving from sync
+  // cannot hold step 8: writing it would be silently dropped by the typed
+  // array and the devotee would lose a name without anything failing.
+  const truncated = new Uint8Array(1);
+  const oversized = new Uint8Array(3);
+
+  test('markStep refuses it rather than silently dropping the mark', () => {
+    expect(() => markStep(truncated, 8, 9)).toThrow(RangeError);
+    expect(() => markStep(oversized, 0, 9)).toThrow(RangeError);
+  });
+
+  test('isStepChanted refuses it rather than reporting a missing byte as unchanted', () => {
+    expect(() => isStepChanted(truncated, 8, 9)).toThrow(RangeError);
+  });
+
+  test('countMarks refuses it', () => {
+    expect(() => countMarks(truncated, 9)).toThrow(RangeError);
+  });
+
+  test('isPassComplete refuses it', () => {
+    expect(() => isPassComplete(truncated, 9)).toThrow(RangeError);
+  });
+
+  test('a correctly sized bitset is accepted', () => {
+    expect(() => markStep(createMarks(9), 8, 9)).not.toThrow();
+    expect(countMarks(createMarks(9), 9)).toBe(0);
+  });
+});
+
 describe('countMarks', () => {
   test('never counts the padding bits as chanted names', () => {
     // A corrupt or hostile bitset arriving from sync with every bit set must
