@@ -30,6 +30,14 @@ export type ChantMode =
   | 'ring'; // P4 - Bluetooth rings / smart malas
 
 /**
+ * A mode the devotee can choose to chant in, and so the chant screen can open
+ * in. `correction` and `manual` are bookkeeping — one adjusts a session, the
+ * other logs practice done elsewhere — and neither is a way of chanting, so
+ * neither can be a preference.
+ */
+export type ChantableMode = Exclude<ChantMode, 'correction' | 'manual'>;
+
+/**
  * A practice id is either a catalog slug (`vishnu-ashtottara`) or a custom
  * practice's UUID. The two formats never collide.
  */
@@ -131,8 +139,8 @@ export interface SavedPractice extends OwnedRecord, SyncFields {
   round_size: number | null;
   /** Override; falls back to the profile. */
   mala_style: string | null;
-  /** Mode the chant screen opens in. */
-  preferred_mode: ChantMode | null;
+  /** Mode the chant screen opens in. Never a correction or a manual log. */
+  preferred_mode: ChantableMode | null;
   /** Repetitions between offerings: 11, 108, …; empty means end of round. */
   offer_every: number | null;
   /** Override of the profile's script. */
