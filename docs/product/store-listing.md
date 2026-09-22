@@ -1,11 +1,11 @@
 ---
 status: draft
-updated: 2026-09-21
+updated: 2026-09-22
 ---
 
 # Store listing
 
-Draft copy for the App Store and Google Play, finalised in [M9](../plans/active/2026-09-21-phase-1-plan.md#m9--release). Why this name: [decision](../decisions/2026-09-21-app-name-japadhyan.md).
+Draft copy for the App Store and Google Play, finalised in [M11](../plans/active/2026-09-21-phase-1-plan.md#m11--release). Why this name: [decision](../decisions/2026-09-21-app-name-japadhyan.md).
 
 ## The name in each place
 
