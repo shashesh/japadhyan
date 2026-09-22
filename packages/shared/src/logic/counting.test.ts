@@ -226,6 +226,27 @@ describe('countsByMode', () => {
 
     expect(countsByMode(events)).toEqual({ mala_tap: 162, listening: 9 });
   });
+
+  test('keeps corrections out: they adjust a session, they are not a way of chanting', () => {
+    const events = [
+      event({ mode: 'mala_tap', count: 108 }),
+      event({ mode: 'correction', count: -8 }),
+    ];
+
+    expect(countsByMode(events)).toEqual({ mala_tap: 108 });
+  });
+
+  test('never reports a negative slice of the mode mix', () => {
+    const events = [event({ mode: 'correction', count: -50 })];
+
+    expect(countsByMode(events)).toEqual({});
+  });
+
+  test('keeps manual logs, which are a way practice happened', () => {
+    const events = [event({ mode: 'manual', count: 324 })];
+
+    expect(countsByMode(events)).toEqual({ manual: 324 });
+  });
 });
 
 describe('roundProgress', () => {

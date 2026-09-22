@@ -104,13 +104,22 @@ export function practisedDays(
   return new Set(Object.keys(dailyTotals(events, options)));
 }
 
-/** Repetitions per mode, for the "mode mix" insight. Listening included. */
+/**
+ * Repetitions per mode, for the "mode mix" insight: how the devotee chanted.
+ * Listening is included as its own mode.
+ *
+ * Corrections are left out. They adjust a session rather than being a way of
+ * chanting, so counting them here would show a negative slice of the mix and
+ * make the percentages nonsense. `manual` stays — practice done elsewhere is
+ * still practice, only logged by hand.
+ */
 export function countsByMode(
   events: readonly CountEvent[],
   options: TotalOptions = {},
 ): Partial<Record<ChantMode, number>> {
   const result: Partial<Record<ChantMode, number>> = {};
   for (const e of events) {
+    if (e.mode === 'correction') continue;
     if (!isIncluded(e, { ...options, includeListening: true })) continue;
     result[e.mode] = (result[e.mode] ?? 0) + e.count;
   }
