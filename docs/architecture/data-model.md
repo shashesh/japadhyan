@@ -60,24 +60,24 @@ Read-only on the device. Authored in `content/`, reviewed, and delivered as pack
 
 Every practice is an **ordered list of steps**. One pass through the steps is one **repetition**.
 
-| Field             | Notes                                                                                   |
-| ----------------- | --------------------------------------------------------------------------------------- |
-| `id`              | Slug, e.g. `om-namah-shivaya`, `vishnu-ashtottara`                                      |
-| `version`         | Bumped on any text change. The number of steps may only change with a version bump      |
-| `tradition_id`    |                                                                                         |
-| `kind`            | `mantra` (P1) · `namavali` (P1) · `stotra` (P2)                                         |
-| `deity_ids`       | First is the primary deity. Hare Krishna is `['krishna', 'ram']`                        |
-| `title`           | Per language, e.g. "Vishnu Ashtottara Shatanamavali"                                    |
-| `subtitle`        | Per language, e.g. "108 names"                                                          |
-| `source_script`   | Script the text was authored in: Devanagari for Sanskrit, Gurmukhi for Sikh practice, … |
-| `steps`           | `Step[]`. A mantra has 1 step; an Ashtottara has 108; a stotra has one per verse        |
-| `default_round`   | Repetitions per round: 108 for a mantra, 1 for a namavali (the names are the beads)     |
-| `repetition_word` | Shown in the app: `japa` for a mantra, `paath` for a namavali or stotra                 |
-| `intro`           | Meaning and short explanation, per language                                             |
-| `audio`           | Optional media reference for the full recording                                         |
-| `source`          | Where the text comes from                                                               |
-| `licence`         | Licence of the text, transliteration and translation                                    |
-| `review`          | `{ advisor, reviewed_on }`. Unreviewed practices never ship in production packs         |
+| Field             | Notes                                                                                                                                                                  |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`              | Slug, e.g. `om-namah-shivaya`, `vishnu-ashtottara`                                                                                                                     |
+| `version`         | Bumped on any text change. The number of steps may only change with a version bump. Count events store the step count they were chanted with, so history never changes |
+| `tradition_id`    |                                                                                                                                                                        |
+| `kind`            | `mantra` (P1) · `namavali` (P1) · `stotra` (P2)                                                                                                                        |
+| `deity_ids`       | First is the primary deity. Hare Krishna is `['krishna', 'ram']`                                                                                                       |
+| `title`           | Per language, e.g. "Vishnu Ashtottara Shatanamavali"                                                                                                                   |
+| `subtitle`        | Per language, e.g. "108 names"                                                                                                                                         |
+| `source_script`   | Script the text was authored in: Devanagari for Sanskrit, Gurmukhi for Sikh practice, …                                                                                |
+| `steps`           | `Step[]`. A mantra has 1 step; an Ashtottara has 108; a stotra has one per verse                                                                                       |
+| `default_round`   | Repetitions per round: 108 for a mantra, 1 for a namavali (the names are the beads)                                                                                    |
+| `repetition_word` | Shown in the app: `japa` for a mantra, `paath` for a namavali or stotra                                                                                                |
+| `intro`           | Meaning and short explanation, per language                                                                                                                            |
+| `audio`           | Optional media reference for the full recording                                                                                                                        |
+| `source`          | Where the text comes from                                                                                                                                              |
+| `licence`         | Licence of the text, transliteration and translation                                                                                                                   |
+| `review`          | `{ advisor, reviewed_on }`. Unreviewed practices never ship in production packs                                                                                        |
 
 ### Step
 
@@ -120,11 +120,11 @@ Written on the device first. Synced only when the devotee signs in and consents 
 
 Every record in this section has:
 
-| Field                      | Notes                                                                                                                                                                                          |
-| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`                       | **UUIDv7**, generated on the device, so it works offline and sorts by time. The profile's id is the `user_id`                                                                                  |
-| `user_id`                  | The owner. Before sign-in: the local profile id. On first sign-in, the device's rows are given the account's id **before their first upload**. On the server: the Supabase auth user, not null |
-| `updated_at`, `deleted_at` | On records where the latest edit wins (see [tables by behaviour](#tables-by-behaviour))                                                                                                        |
+| Field                      | Notes                                                                                                                                                                                                                                                                                                                                                  |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `id`                       | **UUIDv7**, generated on the device, so it works offline and sorts by time. The profile's id is the `user_id`                                                                                                                                                                                                                                          |
+| `user_id`                  | The owner. Before sign-in: the local profile id. On first sign-in, the device's rows are combined with the account's first, and only then given the account's id, before their first upload ([order of steps](../product/features/accounts-and-sync.md#signing-in-on-a-device-that-already-has-data)). On the server: the Supabase auth user, not null |
+| `updated_at`, `deleted_at` | On records where the latest edit wins (see [tables by behaviour](#tables-by-behaviour))                                                                                                                                                                                                                                                                |
 
 Uniqueness is per user: one saved practice per `(user_id, practice_id)`, one default per `(user_id, deity_id)`, one position per `(user_id, practice_id)`.
 
@@ -188,32 +188,35 @@ The app opens to the saved practice with the latest `last_used_at`.
 
 ### Session
 
-| Field                        | Notes                                                                 |
-| ---------------------------- | --------------------------------------------------------------------- |
-| `practice_id`                |                                                                       |
-| `device_id`                  |                                                                       |
-| `started_at`                 | Created at the first count                                            |
-| `ended_at`                   | Set when the devotee leaves the chant screen or after 30 minutes idle |
-| `local_day`, `tz_offset_min` | Where the session starts                                              |
-| `dedication_id`              | P2                                                                    |
-| `reflection`                 | P2: stillness 1–5 and an optional note (private)                      |
+| Field                        | Notes                                                                                       |
+| ---------------------------- | ------------------------------------------------------------------------------------------- |
+| `practice_id`                |                                                                                             |
+| `device_id`                  |                                                                                             |
+| `started_at`                 | Created at the first count                                                                  |
+| `ended_at`                   | Set when the devotee leaves the chant screen, after 30 minutes idle, or at the day boundary |
+| `local_day`, `tz_offset_min` | The one local day the session belongs to                                                    |
+| `dedication_id`              | P2                                                                                          |
+| `reflection`                 | P2: stillness 1–5 and an optional note (private)                                            |
+
+**A session never crosses a local day.** At the devotee's day boundary the current session ends and a new one begins; the devotee sees nothing change. Every event and correction in a session therefore has the same `local_day`, and each session's floored net belongs to exactly one day.
 
 ### CountEvent
 
 An append-only record of completed repetitions. **Totals are always derived from events.** Once sealed, an event never changes.
 
-| Field           | Notes                                                                                                                                                                         |
-| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`            | UUIDv7                                                                                                                                                                        |
-| `practice_id`   |                                                                                                                                                                               |
-| `session_id`    |                                                                                                                                                                               |
-| `mode`          | A [chanting mode](../product/features/chanting-modes.md), or `manual` / `correction`                                                                                          |
-| `count`         | **Completed repetitions**. For a namavali, recitations. Positive, except for corrections                                                                                      |
-| `estimated`     | True for silent pace and breath                                                                                                                                               |
-| `device_id`     |                                                                                                                                                                               |
-| `created_at`    | UTC. For ordering                                                                                                                                                             |
-| `local_day`     | `YYYY-MM-DD`, using the devotee's `day_start_minutes` at the time. **The source of truth for which day a count belongs to**, so history doesn't move when the devotee travels |
-| `tz_offset_min` | Time zone offset when the event was created                                                                                                                                   |
+| Field                  | Notes                                                                                                                                                                                               |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`                   | UUIDv7                                                                                                                                                                                              |
+| `practice_id`          |                                                                                                                                                                                                     |
+| `session_id`           |                                                                                                                                                                                                     |
+| `mode`                 | A [chanting mode](../product/features/chanting-modes.md), or `manual` / `correction`                                                                                                                |
+| `count`                | **Completed repetitions**. For a namavali, recitations. Positive, except for corrections                                                                                                            |
+| `estimated`            | True for silent pace and breath                                                                                                                                                                     |
+| `device_id`            |                                                                                                                                                                                                     |
+| `created_at`           | UTC. For ordering                                                                                                                                                                                   |
+| `local_day`            | `YYYY-MM-DD`, using the devotee's `day_start_minutes` at the time. **The source of truth for which day a count belongs to**, so history doesn't move when the devotee travels                       |
+| `tz_offset_min`        | Time zone offset when the event was created                                                                                                                                                         |
+| `steps_per_repetition` | The practice's step count when chanted: 1 for a mantra, 108 for an Ashtottara. Used for names chanted, so a later content update never changes past totals. A correction copies it from its session |
 
 **Grouped, then sealed.** Taps are not stored one by one; that would be about 36 million rows a year for someone chanting a lakh a day. The current event is kept open on the device and updated in place as the devotee taps. It is **sealed** when:
 
@@ -234,7 +237,17 @@ Only sealed events sync. An event left open by a crash is sealed on next launch,
 
 ### PracticePosition
 
-The devotee's place in a namavali (and, in P2, a stotra): `practice_id`, `practice_version`, `step_index`, `updated_at`. Saved after every step. It is not a count; a recitation counts only when its last step is done. If a content update changes the number of steps, the position resets and the app says why.
+The devotee's place in a namavali (and, in P2, a stotra). It is not a count.
+
+| Field              | Notes                                                                                     |
+| ------------------ | ----------------------------------------------------------------------------------------- |
+| `practice_id`      |                                                                                           |
+| `practice_version` | If a content update changes the number of steps, the position resets and the app says why |
+| `step_index`       | The name on screen                                                                        |
+| `chanted_steps`    | Which steps have been chanted **in the current pass**: a bitset, 14 bytes for 108 names   |
+| `updated_at`       | Saved after every step                                                                    |
+
+**When a recitation counts.** A step is chanted when the devotee moves forward from it (tap, volume button, or chant along in P2). A recitation counts only when **every step in the pass has been chanted**, and it counts once: the pass then resets to step 1 with an empty `chanted_steps`, and back can't cross into the finished pass. Jumping from the list view moves `step_index` without marking anything. Going back and forward again re-chants a name without counting it twice.
 
 ### Sankalpa
 
@@ -278,9 +291,11 @@ Never in analytics, sharing, community features or logs: sankalpa `intention`, c
 | **Round**         | 108 repetitions, or the devotee's size | 1 recitation                          |
 | **Names chanted** | Repetitions × 1                        | Recitations × 108                     |
 
+Names chanted is always `count × steps_per_repetition` **as stored on each event**, never the practice's current step count.
+
 ### Totals, goals and streaks
 
-- **One count, many inputs.** Every mode adds repetitions to the same total for a practice.
+- **One count, many inputs.** Every chanted mode adds repetitions to the same total for a practice. Listening japa (P2) is kept in its own total and never added.
 - **Totals are summed per session**, with each session's net floored at zero ([corrections](#countevent)).
 - **Streak:** a day counts if its net count (after corrections) is above zero, for any practice. Grace days as in `computeStreak`. Meeting a goal is shown separately and never affects the streak.
 - **Daily goal** is per saved practice. **Sankalpa targets** are per sankalpa.
@@ -355,7 +370,7 @@ Nothing has shipped, so there is no data to migrate.
 - `Mantra` becomes `Practice` (with `kind`, `steps`, `version`); `mantra_id` becomes `practice_id` everywhere.
 - `Script` gains `iast`; `latin` means the simple common spelling.
 - `ChantMode` gains `manual` and `correction`.
-- `CountEvent` gains `local_day` and `tz_offset_min`. `dailyTotals` groups by `local_day` instead of converting `created_at`.
+- `CountEvent` gains `local_day`, `tz_offset_min` and `steps_per_repetition`. `dailyTotals` groups by `local_day` instead of converting `created_at`.
 - `Sankalpa` gains `program_id`, `intention`, `status` and sync fields.
 - `STARTER_MANTRAS` moves out of code into `content/`.
 - `totalCount` and `dailyTotals` sum each session's events and floor the session at zero before adding sessions together.

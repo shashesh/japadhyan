@@ -63,14 +63,25 @@ Nothing is asked, and **no count is ever lost**: counts are append-only events, 
 | Custom practices       | Both kept                                                                                                           |
 | Namavali position      | The newest one wins                                                                                                 |
 
+**Order of steps**, so per-user uniqueness (one saved practice per practice, one default per deity, one position per practice) always holds:
+
+1. **Download** the account's data completely. The device's rows keep the local profile id meanwhile. If the download fails, nothing changes and the app retries later.
+2. **Combine** on the device, using the table above. Where both sides have a row for the same practice or deity, one row survives: the account's row, updated with the combined values.
+3. **Re-key** the device's remaining rows to the account's id.
+4. **Upload.** As a backstop, the server writes rows keyed per user with latest-edit-wins, so a retry can never create a duplicate.
+
 Afterwards the devotee sees what happened, e.g. "Added 2,340 repetitions from this device to your account."
 
 A devotee signing in on a fresh install whose account has `onboarded_at` set skips onboarding and lands on their last practice.
 
 ## Signing out (P1)
 
-- If any counts haven't synced yet, the devotee is warned ("12 counts from today haven't been backed up yet") and can wait for sync or sign out anyway.
-- Signing out **removes the account's data from the device** and returns to the Welcome screen. This protects privacy on shared family phones. The data is safe in the account.
+- Signing out first **seals the open count event** and **waits for sync**.
+- If some counts can't sync (for example, offline), the devotee chooses:
+  - **Wait** and try again when online (the default);
+  - **Export** those counts to a file first, then sign out;
+  - **Discard** them: the screen shows how many ("12 counts from today will be lost") and asks for confirmation.
+- Only then does signing out **remove the account's data from the device** and return to the Welcome screen. This protects privacy on shared family phones. Everything that synced is safe in the account.
 
 ## Deleting an account (P1)
 

@@ -10,7 +10,7 @@ The heart of the app: many ways to chant, one count.
 
 ## The key rule — one count, many inputs
 
-- Every mode adds repetitions to the **same** total for the active practice and sankalpa.
+- Every chanted mode adds repetitions to the **same** total for the active practice and sankalpa. [Listening japa](#listening-japa) is the exception: it has its own total.
 - A devotee can **switch modes mid-session** (tap on the bus, voice at home, silent in bed).
 - Each count records **which mode** produced it, so progress can show a mode mix ("60% spoken, 30% tap, 10% written").
 - A **round** (mala) size is configurable per mantra: 108 (default), 54, 27, 33, or custom. For a namavali, the round is always one recitation.
@@ -59,10 +59,11 @@ For an Ashtottara Shatanamavali or other namavali ([mantra-library](mantra-libra
 
 - The **current name** is shown large, in the devotee's script, with the transliteration and a short meaning below (the meaning can be hidden).
 - The **bead ring** shows the place among the 108 names: bead _n_ is name _n_.
-- **Tap anywhere** for the next name; a **back** button goes back one. Going back is safe because the place is not a count.
+- **Tap anywhere** to chant the name on screen and move to the next; a **back** button goes back one to chant it again.
 - The place is **saved after every name**: stop at name 54 and carry on tomorrow, or on another device when signed in.
-- A **list view** shows all the names; tapping one jumps to it.
-- After the last name comes the [offering moment](session-experience.md#the-offering-moment), and **one recitation** is added to the count.
+- A **list view** shows all the names, with the ones already chanted in this recitation marked; tapping one jumps to it. **Jumping never counts a name.**
+- A recitation counts only when **every name in it has been chanted**. Tapping the last name with some still unchanted says how many remain and takes the devotee to the first of them.
+- When every name is chanted, the [offering moment](session-experience.md#the-offering-moment) comes and **one recitation** is added, once. The next recitation starts at name 1, and back can't return into the finished one.
 - If a content update changes the number of names, the saved place resets and the app says why.
 
 ## Mala tap

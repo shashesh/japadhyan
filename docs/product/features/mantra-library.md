@@ -10,11 +10,11 @@ The library is organised **by deity**. Each deity has several **practices** a de
 
 ## Practice types
 
-| Type         | What it is                                                                                           | Counted in                        | Phase |
-| ------------ | ---------------------------------------------------------------------------------------------------- | --------------------------------- | ----- |
-| **Mantra**   | One mantra or name repeated: _Om Namah Shivaya_, _Hare Krishna_, _Ram_                               | Repetitions (japa), rounds of 108 | P1    |
-| **Namavali** | A list of different names, each chanted once: Ashtottara Shatanamavali (108), Sahasranamavali (1000) | Recitations (paath)               | P1    |
-| **Stotra**   | Verses read or recited in order: Hanuman Chalisa, Lingashtakam, Vishnu Sahasranama stotram           | Recitations (paath)               | P2    |
+| Type         | What it is                                                                                                       | Counted in                        | Phase |
+| ------------ | ---------------------------------------------------------------------------------------------------------------- | --------------------------------- | ----- |
+| **Mantra**   | One mantra or name repeated: _Om Namah Shivaya_, _Hare Krishna_, _Ram_                                           | Repetitions (japa), rounds of 108 | P1    |
+| **Namavali** | A list of different names, each chanted once: Ashtottara Shatanamavali (108) in P1; Sahasranamavali (1000) in P2 | Recitations (paath)               | P1    |
+| **Stotra**   | Verses read or recited in order: Hanuman Chalisa, Lingashtakam, Vishnu Sahasranama stotram                       | Recitations (paath)               | P2    |
 
 How each type is chanted: [chanting-modes](chanting-modes.md#modes-by-practice-type).
 
