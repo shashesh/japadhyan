@@ -35,7 +35,7 @@ describe('mergePositions: practice_version', () => {
     const old = withMarks([0, 1, 2], { practice_version: 1, hlc: hlc(9000) });
     const reset = withMarks([], { practice_version: 2, hlc: hlc(1000) });
 
-    const merged = mergePositions(old, reset);
+    const merged = mergePositions(old, reset, STEPS);
 
     expect(merged.practice_version).toBe(2);
     expect(countMarks(merged.chanted_steps, STEPS)).toBe(0);
@@ -45,8 +45,8 @@ describe('mergePositions: practice_version', () => {
     const stale = withMarks([0, 1, 2], { practice_version: 1, hlc: hlc(999_999) });
     const current = withMarks([5], { practice_version: 2, hlc: hlc(1) });
 
-    expect(mergePositions(stale, current).practice_version).toBe(2);
-    expect(mergePositions(current, stale).practice_version).toBe(2);
+    expect(mergePositions(stale, current, STEPS).practice_version).toBe(2);
+    expect(mergePositions(current, stale, STEPS).practice_version).toBe(2);
   });
 });
 
@@ -55,7 +55,7 @@ describe('mergePositions: pass_ordinal', () => {
     const behind = withMarks([0, 1, 2], { pass_ordinal: 4, hlc: hlc(9000) });
     const ahead = withMarks([7], { pass_ordinal: 5, hlc: hlc(1000) });
 
-    const merged = mergePositions(behind, ahead);
+    const merged = mergePositions(behind, ahead, STEPS);
 
     expect(merged.pass_ordinal).toBe(5);
     expect(isStepChanted(merged.chanted_steps, 7, STEPS)).toBe(true);
@@ -66,7 +66,7 @@ describe('mergePositions: pass_ordinal', () => {
     const oldVersionHighPass = withMarks([], { practice_version: 1, pass_ordinal: 99 });
     const newVersionLowPass = withMarks([], { practice_version: 2, pass_ordinal: 1 });
 
-    const merged = mergePositions(oldVersionHighPass, newVersionLowPass);
+    const merged = mergePositions(oldVersionHighPass, newVersionLowPass, STEPS);
 
     expect(merged.practice_version).toBe(2);
     expect(merged.pass_ordinal).toBe(1);
@@ -78,7 +78,7 @@ describe('mergePositions: same version and pass', () => {
     const phone = withMarks([0, 1], { hlc: hlc(1000, 'phone') });
     const tablet = withMarks([1, 2], { hlc: hlc(2000, 'tablet') });
 
-    const merged = mergePositions(phone, tablet);
+    const merged = mergePositions(phone, tablet, STEPS);
 
     expect(isStepChanted(merged.chanted_steps, 0, STEPS)).toBe(true);
     expect(isStepChanted(merged.chanted_steps, 1, STEPS)).toBe(true);
@@ -90,13 +90,14 @@ describe('mergePositions: same version and pass', () => {
     const earlierButFurther = withMarks([0], { step_index: 90, hlc: hlc(1000) });
     const laterButNearer = withMarks([0], { step_index: 3, hlc: hlc(2000) });
 
-    expect(mergePositions(earlierButFurther, laterButNearer).step_index).toBe(3);
+    expect(mergePositions(earlierButFurther, laterButNearer, STEPS).step_index).toBe(3);
   });
 
   test('keeps the higher hlc so the merge propagates', () => {
     const merged = mergePositions(
       withMarks([0], { hlc: hlc(1000) }),
       withMarks([1], { hlc: hlc(2000) }),
+      STEPS,
     );
 
     expect(merged.hlc.millis).toBe(2000);
@@ -106,7 +107,7 @@ describe('mergePositions: same version and pass', () => {
     const losesOnHlc = withMarks([50, 51, 52], { hlc: hlc(1000) });
     const winsOnHlc = withMarks([0], { hlc: hlc(2000) });
 
-    const merged = mergePositions(losesOnHlc, winsOnHlc);
+    const merged = mergePositions(losesOnHlc, winsOnHlc, STEPS);
 
     expect(countMarks(merged.chanted_steps, STEPS)).toBe(4);
   });
@@ -117,8 +118,8 @@ describe('mergePositions: general', () => {
     const phone = withMarks([0, 1], { step_index: 5, hlc: hlc(1000, 'phone') });
     const tablet = withMarks([2], { step_index: 9, hlc: hlc(2000, 'tablet') });
 
-    const a = mergePositions(phone, tablet);
-    const b = mergePositions(tablet, phone);
+    const a = mergePositions(phone, tablet, STEPS);
+    const b = mergePositions(tablet, phone, STEPS);
 
     expect(a.step_index).toBe(b.step_index);
     expect(a.pass_ordinal).toBe(b.pass_ordinal);
@@ -128,7 +129,7 @@ describe('mergePositions: general', () => {
   test('merging a position with itself changes nothing', () => {
     const only = withMarks([0, 1, 2], { step_index: 3 });
 
-    const merged = mergePositions(only, only);
+    const merged = mergePositions(only, only, STEPS);
 
     expect(merged.step_index).toBe(3);
     expect(countMarks(merged.chanted_steps, STEPS)).toBe(3);
@@ -138,7 +139,7 @@ describe('mergePositions: general', () => {
     const phone = withMarks([0], { hlc: hlc(1000) });
     const tablet = withMarks([1], { hlc: hlc(2000) });
 
-    mergePositions(phone, tablet);
+    mergePositions(phone, tablet, STEPS);
 
     expect(countMarks(phone.chanted_steps, STEPS)).toBe(1);
     expect(countMarks(tablet.chanted_steps, STEPS)).toBe(1);
@@ -147,14 +148,14 @@ describe('mergePositions: general', () => {
   test('refuses to merge two devotees’ positions for the same practice', () => {
     // Positions are unique per (user_id, practice_id). Combining across
     // owners would pool their marks and return them under one devotee.
-    expect(() => mergePositions(position(), position({ user_id: 'user-2' }))).toThrow(
+    expect(() => mergePositions(position(), position({ user_id: 'user-2' }), STEPS)).toThrow(
       /different (owners|devotees)/i,
     );
   });
 
   test('refuses to merge positions for different practices', () => {
-    expect(() => mergePositions(position(), position({ practice_id: 'om-namah-shivaya' }))).toThrow(
-      /different practices/i,
-    );
+    expect(() =>
+      mergePositions(position(), position({ practice_id: 'om-namah-shivaya' }), STEPS),
+    ).toThrow(/different practices/i);
   });
 });

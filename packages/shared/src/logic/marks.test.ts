@@ -133,7 +133,7 @@ describe('unionMarks', () => {
     const a = markStep(markStep(createMarks(NAMES), 0, NAMES), 1, NAMES);
     const b = markStep(markStep(createMarks(NAMES), 1, NAMES), 2, NAMES);
 
-    const merged = unionMarks(a, b);
+    const merged = unionMarks(a, b, NAMES);
 
     expect(isStepChanted(merged, 0, NAMES)).toBe(true);
     expect(isStepChanted(merged, 1, NAMES)).toBe(true);
@@ -145,14 +145,22 @@ describe('unionMarks', () => {
     const a = markStep(createMarks(NAMES), 0, NAMES);
     const b = markStep(createMarks(NAMES), 1, NAMES);
 
-    unionMarks(a, b);
+    unionMarks(a, b, NAMES);
 
     expect(countMarks(a, NAMES)).toBe(1);
     expect(countMarks(b, NAMES)).toBe(1);
   });
 
   test('rejects bitsets of different lengths', () => {
-    expect(() => unionMarks(createMarks(8), createMarks(16))).toThrow(RangeError);
+    expect(() => unionMarks(createMarks(8), createMarks(16), 8)).toThrow(RangeError);
+  });
+
+  test('rejects bitsets that are the wrong size for the practice', () => {
+    // Two equally truncated bitsets agree with each other and still cannot
+    // hold a 9-step practice; unioning them would propagate the corruption.
+    const truncated = new Uint8Array(1);
+
+    expect(() => unionMarks(truncated, truncated, 9)).toThrow(RangeError);
   });
 });
 

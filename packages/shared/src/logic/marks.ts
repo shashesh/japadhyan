@@ -71,8 +71,13 @@ export function isStepChanted(marks: Uint8Array, index: number, stepCount: numbe
 /**
  * Combine two devices' marks for the same pass: a name chanted on either
  * device stays chanted.
+ *
+ * Both sides are checked against the practice, not merely against each
+ * other — two equally truncated bitsets agree and are still corrupt.
  */
-export function unionMarks(a: Uint8Array, b: Uint8Array): Uint8Array {
+export function unionMarks(a: Uint8Array, b: Uint8Array, stepCount: number): Uint8Array {
+  assertMarks(a, stepCount);
+  assertMarks(b, stepCount);
   if (a.length !== b.length) {
     throw new RangeError(`bitsets must be the same length, got ${a.length} and ${b.length}`);
   }

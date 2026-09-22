@@ -20,8 +20,15 @@ import { unionMarks } from './marks';
  *
  * The result is the same whichever way round the two are merged, so every
  * device and the server settle on it.
+ *
+ * @param stepCount the practice's step count, so a malformed bitset arriving
+ *   from sync is rejected rather than propagated
  */
-export function mergePositions(a: PracticePosition, b: PracticePosition): PracticePosition {
+export function mergePositions(
+  a: PracticePosition,
+  b: PracticePosition,
+  stepCount: number,
+): PracticePosition {
   // A position is unique per (user_id, practice_id). Merging across owners
   // would pool two devotees' marks and hand them to whichever hlc won.
   if (a.user_id !== b.user_id) {
@@ -51,6 +58,6 @@ export function mergePositions(a: PracticePosition, b: PracticePosition): Practi
   const [behind, ahead] = compareHlc(a.hlc, b.hlc) >= 0 ? [b, a] : [a, b];
   return {
     ...ahead,
-    chanted_steps: unionMarks(behind.chanted_steps, ahead.chanted_steps),
+    chanted_steps: unionMarks(behind.chanted_steps, ahead.chanted_steps, stepCount),
   };
 }
