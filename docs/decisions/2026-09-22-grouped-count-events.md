@@ -13,7 +13,7 @@ Totals are derived from append-only count events so that offline sync never lose
 
 - **Grouped:** the current event stays open on the device and is updated in place as the devotee taps.
 - **Sealed:** it is sealed at the end of a round, on a mode switch, pause, session end or app background, after 60 seconds, or when the day changes. Only sealed events sync, and they never change. An event left open by a crash is sealed on next launch.
-- **Corrections are new events** (`mode: 'correction'`) linked to a session, never edits. A day's net total can't go below zero.
+- **Corrections are new events** (`mode: 'correction'`) linked to a session, never edits. When totals are derived, each session's net is floored at zero, so combined data from offline devices can never go negative.
 - **Manual logging** (`mode: 'manual'`) records practice done elsewhere, for today and up to 7 days back.
 - **Each event stores its local day** (`local_day`), using the devotee's day-start time (midnight by default), so history doesn't move when they travel.
 

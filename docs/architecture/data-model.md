@@ -145,21 +145,21 @@ Same shape as a catalog Practice, owned by the devotee: `kind`, `title`, `steps`
 
 The devotee's relationship with one practice. Created the first time they chant it or star it; one per practice.
 
-| Field                      | Notes                                                               |
-| -------------------------- | ------------------------------------------------------------------- |
-| `practice_id`              | Catalog slug or custom UUID                                         |
-| `is_favourite`             | Starred                                                             |
-| `favourite_order`          | Order in the Favourites list                                        |
-| `last_used_at`             | Drives Recent and "open to your current practice"                   |
-| `daily_goal`               | Repetitions per day, e.g. 324 (3 malas) or 1 recitation. Optional   |
-| `round_size`               | Override. Falls back to the practice's `default_round`              |
-| `mala_style`               | Override. Falls back to the profile                                 |
-| `preferred_mode`           | Mode the chant screen opens in                                      |
-| `offer_every`              | Repetitions between offerings: 11, 108, …; empty means end of round |
-| `script`                   | Override of the profile's script                                    |
-| `bell_at_meru`             |                                                                     |
-| `reverse_at_meru`          | Traditional practice of not crossing the meru                       |
-| `updated_at`, `deleted_at` | For sync                                                            |
+| Field                      | Notes                                                                                                   |
+| -------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `practice_id`              | Catalog slug or custom UUID                                                                             |
+| `is_favourite`             | Starred                                                                                                 |
+| `favourite_order`          | Order in the Favourites list                                                                            |
+| `last_used_at`             | Drives Recent and "open to your current practice"                                                       |
+| `daily_goal`               | Repetitions per day, e.g. 324 (3 malas) or 1 recitation. Optional                                       |
+| `round_size`               | Mantras only. Falls back to the practice's `default_round`. A namavali's round is always one recitation |
+| `mala_style`               | Override. Falls back to the profile                                                                     |
+| `preferred_mode`           | Mode the chant screen opens in                                                                          |
+| `offer_every`              | Repetitions between offerings: 11, 108, …; empty means end of round                                     |
+| `script`                   | Override of the profile's script                                                                        |
+| `bell_at_meru`             |                                                                                                         |
+| `reverse_at_meru`          | Traditional practice of not crossing the meru                                                           |
+| `updated_at`, `deleted_at` | For sync                                                                                                |
 
 **My practices** shows two lists: **Favourites** (starred, in the devotee's order) and **Recent** (chanted, not starred).
 
@@ -213,7 +213,10 @@ Only sealed events sync. An event left open by a crash is sealed on next launch,
 
 **Manual.** `mode: 'manual'` logs practice done elsewhere: "3 malas on my own beads", "2 recitations from a book". Allowed for today and up to 7 days back; `local_day` is the chosen day. Each manual log gets its own session, so it appears in history and can be corrected like any other.
 
-**Corrections.** `mode: 'correction'` adjusts a session by a positive or negative count, with the session's `local_day`. It fixes mistaken taps or removes a session without editing history. A correction can never make a day's net total for a practice negative.
+**Corrections.** `mode: 'correction'` adjusts a session by a positive or negative count, with the session's `local_day`. It fixes mistaken taps or removes a session without editing history.
+
+- **A session's net count never goes below zero.** When totals are derived, each session's events are summed and the result is floored at zero. This holds after any merge: two offline devices could each subtract from the same session, and combined data still never goes negative. Day and practice totals are sums of session nets, so they can't go negative either.
+- When creating a correction, the app limits it to the session's net count as this device sees it. If two offline devices over-correct the same session, the devotee sees the result after sync and can add a positive correction.
 
 **Listening** (P2) is counted separately and never added to the chanted total.
 
@@ -266,6 +269,7 @@ Never in analytics, sharing, community features or logs: sankalpa `intention`, c
 ### Totals, goals and streaks
 
 - **One count, many inputs.** Every mode adds repetitions to the same total for a practice.
+- **Totals are summed per session**, with each session's net floored at zero ([corrections](#countevent)).
 - **Streak:** a day counts if its net count (after corrections) is above zero, for any practice. Grace days as in `computeStreak`. Meeting a goal is shown separately and never affects the streak.
 - **Daily goal** is per saved practice. **Sankalpa targets** are per sankalpa.
 - **Annual heatmap and cross-practice totals** use **names chanted**, so one Ashtottara and one mala of a mantra weigh about the same. Tapping a day shows each practice's own count.
@@ -290,12 +294,13 @@ Local SQLite  ── sync engine ──  Supabase Postgres (row-level security)
 
 ### Tables by behaviour
 
-| Behaviour                        | Tables                                                                                                 | Rule                                                                                           |
-| -------------------------------- | ------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
-| Never changed once sealed        | `count_events`, `sessions` (except `ended_at`)                                                         | Server inserts and ignores an id it already has. Row-level security blocks updates and deletes |
-| Latest edit wins, deletions kept | `profiles`, `saved_practices`, `deity_defaults`, `custom_practices`, `practice_positions`, `sankalpas` | `updated_at` and `deleted_at` on every row; the newest edit wins                               |
-| Device only                      | reminders, device settings, open events, voice templates                                               | Never synced                                                                                   |
-| Catalog                          | `catalog_deities`, `catalog_practices`, `catalog_steps`, plus a full-text search index                 | Replaced when a content pack updates; read-only                                                |
+| Behaviour                        | Tables                                                                                                 | Rule                                                                                                                                                                      |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Never changed once sealed        | `count_events`                                                                                         | Server inserts and ignores an id it already has. Row-level security blocks updates and deletes                                                                            |
+| Set once, then never changed     | `sessions`                                                                                             | Inserted like count events. One update is allowed: filling in an empty `ended_at`. Once set, it can't change; a column-level grant and a trigger enforce this. No deletes |
+| Latest edit wins, deletions kept | `profiles`, `saved_practices`, `deity_defaults`, `custom_practices`, `practice_positions`, `sankalpas` | `updated_at` and `deleted_at` on every row; the newest edit wins                                                                                                          |
+| Device only                      | reminders, device settings, open events, voice templates                                               | Never synced                                                                                                                                                              |
+| Catalog                          | `catalog_deities`, `catalog_practices`, `catalog_steps`, plus a full-text search index                 | Replaced when a content pack updates; read-only                                                                                                                           |
 
 Latest-edit-wins relies on device clocks. That is acceptable because these records are rarely edited, and by a person, not by background processes.
 
@@ -338,4 +343,5 @@ Nothing has shipped, so there is no data to migrate.
 - `CountEvent` gains `local_day` and `tz_offset_min`. `dailyTotals` groups by `local_day` instead of converting `created_at`.
 - `Sankalpa` gains `program_id`, `intention`, `status` and sync fields.
 - `STARTER_MANTRAS` moves out of code into `content/`.
+- `totalCount` and `dailyTotals` sum each session's events and floor the session at zero before adding sessions together.
 - `computeStreak` takes days with a positive net count.

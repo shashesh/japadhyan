@@ -1,6 +1,6 @@
 ---
 status: draft
-updated: 2026-09-21
+updated: 2026-09-22
 ---
 
 # Vision
@@ -21,7 +21,7 @@ updated: 2026-09-21
 
 Everything in the app supports this loop. Nothing is allowed to get in its way.
 
-1. **Open** — the app opens straight to your current mantra, ready to chant.
+1. **Open** — the app opens straight to your current practice, ready to chant.
 2. **Chant** — in any [mode](features/chanting-modes.md); every repetition adds to one count.
 3. **Offer** — each round ends with the [offering moment](features/session-experience.md#the-offering-moment).
 4. **See it grow** — today's count, your sankalpa progress, your streak.

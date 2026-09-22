@@ -13,7 +13,7 @@ The heart of the app: many ways to chant, one count.
 - Every mode adds repetitions to the **same** total for the active practice and sankalpa.
 - A devotee can **switch modes mid-session** (tap on the bus, voice at home, silent in bed).
 - Each count records **which mode** produced it, so progress can show a mode mix ("60% spoken, 30% tap, 10% written").
-- A **round** (mala) size is configurable per practice: 108 (default), 54, 27, 33, or custom. For a namavali, one recitation is the round.
+- A **round** (mala) size is configurable per mantra: 108 (default), 54, 27, 33, or custom. For a namavali, the round is always one recitation.
 - What counts as one repetition depends on the practice type: one mantra, or one full recitation of a namavali ([data-model](../../architecture/data-model.md#counting)).
 
 ## Summary
@@ -119,7 +119,7 @@ Many devotees chant with eyes closed or while walking. Details in [wearables-and
 Counts are append-only events, so logging and fixing never edit history ([decision](../../decisions/2026-09-22-grouped-count-events.md)).
 
 - **Manual log (P1):** record practice done elsewhere, e.g. "3 malas on my own beads" or "2 recitations from a book". Entered in malas or repetitions (recitations for a namavali), for today or up to 7 days back. Shown as "logged" in the mode mix.
-- **Corrections (P1):** fix mistaken taps or remove a session by adding or subtracting from it. A day's total can never go below zero. Voice counting (P2) uses the same correction after a session.
+- **Corrections (P1):** fix mistaken taps or remove a session by adding or subtracting from it. A session's total can never go below zero, even when corrections from two devices are combined. Voice counting (P2) uses the same correction after a session.
 
 ## Chant along
 

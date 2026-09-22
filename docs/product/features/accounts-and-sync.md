@@ -51,7 +51,7 @@ India's DPDP Act treats anyone under 18 as a child and requires verifiable paren
 
 ## Signing in on a device that already has data
 
-Nothing is overwritten and nothing is asked. Because counts are append-only events, combining is always safe.
+Nothing is asked, and **no count is ever lost**: counts are append-only events, so combining them is always safe. Settings and preferences are different: where the device and the account disagree, one value has to win, as the table shows.
 
 | Data                   | Rule                                                                                                                |
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------- |
@@ -84,7 +84,7 @@ Required by both app stores. Google Play also requires a web page for it.
 
 For everyone, including guests.
 
-- **Settings → Backup → Export** saves a file with the profile, saved and custom practices, sessions, count events and sankalpas.
+- **Settings → Backup → Export** saves a file with the profile, saved and custom practices, deity defaults, namavali positions, sessions, count events and sankalpas.
 - **Import** combines using the same rules as signing in, so importing the same file twice changes nothing.
 - The file contains private fields (intentions, private labels), and the export screen says so.
 
