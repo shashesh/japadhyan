@@ -1,0 +1,14 @@
+id: ganesh
+tradition_id: hindu
+parent_id: null
+names:
+  en:
+    latin: Ganesh
+  hi:
+    devanagari: गणेश
+summary:
+  en: Remover of obstacles, honoured first.
+image: null
+suggested_mala: null
+featured_practice_id: om-gam-ganapataye
+sort_order: 2

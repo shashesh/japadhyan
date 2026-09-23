@@ -27,7 +27,8 @@ npm run check         # lint + type-check + tests (run before every PR)
 npm run lint          # ESLint, then the Markdown checks
 npm run lint:md       # markdownlint + Prettier check on every .md file
 npm run type-check
-npm test
+npm test              # includes the content/ check
+npm run content:validate  # check content/ alone, with file and line for each problem
 npm run format        # Prettier: fixes formatting, including Markdown tables
 ```
 

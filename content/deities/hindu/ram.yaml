@@ -1,0 +1,14 @@
+id: ram
+tradition_id: hindu
+parent_id: null
+names:
+  en:
+    latin: Ram
+  hi:
+    devanagari: राम
+summary:
+  en: The righteous king of Ayodhya.
+image: null
+suggested_mala: null
+featured_practice_id: sri-ram-jai-ram
+sort_order: 3

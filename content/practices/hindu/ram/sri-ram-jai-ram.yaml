@@ -1,0 +1,29 @@
+id: sri-ram-jai-ram
+version: 1
+tradition_id: hindu
+kind: mantra
+deity_ids: [ram]
+title:
+  en: Sri Ram Jai Ram
+subtitle: {}
+source_script: devanagari
+steps:
+  - text:
+      devanagari: श्री राम जय राम जय जय राम
+      iast: śrī rāma jaya rāma jaya jaya rāma
+    words:
+      devanagari: [श्री, राम, जय, राम, जय, जय, राम]
+      iast: [śrī, rāma, jaya, rāma, jaya, jaya, rāma]
+    name: null
+    meaning: null
+    audio_start_ms: null
+    audio_end_ms: null
+default_round: 108
+repetition_word:
+  en: japa
+intro:
+  en: Victory to Lord Ram.
+audio: null
+source: Traditional; the advisor confirms the source
+licence: Public domain
+review: null

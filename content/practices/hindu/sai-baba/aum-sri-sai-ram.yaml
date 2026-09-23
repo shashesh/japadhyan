@@ -1,0 +1,29 @@
+id: aum-sri-sai-ram
+version: 1
+tradition_id: hindu
+kind: mantra
+deity_ids: [sai-baba]
+title:
+  en: Aum Sri Sai Ram
+subtitle: {}
+source_script: devanagari
+steps:
+  - text:
+      devanagari: ॐ श्री साई राम
+      iast: oṃ śrī sāī rāma
+    words:
+      devanagari: [ॐ, श्री, साई, राम]
+      iast: [oṃ, śrī, sāī, rāma]
+    name: null
+    meaning: null
+    audio_start_ms: null
+    audio_end_ms: null
+default_round: 108
+repetition_word:
+  en: japa
+intro:
+  en: Salutations to Sai.
+audio: null
+source: Traditional; the advisor confirms the source
+licence: Public domain
+review: null
