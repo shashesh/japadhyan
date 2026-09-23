@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-09-22
+updated: 2026-09-23
 ---
 
 # Content pipeline
@@ -49,7 +49,7 @@ content/
 ### Transliteration
 
 - The master text is the practice's source script (Devanagari for Sanskrit, Gurmukhi for Sikh practice) plus IAST.
-- `latin` (common spelling such as "Om Namah Shivaya") and other Indic scripts are **generated at build time**, not on the phone, using an established transliteration library chosen in M2.
+- `latin` (common spelling such as "Om Namah Shivaya") and other Indic scripts are **generated at build time**, not on the phone, using an established transliteration library chosen in M2 ([proposed: vidyut-lipi](../decisions/2026-09-23-transliteration-library.md), with our own rules for `latin`).
 - Generated text is reviewed by the advisor like any other. Some scripts need special handling, e.g. Tamil lacks aspirated consonants.
 
 ## Build
