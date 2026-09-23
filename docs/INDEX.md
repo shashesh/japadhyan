@@ -65,6 +65,7 @@
 - [decisions/2026-09-21-ci-only-when-ready.md](decisions/2026-09-21-ci-only-when-ready.md) — PRs open as drafts, Copilot reviews first, CI runs only once the owner marks a PR ready
 - [decisions/2026-09-21-free-flow-nothing-locked.md](decisions/2026-09-21-free-flow-nothing-locked.md) — every mala, mantra and mode open from day one; nothing unlocked by progress
 - [decisions/2026-09-21-app-name-japadhyan.md](decisions/2026-09-21-app-name-japadhyan.md) — the app is called JapaDhyan; domains and app identifiers
+- [decisions/2026-09-22-position-deletion-barrier.md](decisions/2026-09-22-position-deletion-barrier.md) — a deleted namavali position records when it was deleted, so merging converges
 - [decisions/2026-09-22-practice-model-ordered-steps.md](decisions/2026-09-22-practice-model-ordered-steps.md) — every practice is an ordered list of steps; a namavali recitation counts as one
 - [decisions/2026-09-22-content-packs.md](decisions/2026-09-22-content-packs.md) — content authored in the repo, delivered as packs; small core bundled in the app
 - [decisions/2026-09-22-guest-first-accounts.md](decisions/2026-09-22-guest-first-accounts.md) — no account needed; Google, Apple, email code; consent before sync

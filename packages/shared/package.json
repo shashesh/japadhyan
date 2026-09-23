@@ -6,11 +6,12 @@
   "main": "src/index.ts",
   "types": "src/index.ts",
   "scripts": {
-    "test": "vitest run",
+    "test": "vitest run --coverage",
     "test:watch": "vitest",
     "type-check": "tsc --noEmit"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "^4.1.11",
     "typescript": "~6.0.3",
     "vitest": "^4.1.11"
   }

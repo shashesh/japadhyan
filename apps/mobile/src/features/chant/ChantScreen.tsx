@@ -3,8 +3,8 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
-  type Mantra,
-  STARTER_MANTRAS,
+  type Practice,
+  devPractices,
   createWordTapState,
   roundProgress,
   tapWord,
@@ -20,34 +20,64 @@ const MODE_LABELS: Record<Mode, string> = {
   word_tap: 'Word by word',
 };
 
-const DEFAULT_MANTRA = STARTER_MANTRAS[0]!;
+const PRACTICES = devPractices();
+const DEFAULT_PRACTICE = PRACTICES[0]!;
+
+/** The English title, until i18n lands in M3. */
+const titleOf = (p: Practice): string => p.title.en ?? p.id;
 
 export function ChantScreen() {
   useKeepAwake();
-  const [mantra, setMantra] = useState<Mantra>(DEFAULT_MANTRA);
-  return <ChantSession key={mantra.id} mantra={mantra} onChangeMantra={setMantra} />;
+  const [practice, setPractice] = useState<Practice>(DEFAULT_PRACTICE);
+  // The counts live here, above the keyed child, so remounting the UI never
+  // loses what the devotee has chanted. Totals are filtered per practice.
+  const session = useChantSession(practice);
+
+  // The version is part of the key: a content update keeps the practice id
+  // but may change the words, and stale word-tap state would then point at
+  // names that are no longer there.
+  return (
+    <ChantSession
+      key={`${practice.id}@${practice.version}`}
+      practice={practice}
+      onChangePractice={setPractice}
+      session={session}
+    />
+  );
 }
 
 function ChantSession({
-  mantra,
-  onChangeMantra,
+  practice,
+  onChangePractice,
+  session,
 }: {
-  mantra: Mantra;
-  onChangeMantra: (m: Mantra) => void;
+  practice: Practice;
+  onChangePractice: (p: Practice) => void;
+  session: ReturnType<typeof useChantSession>;
 }) {
-  const { total, progress, addRepetitions } = useChantSession(mantra);
+  // P1 mantras are a single step; namavalis arrive with the catalog in M4.
+  const step = practice.steps[0]!;
+  // `Step.words` is nullable: a namavali has none, and a mantra need not be
+  // segmented. Word-by-word needs them, so it is only offered when they exist.
+  const words = step.words?.latin ?? [];
+  const hasWords = words.length > 0;
+  const modes: readonly Mode[] = hasWords ? ['mala_tap', 'word_tap'] : ['mala_tap'];
+  const roundSize = practice.default_round;
+
+  const { total, progress, addRepetitions } = session;
   const [mode, setMode] = useState<Mode>('mala_tap');
-  const [wordState, setWordState] = useState(() => createWordTapState(mantra.words));
+  const [wordState, setWordState] = useState(() => (hasWords ? createWordTapState(words) : null));
   const [offeringDue, setOfferingDue] = useState(false);
 
   function countOne(fromMode: Mode) {
-    const next = roundProgress(total + 1, mantra.round_size);
+    const next = roundProgress(total + 1, roundSize);
     addRepetitions(fromMode);
     beadFeedback(next.at_meru);
     if (next.at_meru) setOfferingDue(true);
   }
 
   function onWordTap(index: number) {
+    if (wordState === null) return;
     const result = tapWord(wordState, index);
     setWordState(result.state);
     if (result.completed) countOne('word_tap');
@@ -61,26 +91,26 @@ function ChantSession({
         contentContainerStyle={styles.chips}
         style={styles.chipRow}
       >
-        {STARTER_MANTRAS.map((m) => (
+        {PRACTICES.map((p) => (
           <Pressable
-            key={m.id}
+            key={p.id}
             accessibilityRole="button"
-            accessibilityState={{ selected: m.id === mantra.id }}
-            onPress={() => onChangeMantra(m)}
-            style={[styles.chip, m.id === mantra.id && styles.chipSelected]}
+            accessibilityState={{ selected: p.id === practice.id }}
+            onPress={() => onChangePractice(p)}
+            style={[styles.chip, p.id === practice.id && styles.chipSelected]}
           >
-            <Text style={[styles.chipText, m.id === mantra.id && styles.chipTextSelected]}>
-              {m.deity ?? m.title}
+            <Text style={[styles.chipText, p.id === practice.id && styles.chipTextSelected]}>
+              {titleOf(p)}
             </Text>
           </Pressable>
         ))}
       </ScrollView>
 
       <View style={styles.header}>
-        {mantra.text.devanagari ? (
-          <Text style={styles.devanagari}>{mantra.text.devanagari}</Text>
+        {step.text.devanagari ? (
+          <Text style={styles.devanagari}>{step.text.devanagari}</Text>
         ) : null}
-        <Text style={styles.latin}>{mantra.text.latin ?? mantra.title}</Text>
+        <Text style={styles.latin}>{step.text.latin ?? titleOf(practice)}</Text>
       </View>
 
       <View style={styles.counter}>
@@ -88,10 +118,10 @@ function ChantSession({
           {total}
         </Text>
         <Text style={styles.roundInfo}>
-          Mala {progress.completed_rounds + 1} · Bead {progress.bead} / {mantra.round_size}
+          Mala {progress.completed_rounds + 1} · Bead {progress.bead} / {roundSize}
         </Text>
         <View style={styles.track}>
-          <View style={[styles.fill, { width: `${(progress.bead / mantra.round_size) * 100}%` }]} />
+          <View style={[styles.fill, { width: `${(progress.bead / roundSize) * 100}%` }]} />
         </View>
       </View>
 
@@ -107,7 +137,7 @@ function ChantSession({
       ) : null}
 
       <View style={styles.modes}>
-        {(Object.keys(MODE_LABELS) as Mode[]).map((m) => (
+        {modes.map((m) => (
           <Pressable
             key={m}
             accessibilityRole="tab"
@@ -122,7 +152,7 @@ function ChantSession({
         ))}
       </View>
 
-      {mode === 'mala_tap' ? (
+      {mode === 'mala_tap' || wordState === null ? (
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Count one repetition"
@@ -134,7 +164,7 @@ function ChantSession({
         </Pressable>
       ) : (
         <View style={styles.words}>
-          {mantra.words.map((word, i) => {
+          {words.map((word, i) => {
             const done = i < wordState.next_index;
             const next = i === wordState.next_index;
             return (

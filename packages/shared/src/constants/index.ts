@@ -1,1 +1,1 @@
-export * from './mantras';
+export * from './devPractices';
