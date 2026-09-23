@@ -35,7 +35,10 @@ export type SourceScript = Exclude<Script, 'latin'>;
 /** Text keyed by script. A practice need not carry every script. */
 export type TextByScript = Partial<Record<Script, string>>;
 
-/** A language tag, e.g. `en`, `hi`, `ne`. Content is authored per language. */
+/**
+ * A language tag, e.g. `en`, `hi`, `ne`, `pt-BR`: language, optional script
+ * and optional region, in canonical case. Content is authored per language.
+ */
 export type LanguageTag = string;
 
 /** Text keyed by language tag. */

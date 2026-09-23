@@ -460,11 +460,25 @@ describe('deity schemas', () => {
     expect(exportSchemas.deity.safeParse({ ...deity(), names: {} }).success).toBe(false);
   });
 
-  test.each([['en_GB'], ['English'], ['']])('rejects the language tag %j', (tag) => {
-    expect(exportSchemas.deity.safeParse({ ...deity(), summary: { [tag]: 'x' } }).success).toBe(
-      false,
-    );
-  });
+  test.each(['en', 'hi', 'ne', 'pt-BR', 'es-419', 'sa-Latn', 'zh-Hant-TW'])(
+    'accepts the language tag %j',
+    (tag) => {
+      expect(exportSchemas.deity.safeParse({ ...deity(), summary: { [tag]: 'x' } }).success).toBe(
+        true,
+      );
+    },
+  );
+
+  // Keys are matched exactly, so each language has one spelling: canonical
+  // case, and no extensions, which say nothing about the language of a text.
+  test.each(['en_GB', 'English', '', 'EN', 'en-gb', 'sa-latn', 'en-u-nu-latn', 'en-x-app'])(
+    'rejects the language tag %j',
+    (tag) => {
+      expect(exportSchemas.deity.safeParse({ ...deity(), summary: { [tag]: 'x' } }).success).toBe(
+        false,
+      );
+    },
+  );
 
   test('content rejects unknown fields; packs drop them', () => {
     expect(contentSchemas.deity.safeParse({ ...deity(), colour: 'blue' }).success).toBe(false);

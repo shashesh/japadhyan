@@ -48,8 +48,15 @@ const script = z.enum([
   'tibetan',
 ]);
 
-/** A BCP 47 language tag such as `en`, `hi` or `pt-BR`. */
-const languageTag = z.string().regex(/^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$/, 'Not a language tag');
+/**
+ * A language tag: a BCP 47 language, optional script and optional region, in
+ * canonical case — `en`, `pt-BR`, `es-419`, `sa-Latn`, `zh-Hant-TW`. Narrower
+ * than BCP 47 on purpose: keys are matched exactly, so each language has one
+ * spelling, and extensions (`-u-`, `-x-`) say nothing about a text's language.
+ */
+const languageTag = z
+  .string()
+  .regex(/^[a-z]{2,3}(-[A-Z][a-z]{3})?(-([A-Z]{2}|[0-9]{3}))?$/, 'Not a language tag');
 
 const textByScript = z.partialRecord(script, nonBlank);
 const wordsByScript = z.partialRecord(script, z.array(nonBlank).min(1).readonly());
