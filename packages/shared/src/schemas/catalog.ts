@@ -3,10 +3,15 @@
  *
  * - **content** — what is authored in `content/` as YAML. Strict: an unknown
  *   field is a typo, and scripts the build generates may not be written by
- *   hand. Text carries exactly the master scripts: the source script and IAST.
+ *   hand. A practice's step text, words and names carry exactly the master
+ *   scripts: the source script and IAST.
  * - **export** — what packs carry and the app reads. Unknown fields are
- *   dropped, so an older app can read a pack with fields added later. Text
- *   carries at least the source script, IAST and `latin`.
+ *   dropped, so an older app can read a pack with fields added later. A
+ *   practice's step text, words and names carry at least the source script,
+ *   IAST and `latin`.
+ *
+ * A deity's names are exempt: a deity has no source script. They are written
+ * by hand per language, each in the scripts that language uses.
  *
  * Both parse to the types in `../types/catalog`, which stay the contract; the
  * tests check the two can't drift apart. Checks that span files — a deity's

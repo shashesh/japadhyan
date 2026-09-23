@@ -17,8 +17,8 @@ The schemas are written against the existing types, not the other way round. A c
 
 Each catalog entity has two forms, built from one set of shapes:
 
-- **Content** — the YAML in `content/`. Strict, so a misspelt field is an error. Text carries exactly the master scripts: the source script and IAST.
-- **Export** — what packs carry. Unknown fields are dropped, so an app can read a pack with fields added after it was released. Text carries at least the source script, IAST and `latin`.
+- **Content** — the YAML in `content/`. Strict, so a misspelt field is an error. A practice's text carries exactly the master scripts: the source script and IAST.
+- **Export** — what packs carry. Unknown fields are dropped, so an app can read a pack with fields added after it was released. A practice's text carries at least the source script, IAST and `latin`. Deity names are written per language and exempt from both.
 
 ## Alternatives
 

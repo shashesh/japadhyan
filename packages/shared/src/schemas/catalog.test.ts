@@ -460,6 +460,22 @@ describe('deity schemas', () => {
     expect(exportSchemas.deity.safeParse({ ...deity(), names: {} }).success).toBe(false);
   });
 
+  // Unlike a practice's text, a deity's names have no source script to
+  // generate from: each language's name is written by hand in the scripts
+  // that language uses, so English in latin is authored, not generated.
+  test('names are per language, in each language’s own scripts', () => {
+    const names = { en: { latin: 'Shiva' }, hi: { devanagari: 'शिव' }, ta: { tamil: 'சிவன்' } };
+
+    expect(contentSchemas.deity.safeParse({ ...deity(), names }).success).toBe(true);
+    expect(exportSchemas.deity.safeParse({ ...deity(), names }).success).toBe(true);
+  });
+
+  test('every language has its name in at least one script', () => {
+    const names = { en: { latin: 'Shiva' }, hi: {} };
+
+    expect(exportSchemas.deity.safeParse({ ...deity(), names }).success).toBe(false);
+  });
+
   test.each(['en', 'hi', 'ne', 'pt-BR', 'es-419', 'sa-Latn', 'zh-Hant-TW'])(
     'accepts the language tag %j',
     (tag) => {

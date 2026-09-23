@@ -44,17 +44,17 @@ Read-only on the device. Authored in `content/`, reviewed, and delivered as pack
 
 ### Deity
 
-| Field                  | Notes                                                                                        |
-| ---------------------- | -------------------------------------------------------------------------------------------- |
-| `id`                   | Slug, e.g. `vishnu`, `shailaputri`                                                           |
-| `tradition_id`         |                                                                                              |
-| `parent_id`            | Optional. Forms and aspects: Shailaputri → Durga → Devi. Used for browsing and the Navadurga |
-| `names`                | Per language and per script                                                                  |
-| `summary`              | Short description, per language                                                              |
-| `image`                | Optional media reference. Licensed; hidden where the tradition says so                       |
-| `suggested_mala`       | Pre-selected mala style, e.g. Rudraksha for Shiva, Tulsi for Krishna                         |
-| `featured_practice_id` | Opened when the devotee has no favourite for this deity                                      |
-| `sort_order`           |                                                                                              |
+| Field                  | Notes                                                                                                |
+| ---------------------- | ---------------------------------------------------------------------------------------------------- |
+| `id`                   | Slug, e.g. `vishnu`, `shailaputri`                                                                   |
+| `tradition_id`         |                                                                                                      |
+| `parent_id`            | Optional. Forms and aspects: Shailaputri → Durga → Devi. Used for browsing and the Navadurga         |
+| `names`                | Per language and per script: each language in the scripts it is written in, by hand, never generated |
+| `summary`              | Short description, per language                                                                      |
+| `image`                | Optional media reference. Licensed; hidden where the tradition says so                               |
+| `suggested_mala`       | Pre-selected mala style, e.g. Rudraksha for Shiva, Tulsi for Krishna                                 |
+| `featured_practice_id` | Opened when the devotee has no favourite for this deity                                              |
+| `sort_order`           |                                                                                                      |
 
 ### Practice
 
