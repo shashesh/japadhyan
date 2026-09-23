@@ -26,10 +26,19 @@ export type Script =
   | 'gujarati'
   | 'tibetan';
 
+/**
+ * A script catalog text can be authored in. Never `latin`, which is always
+ * generated from the source script and IAST.
+ */
+export type SourceScript = Exclude<Script, 'latin'>;
+
 /** Text keyed by script. A practice need not carry every script. */
 export type TextByScript = Partial<Record<Script, string>>;
 
-/** A language tag, e.g. `en`, `hi`, `ne`. Content is authored per language. */
+/**
+ * A language tag, e.g. `en`, `hi`, `ne`, `pt-BR`: language, optional script
+ * and optional region, in canonical case. Content is authored per language.
+ */
 export type LanguageTag = string;
 
 /** Text keyed by language tag. */
@@ -43,8 +52,11 @@ export interface MediaRef {
   id: string;
   sha256: string;
   bytes: number;
-  /** Audio only. */
-  duration_ms?: number;
+}
+
+/** A recording. Unlike an image, it always has a duration. */
+export interface AudioRef extends MediaRef {
+  duration_ms: number;
 }
 
 export interface Tradition {
@@ -73,26 +85,53 @@ export interface Deity {
   sort_order: number;
 }
 
-/** `mantra` and `namavali` ship in P1; `stotra` in P2. */
-export type PracticeKind = 'mantra' | 'namavali' | 'stotra';
-
-/**
- * One step of a practice: the whole mantra, one name of a namavali, or one
- * verse of a stotra. Each namavali line is stored in full, never built from
- * a pattern — grammatical forms vary too much to generate reliably.
- */
-export interface Step {
+interface StepBase {
   text: TextByScript;
-  /** Words in chanting order, for word-by-word tap. Mantras only. */
-  words: Partial<Record<Script, readonly string[]>> | null;
-  /** Namavali only: the name itself, e.g. "Keshava". */
-  name: TextByScript | null;
-  /** Namavali and stotra: a short meaning. */
-  meaning: TextByLanguage | null;
-  /** Position in the practice recording, for chant along (P2). */
+  /**
+   * Position in the practice recording, for chant along (P2). Both or
+   * neither, and only when the practice has a recording.
+   */
   audio_start_ms: number | null;
   audio_end_ms: number | null;
 }
+
+/** The whole mantra: a mantra is always exactly one step. */
+export interface MantraStep extends StepBase {
+  /**
+   * Words in chanting order, for word-by-word tap. Empty when the mantra
+   * isn't segmented, and then word-by-word isn't offered.
+   */
+  words: Partial<Record<Script, readonly string[]>> | null;
+  name: null;
+  meaning: null;
+}
+
+/**
+ * One name of a namavali, stored in full — never built from a pattern such
+ * as "Om {name} Namah": grammatical forms vary too much to generate reliably.
+ */
+export interface NamavaliStep extends StepBase {
+  words: null;
+  /** The name itself, e.g. "Keshava", shown large in name-by-name mode. */
+  name: TextByScript;
+  /** A short meaning. */
+  meaning: TextByLanguage | null;
+}
+
+/** One verse of a stotra (P2). */
+export interface StotraStep extends StepBase {
+  words: null;
+  name: null;
+  /** A short meaning. */
+  meaning: TextByLanguage | null;
+}
+
+/**
+ * One step of a practice: the whole mantra, one name of a namavali, or one
+ * verse of a stotra. Which fields a step carries depends on the practice's
+ * `kind`, so a step can't be a mantra with a name or a namavali with words.
+ */
+export type Step = MantraStep | NamavaliStep | StotraStep;
 
 /** Who reviewed this practice. Unreviewed content never ships in production. */
 export interface ContentReview {
@@ -101,11 +140,7 @@ export interface ContentReview {
   reviewed_on: string;
 }
 
-/**
- * Every practice is an ordered list of steps. One pass through the steps is
- * one repetition. See docs/decisions/2026-09-22-practice-model-ordered-steps.md.
- */
-export interface Practice {
+interface PracticeBase {
   /** Readable slug, e.g. `om-namah-shivaya`. Never changes once published. */
   id: string;
   /**
@@ -114,27 +149,54 @@ export interface Practice {
    */
   version: number;
   tradition_id: TraditionId;
-  kind: PracticeKind;
   /** First is the primary deity. Hare Krishna is `['krishna', 'ram']`. */
   deity_ids: readonly string[];
   title: TextByLanguage;
   /** e.g. "108 names". */
   subtitle: TextByLanguage;
   /** Script the text was authored in: Devanagari for Sanskrit, … */
-  source_script: Script;
-  /** A mantra has 1 step; an Ashtottara has 108. */
-  steps: readonly Step[];
-  /** Repetitions per round: 108 for a mantra, 1 for a namavali. */
-  default_round: number;
+  source_script: SourceScript;
   /** Shown in the app: `japa` for a mantra, `paath` for a namavali. */
   repetition_word: TextByLanguage;
   intro: TextByLanguage;
-  audio: MediaRef | null;
+  audio: AudioRef | null;
   source: string;
   /** Licence of the text, transliteration and translation. */
   licence: string;
   review: ContentReview | null;
 }
+
+/** A mantra: one step, chanted round after round. */
+export interface MantraPractice extends PracticeBase {
+  kind: 'mantra';
+  steps: readonly [MantraStep];
+  /** Repetitions per round, e.g. 108. */
+  default_round: number;
+}
+
+/** A namavali, e.g. an Ashtottara of 108 names. */
+export interface NamavaliPractice extends PracticeBase {
+  kind: 'namavali';
+  steps: readonly NamavaliStep[];
+  /** Always one recitation: the names are the beads. */
+  default_round: 1;
+}
+
+/** A stotra (P2): one step per verse. */
+export interface StotraPractice extends PracticeBase {
+  kind: 'stotra';
+  steps: readonly StotraStep[];
+  default_round: number;
+}
+
+/**
+ * Every practice is an ordered list of steps. One pass through the steps is
+ * one repetition. See docs/decisions/2026-09-22-practice-model-ordered-steps.md.
+ */
+export type Practice = MantraPractice | NamavaliPractice | StotraPractice;
+
+/** `mantra` and `namavali` ship in P1; `stotra` in P2. */
+export type PracticeKind = Practice['kind'];
 
 export type ProgramKind = 'sankalpa_template' | 'festival';
 
