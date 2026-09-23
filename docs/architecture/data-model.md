@@ -394,7 +394,7 @@ Chosen by spike **S4**, which is a prerequisite for the local storage milestone 
 6. How much code we have to own.
 7. The [conflict rule](#conflict-rule) is applied on the server (a write that applies only if newer, and the position merge for positions), not by the order uploads arrive in.
 
-Lean: PowerSync if it passes; the offline queue, retries, web storage and live queries are exactly the fiddly parts. Fallback: our own sync, feasible because the data is append-only events plus latest-edit-wins records.
+Chosen: PowerSync ([decision](../decisions/2026-09-22-sync-engine-powersync.md)); the offline queue, retries, web storage and live queries are exactly the fiddly parts. A prototype still has to show 1–3. Fallback if it fails: our own sync, feasible because the data is append-only events plus latest-edit-wins records.
 
 ### Web
 

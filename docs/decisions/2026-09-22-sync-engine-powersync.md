@@ -1,11 +1,11 @@
 ---
-status: proposed
+status: accepted
 date: 2026-09-22
 ---
 
 # Sync engine: PowerSync, on Sync Streams
 
-Spike **S4**. Recommended, not yet accepted: adopting a paid third-party service is the owner's call, and three of the seven criteria can only be closed by running a prototype.
+Spike **S4**. Accepted by the owner on 2026-09-23, committing us to a paid service. Three of the seven criteria can only be closed by running a prototype; if it fails one, this decision is revisited and the [fallback](../architecture/data-model.md#sync-engine) is our own sync.
 
 ## Context
 
