@@ -28,7 +28,7 @@ A `practice_id` is either a catalog slug (`vishnu-ashtottara`) or a custom pract
 
 ## Catalog
 
-Read-only on the device. Authored in `content/`, reviewed, and delivered as packs ([content-pipeline](content-pipeline.md)). Catalog ids are readable slugs, lowercase letters, digits and hyphens only (`^[a-z0-9-]+$`), and never change once published.
+Read-only on the device. Authored in `content/`, reviewed, and delivered as packs ([content-pipeline](content-pipeline.md)). Catalog ids are readable slugs, lowercase letters, digits and hyphens only (`^[a-z0-9-]+$`), never shaped like a UUID (so they can't be mistaken for a custom practice's id), and never change once published.
 
 ### Tradition
 
@@ -71,10 +71,10 @@ Every practice is an **ordered list of steps**. One pass through the steps is on
 | `subtitle`        | Per language, e.g. "108 names"                                                                                                                                                                                              |
 | `source_script`   | Script the text was authored in: Devanagari for Sanskrit, Gurmukhi for Sikh practice, …                                                                                                                                     |
 | `steps`           | `Step[]`. A mantra has 1 step; an Ashtottara has 108; a stotra has one per verse                                                                                                                                            |
-| `default_round`   | Repetitions per round: 108 for a mantra, 1 for a namavali (the names are the beads)                                                                                                                                         |
+| `default_round`   | Repetitions per round: 108 for a mantra; always 1 for a namavali (the names are the beads)                                                                                                                                  |
 | `repetition_word` | Shown in the app: `japa` for a mantra, `paath` for a namavali or stotra                                                                                                                                                     |
 | `intro`           | Meaning and short explanation, per language                                                                                                                                                                                 |
-| `audio`           | Optional media reference for the full recording                                                                                                                                                                             |
+| `audio`           | Optional media reference for the full recording, with its duration                                                                                                                                                          |
 | `source`          | Where the text comes from                                                                                                                                                                                                   |
 | `licence`         | Licence of the text, transliteration and translation                                                                                                                                                                        |
 | `review`          | `{ advisor, reviewed_on }`. Unreviewed practices never ship in production packs                                                                                                                                             |
@@ -96,6 +96,8 @@ devanagari: ॐ केशवाय नमः
 iast:       oṃ keśavāya namaḥ
 latin:      Om Keshavaya Namah
 ```
+
+Which fields a step carries depends on the practice's `kind`: a mantra step may have `words` and never a `name` or `meaning`; a namavali step always has a `name` and never `words`; a stotra step has neither. `audio_start_ms` and `audio_end_ms` are set together or not at all, and only when the practice has a recording.
 
 Each namavali line is stored **in full**, not built from a pattern such as "Om {name} Namah": grammatical forms and prefixes vary too much to generate reliably.
 

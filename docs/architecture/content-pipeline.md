@@ -37,7 +37,10 @@ content/
 ```
 
 - **Audio and images are not in git.** They live in object storage, named by their SHA-256. YAML refers to them by id, checksum, size and (for audio) duration.
-- **Schema.** Every file is checked against a schema in `packages/shared`, which is platform-agnostic and also used by the app to read packs.
+- **Schema.** Every file is checked against a schema in `packages/shared` (`src/schemas`, [Zod](../decisions/2026-09-23-schema-library-zod.md)), which is platform-agnostic and also used by the app to read packs. Each entity has two forms:
+  - **Content** schemas are strict: a field the schema doesn't know is an error, not ignored. Text, words and names carry exactly the master scripts — the source script and IAST. Generated scripts may not be written by hand.
+  - **Export** schemas drop fields they don't know, so an app can read a pack with fields added after its release. Text, words and names carry at least the source script, IAST and `latin`; script add-on packs bring more.
+  - Both enforce the rules within a single entity, among them: catalog ids, one step for a mantra, words only on a mantra, a name on every namavali step, a namavali round of one recitation, a duration on every recording, audio positions inside the recording, program days within the program, and an absent meaning or reading written as `null`, never as an empty map. Rules that span files — a practice's deities exist, versions only go up — belong to the build.
 - **Review.** Each practice carries `review: { advisor, reviewed_on }`, `source` and `licence`. Production packs refuse unreviewed content; development packs include it, flagged.
 - **Versions.** Any text change bumps the practice's `version`. The number of steps may only change with a version bump. Counts refer to the practice id, so fixing a typo never changes anyone's history. A saved place in a namavali resets on any version change ([data-model](data-model.md#practiceposition)).
 - **Changes go through PRs** like code. If advisors aren't comfortable reviewing on GitHub, a CMS can later sit in front of the same build step without changing packs or the app.
@@ -93,7 +96,7 @@ A pack with a newer schema major version than the app understands is ignored; th
 - **Browsing and search work offline** because the index is bundled. A deity that hasn't been downloaded shows "Download to open", not an empty screen.
 - **Settings → Storage** lists downloaded packs and audio, with sizes, and offers "Download everything for offline".
 - **Updates:** the app checks the manifest when online and fetches only packs that changed. Content fixes need no app release.
-- **Authenticity:** the app has the content signing public key built in and rejects a manifest whose signature doesn't verify. Every pack must match the SHA-256 listed in the signed manifest, so a compromised CDN can't swap in altered text. Audio and images must match the SHA-256 recorded in their pack. The core bundle is covered by the app's own store signature.
+- **Authenticity:** the app has the content signing public key built in and rejects a manifest whose signature doesn't verify. Every pack must match the SHA-256 listed in the signed manifest, so a compromised CDN can't swap in altered text, and must pass the export schema, so a build bug can't either. Audio and images must match the SHA-256 recorded in their pack. The core bundle is covered by the app's own store signature.
 - **Unpublished content** stays on devices that have it, and its counts remain; it is hidden from browsing.
 
 ## Privacy of downloads
