@@ -52,12 +52,12 @@ Single source of truth for versions used in this repo. Update in the same PR as 
 
 ## Planned (not installed yet)
 
-| Area           | Choice                                                | When |
-| -------------- | ----------------------------------------------------- | ---- |
-| Local storage  | SQLite (`expo-sqlite`)                                | P1   |
-| Backend        | Supabase (auth, Postgres, storage)                    | P1   |
-| Sync           | PowerSync or custom Supabase sync — spike first       | P1   |
-| i18n           | i18next or Lingui                                     | P1   |
-| Apple Watch    | SwiftUI via expo-apple-targets                        | P2   |
-| Wear OS        | Kotlin + Compose                                      | P2   |
-| Voice counting | Native module (LiteRT or Picovoice) — prototype first | P2   |
+| Area           | Choice                                                                                                                    | When |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------- | ---- |
+| Local storage  | SQLite through PowerSync (op-sqlite on phones, wa-sqlite on web)                                                          | P1   |
+| Backend        | Supabase (auth, Postgres, storage)                                                                                        | P1   |
+| Sync           | PowerSync Cloud on Sync Streams ([decision](docs/decisions/2026-09-22-sync-engine-powersync.md)); a prototype confirms it | P1   |
+| i18n           | i18next or Lingui                                                                                                         | P1   |
+| Apple Watch    | SwiftUI via expo-apple-targets                                                                                            | P2   |
+| Wear OS        | Kotlin + Compose                                                                                                          | P2   |
+| Voice counting | Native module (LiteRT or Picovoice) — prototype first                                                                     | P2   |

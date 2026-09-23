@@ -70,7 +70,7 @@
 - [decisions/2026-09-22-content-packs.md](decisions/2026-09-22-content-packs.md) — content authored in the repo, delivered as packs; small core bundled in the app
 - [decisions/2026-09-22-guest-first-accounts.md](decisions/2026-09-22-guest-first-accounts.md) — no account needed; Google, Apple, email code; consent before sync
 - [decisions/2026-09-22-grouped-count-events.md](decisions/2026-09-22-grouped-count-events.md) — count events grouped then sealed; corrections and manual logs are new events
-- [decisions/2026-09-22-sync-engine-powersync.md](decisions/2026-09-22-sync-engine-powersync.md) — **proposed:** PowerSync on Sync Streams, over our own Supabase sync
+- [decisions/2026-09-22-sync-engine-powersync.md](decisions/2026-09-22-sync-engine-powersync.md) — PowerSync on Sync Streams, over our own Supabase sync; a prototype still has to confirm it
 - [decisions/2026-09-23-schema-library-zod.md](decisions/2026-09-23-schema-library-zod.md) — catalog schemas use Zod, in a strict content form and a forward-compatible export form
 
 ## Research
