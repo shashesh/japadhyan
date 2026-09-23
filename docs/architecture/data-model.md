@@ -28,7 +28,7 @@ A `practice_id` is either a catalog slug (`vishnu-ashtottara`) or a custom pract
 
 ## Catalog
 
-Read-only on the device. Authored in `content/`, reviewed, and delivered as packs ([content-pipeline](content-pipeline.md)). Catalog ids are readable slugs and never change once published.
+Read-only on the device. Authored in `content/`, reviewed, and delivered as packs ([content-pipeline](content-pipeline.md)). Catalog ids are readable slugs, lowercase letters, digits and hyphens only (`^[a-z0-9-]+$`), and never change once published.
 
 ### Tradition
 
@@ -120,11 +120,11 @@ Written on the device first. Synced only when the devotee signs in and consents 
 
 Every record in this section has:
 
-| Field               | Notes                                                                                                                                                                                                                                                                                                                                                                                                               |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`                | **UUIDv7**, generated on the device, so it works offline and sorts by time. The profile has one too; it is not the owner key                                                                                                                                                                                                                                                                                        |
-| `user_id`           | The owner. Before sign-in: the local profile id. On first sign-in, the device's rows are combined with the account's first, and only then given the account's id, before their first upload ([order of steps](../product/features/accounts-and-sync.md#signing-in-on-a-device-that-already-has-data)). On the server: the Supabase auth user id, a UUID but not necessarily v7, not null. One profile per `user_id` |
-| `hlc`, `deleted_at` | On records where the latest edit wins: `hlc` orders edits ([conflict rule](#conflict-rule)); `deleted_at` marks a deletion so it syncs                                                                                                                                                                                                                                                                              |
+| Field               | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`                | **UUIDv7**, generated on the device, so it works offline and sorts by time. Rows unique per devotee, the profile among them, derive theirs instead ([why](#ids-for-rows-that-are-unique-per-devotee)). The profile's id is not the owner key                                                                                                                                                                                                                                                             |
+| `user_id`           | The owner. Before sign-in: the **local owner id**, a UUIDv7 generated at first launch; the local profile's own id is derived from it. On first sign-in, the device's rows are combined with the account's first, and only then given the account's id, before their first upload ([order of steps](../product/features/accounts-and-sync.md#signing-in-on-a-device-that-already-has-data)). On the server: the Supabase auth user id, a UUID but not necessarily v7, not null. One profile per `user_id` |
+| `hlc`, `deleted_at` | On records where the latest edit wins: `hlc` orders edits ([conflict rule](#conflict-rule)); `deleted_at` marks a deletion so it syncs                                                                                                                                                                                                                                                                                                                                                                   |
 
 Uniqueness is per user: one saved practice per `(user_id, practice_id)`, one default per `(user_id, deity_id)`, one position per `(user_id, practice_id)`.
 
@@ -343,7 +343,7 @@ Local SQLite  ── sync engine ──  Supabase Postgres (row-level security)
 | -------------------------------- | ------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Never changed once sealed        | `count_events`                                                                                         | Server inserts and ignores an id it already has. Row-level security blocks updates and deletes                                                                                                                                    |
 | Set once, then never changed     | `sessions`                                                                                             | Inserted like count events. One update is allowed: filling in an empty `ended_at`. Once set, it can't change; a column-level grant and a trigger enforce this. No deletes                                                         |
-| Latest edit wins, deletions kept | `profiles`, `saved_practices`, `deity_defaults`, `custom_practices`, `practice_positions`, `sankalpas` | `hlc` and `deleted_at` on every row; the edit with the highest `hlc` wins ([conflict rule](#conflict-rule))                                                                                                                       |
+| Latest edit wins, deletions kept | `profiles`, `saved_practices`, `deity_defaults`, `custom_practices`, `practice_positions`, `sankalpas` | `hlc` and `deleted_at` on every row; the edit with the highest `hlc` wins ([conflict rule](#conflict-rule)). Positions are merged instead ([merging positions](#practiceposition))                                                |
 | Device only                      | reminders, device settings, open events, voice templates                                               | Never synced                                                                                                                                                                                                                      |
 | Catalog                          | `catalog_deities`, `catalog_practices`, `catalog_steps`, plus a full-text search index                 | Updated per practice when a pack changes, never wiped. A practice dropped from the catalog is kept and marked hidden, so history and saved practices keep their names ([content-pipeline](content-pipeline.md#device)). Read-only |
 
@@ -354,9 +354,33 @@ Records where the latest edit wins are ordered by a **hybrid logical clock** (`h
 - An `hlc` is the device's time in milliseconds, a counter and the device id, compared in that order.
 - Every edit takes an `hlc` greater than any the device has made **or received**. Receiving records during sync moves the device's clock forward, so an edit made after seeing another edit always wins, even when the phone's clock is behind.
 - Edits made offline on two devices at the same time are ordered by `hlc`, and exact ties by device id, so every device and the server settle on the same result.
-- The server applies a write only if its `hlc` is higher than the stored one, whatever order uploads arrive in. It rejects an `hlc` more than 5 minutes ahead of server time; the app then corrects its clock offset from the server's time and retries, so a phone with a wildly wrong clock can't keep winning.
-- **Namavali positions** compare `practice_version`, then `pass_ordinal`, then `hlc`, and marks within the same pass are combined ([merging positions](#practiceposition)), so neither an old version nor a finished pass can come back.
+- The server applies a write only if its `hlc` is higher than the stored one, whatever order uploads arrive in. Positions are the exception: the server merges them (next point). The app learns the server's time when it connects and corrects its clock offset before uploading, restamping any queued edit whose `hlc` runs ahead, in the local row and the queued upload together, so the two never disagree. The device's own too-far-ahead `hlc`s were never accepted by the server, so they stop counting towards "greater than any it has made"; every `hlc` it has received still counts. As a backstop the server drops a write more than 5 minutes ahead of its time, positions included, and answers success so the upload queue isn't blocked; a phone with a wildly wrong clock can't keep winning.
+- **Namavali positions** compare `practice_version`, then `pass_ordinal`, then `hlc`, and marks within the same pass are combined ([merging positions](#practiceposition)), so neither an old version nor a finished pass can come back. On the server this is a Postgres function that runs the same merge, including deletion, but without the step-count checks, since the server has no catalog; and the device uploads the whole position row so the function sees version, pass and marks together.
 - Count events and sessions don't use this rule: they are inserted by id, and an id the server already has is ignored.
+
+### Ids for rows that are unique per devotee
+
+Four kinds of row are unique per devotee: the profile, one saved practice per practice, one default per deity, one position per practice. Their ids are **derived from what makes them unique**, not generated — `profiles` from the devotee alone, `saved_practices` and `practice_positions` from the devotee and the practice, `deity_defaults` from the devotee and the deity.
+
+**How the id is derived.** A [UUIDv5](https://www.rfc-editor.org/rfc/rfc9562#name-uuid-version-5) (RFC 9562, SHA-1), from one fixed namespace and a canonical name:
+
+- **Namespace:** `49841fbe-b559-4c62-ae52-0d0611052939`, JapaDhyan's own, fixed forever.
+- **Name:** UTF-8 fields joined by `:` — `v1`, the table name, the owner's `user_id`, then the key, if any:
+  - `v1:profiles:<user_id>`
+  - `v1:saved_practices:<user_id>:<practice_id>`
+  - `v1:practice_positions:<user_id>:<practice_id>`
+  - `v1:deity_defaults:<user_id>:<deity_id>`
+- **Canonical fields:** `user_id` and a custom practice's UUID in lowercase hyphenated form; a catalog slug exactly as published. None can contain `:`, so the name is unambiguous.
+- **One implementation:** a single function in `packages/shared`, pinned by fixed test vectors, so every client derives the same id. Before sign-in `user_id` is the local owner id, so the profile's id is derived from that and is never an input to itself; re-keying recomputes every derived id from the new `user_id`.
+- **`v1` never changes once rows have synced.** A different scheme would mint different ids for existing rows, so it would be a migration, not an edit.
+
+The profile needs this too. The account's profile wins on sign-in, but a brand-new account has none yet, so two guest devices signing in to it at about the same time would each upload their own.
+
+A random UUIDv7 would break sync. Two devices chanting the same practice offline would each mint their own id for the same logical row, and the second one to reach the server would violate the unique constraint. A constraint violation is not a transient failure, so it is discarded rather than retried — the row and its marks would be lost silently, and the position merge above would never run, because the two rows never meet.
+
+Deriving the id means both devices write the same row. The server therefore **never plain-inserts** these rows: every write is an upsert on the id, through the `hlc` guard or, for positions, the merge function, so the second device's write updates the row instead of hitting the primary key. The conflict rule then decides the winner and, for positions, the server's merge combines marks within a pass as intended. Count events, sessions, sankalpas and custom practices are unconstrained — a devotee can have any number of them — so they keep generated UUIDv7 ids.
+
+The id has to include the devotee, because the row is identified by that id alone and two devotees may save the same practice. So **every re-key recomputes these ids**, on the device, in the same step that moves the rows to their new owner. There are three: first sign-in ([signing in](../product/features/accounts-and-sync.md#signing-in-on-a-device-that-already-has-data)), which is safe because a guest's rows have never been uploaded, so no row on the server is left behind under the old id; keeping practice as a guest after [deleting the account](../product/features/accounts-and-sync.md#deleting-an-account-p1), where the server rows are already gone; and import, below. **Import** ([export and import](../product/features/accounts-and-sync.md#export-and-import-p1)) re-keys a file's records to the current owner, so an id derived from the file's owner would be the wrong row: it recomputes all four kinds, the profile included. Generated ids are kept as they are.
 
 ### Sync engine
 
@@ -368,7 +392,7 @@ Chosen by spike **S4**, which is a prerequisite for the local storage milestone 
 4. Local queries update the screen live as counts change.
 5. Monthly cost at 10,000 and 100,000 users.
 6. How much code we have to own.
-7. The [conflict rule](#conflict-rule) is applied on the server (a write that applies only if newer), not by the order uploads arrive in.
+7. The [conflict rule](#conflict-rule) is applied on the server (a write that applies only if newer, and the position merge for positions), not by the order uploads arrive in.
 
 Lean: PowerSync if it passes; the offline queue, retries, web storage and live queries are exactly the fiddly parts. Fallback: our own sync, feasible because the data is append-only events plus latest-edit-wins records.
 
@@ -383,7 +407,7 @@ Lean: PowerSync if it passes; the offline queue, retries, web storage and live q
 
 - Tables mirror the shared types, in snake_case.
 - Every user table has `user_id uuid not null` referencing `auth.users` **with cascade delete**, so deleting the user deletes everything they own.
-- `user_id = auth.uid()` row-level security on every user table, for reading and writing.
+- `user_id = auth.uid()` row-level security on every user table, for reading and writing. **With PowerSync** it guards writes only: the service replicates with `BYPASSRLS`, so the sync stream queries must filter downloads by `user_id` themselves, and are reviewed as security code ([decision](../decisions/2026-09-22-sync-engine-powersync.md)).
 - **Links stay within one user:** `count_events (user_id, session_id)` references `sessions (user_id, id)`, so an event can't point at another user's session. The same pattern applies to any future link between user tables.
 - `practice_id` is not a foreign key: it can be a catalog slug, and the catalog isn't in the database.
 - `consents`: user, policy version, date agreed.

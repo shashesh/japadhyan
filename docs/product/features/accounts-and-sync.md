@@ -67,9 +67,9 @@ Nothing is asked, and **no count is ever lost**: counts are append-only events, 
 
 1. **Seal the open count event**, so nothing is left that can't sync and no count stays behind under the local profile.
 2. **Consent**, before anything is downloaded or uploaded. If the devotee says "Not now", the app stops here and they stay a guest: nothing leaves or reaches the device. If the account already recorded agreement to the current policy version, the app doesn't ask again; that check reads only the consent record.
-3. **Download** the account's data completely. The device's rows keep the local profile id meanwhile. If the download fails, nothing changes and the app retries later.
+3. **Download** the account's data completely. The device's rows keep the local owner id meanwhile. If the download fails, nothing changes and the app retries later.
 4. **Combine** on the device, using the table above. Where both sides have a row for the same practice or deity, one row survives: the account's row, updated with the combined values.
-5. **Re-key** the device's remaining rows to the account's id.
+5. **Re-key** the device's remaining rows to the account's id, recomputing the [derived ids](../../architecture/data-model.md#ids-for-rows-that-are-unique-per-devotee) of the profile, saved practices, deity defaults and positions.
 6. **Upload.** Count events and sessions are inserted by id, and an id the server already has is ignored, so a retry can't double-count; a session also allows the one-time filling in of `ended_at`. Rows where the latest edit wins go through the [conflict rule](../../architecture/data-model.md#conflict-rule), so a retry can never undo a newer edit.
 
 Afterwards the devotee sees what happened, e.g. "Added 2,340 repetitions from this device to your account."
@@ -93,7 +93,7 @@ Required by both app stores. Google Play also requires a web page for it.
 - **Settings → Account → Delete account**, in the app and on the web.
 - Deletes the account and all its server data, and signs out every device.
 - **On the phone or browser used to delete**, the devotee then chooses: **keep my practice on this device as a guest**, or **erase everything**.
-- **Keeping it as a guest** creates a new local profile, moves the kept records to it, and clears the sign-in details, the stored consent and everything the sync kept track of. The device is then exactly as it would be for someone who never signed in.
+- **Keeping it as a guest** creates a new local owner id and profile, moves the kept records to it (recomputing their [derived ids](../../architecture/data-model.md#ids-for-rows-that-are-unique-per-devotee)), and clears the sign-in details, the stored consent and everything the sync kept track of. The device is then exactly as it would be for someone who never signed in.
 - **Every other device clears the account's data the next time it connects.** The app checks the account whenever it comes online, and a deleted account fails that check. The device then removes the account's data and says why: "This account was deleted, so its practice has been removed from this device." If that device has counts that never synced, the devotee can export them first; nothing else is kept.
 - **A device that stays offline** keeps its copy until it next connects. The deletion screen says this plainly.
 
@@ -103,8 +103,8 @@ For everyone, including guests.
 
 - **Settings → Backup → Export** saves a file with the profile, saved and custom practices, deity defaults, namavali positions, sessions, count events and sankalpas.
 - **Import** combines using the same rules as signing in, so importing the same file twice changes nothing.
-- **Import ignores who owned the file.** Every imported record is re-keyed to whoever is using the app now: the local profile, or the signed-in account. Record ids are kept, which is what makes a repeat import harmless. Nothing imported can ever be uploaded under someone else's account.
-- **The profile is the exception.** There is only ever one profile per user, so the file's profile is never added as a second one. It is compared with the current profile by the row-level [conflict rule](../../architecture/data-model.md#conflict-rule): if the file's profile was edited later, its settings replace the current ones as a whole; otherwise it is ignored. Its id is dropped either way.
+- **Import ignores who owned the file.** Every imported record is re-keyed to whoever is using the app now: the local owner id, or the signed-in account. Generated ids are kept as they are; ids [derived from the owner](../../architecture/data-model.md#ids-for-rows-that-are-unique-per-devotee) (profile, saved practices, deity defaults, positions) are recomputed for the new owner, and a recomputed id that matches an existing row is combined with it. A repeat import is harmless because kept ids are the file's own and recomputed ids come out the same every time, so both land on rows already imported. Nothing imported can ever be uploaded under someone else's account.
+- **The profile is the exception.** There is only ever one profile per user, so the file's profile is never added as a second one. It is compared with the current profile by the row-level [conflict rule](../../architecture/data-model.md#conflict-rule): if the file's profile was edited later, its settings replace the current ones as a whole; otherwise it is ignored. Its id is recomputed for the current owner, which gives the current profile's id, so it can only ever update that one profile.
 - If the file came from a **different account**, the app says so before importing, since those counts will join the devotee's own practice.
 - The file contains private fields (intentions, private labels), and the export screen says so.
 
@@ -115,7 +115,7 @@ For everyone, including guests.
 
 ## Security and privacy
 
-- Every synced record carries its owner's `user_id`. Row-level security on every user table: devotees can only read and write their own rows ([data-model](../../architecture/data-model.md#ownership-and-shared-fields)).
+- Every synced record carries its owner's `user_id`. Row-level security on every user table: devotees can only read and write their own rows ([data-model](../../architecture/data-model.md#ownership-and-shared-fields)). With PowerSync, row-level security guards writes and the sync stream queries guard downloads ([server](../../architecture/data-model.md#server-supabase)).
 - Count events can be inserted, never updated or deleted, except by deleting the account.
 - Private fields never appear in analytics or logs ([data-model](../../architecture/data-model.md#private-fields)).
 

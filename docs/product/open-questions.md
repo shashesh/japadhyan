@@ -27,6 +27,8 @@ Proposed: accounts for 18+ in India (DPDP Act) and 16+ elsewhere, confirmed by t
 
 PowerSync or our own Supabase sync. Decided by spike S4 before local storage is built, against the criteria in [data-model](../architecture/data-model.md#sync-engine).
 
+**PowerSync is proposed** ([decision](../decisions/2026-09-22-sync-engine-powersync.md)): four of the seven criteria are closed on the vendor's documentation, and the question stays open until the owner accepts and a prototype closes the other three — the guest-to-account move on React Native, two devices converging offline, and offline persistence in the web export.
+
 ## Content hosting and transliteration
 
 Where packs and audio are hosted (Supabase Storage or Cloudflare R2), and which transliteration library generates scripts. Decided in the content pipeline milestone ([content-pipeline](../architecture/content-pipeline.md)).
