@@ -368,7 +368,7 @@ A random UUIDv7 would break sync. Two devices chanting the same practice offline
 
 Deriving the id means both devices write the same row, so the conflict rule decides the winner and marks within a pass are combined as intended. Count events, sessions, sankalpas and custom practices are unconstrained — a devotee can have any number of them — so they keep generated UUIDv7 ids.
 
-The id has to include the devotee, because the row is identified by that id alone and two devotees may save the same practice. So **re-keying on first sign-in recomputes these ids** ([signing in](../product/features/accounts-and-sync.md#signing-in-on-a-device-that-already-has-data)), which is safe: it happens once, on the device, in the same step that combines the rows, and a guest's rows have never been uploaded, so no row on the server is left behind under the old id.
+The id has to include the devotee, because the row is identified by that id alone and two devotees may save the same practice. So **re-keying on first sign-in recomputes these ids** ([signing in](../product/features/accounts-and-sync.md#signing-in-on-a-device-that-already-has-data)), which is safe: it happens once, on the device, in the same step that combines the rows, and a guest's rows have never been uploaded, so no row on the server is left behind under the old id. **Import recomputes them the same way** ([export and import](../product/features/accounts-and-sync.md#export-and-import-p1)): a file's records are re-keyed to the current owner, so an id derived from the file's owner would be the wrong row. Generated ids are kept as they are.
 
 ### Sync engine
 
