@@ -4,19 +4,20 @@ import type { z } from 'zod';
 import type { Deity, Practice, Program, Tradition } from '../types';
 import { catalogIdSchema, contentSchemas, exportSchemas } from './catalog';
 
-// Both directions, so the schemas and the hand-written types can't drift apart.
-type Assignable<A, B> = [A] extends [B] ? true : false;
-const practiceOut: Assignable<z.output<typeof exportSchemas.practice>, Practice> = true;
-const practiceIn: Assignable<Practice, z.output<typeof exportSchemas.practice>> = true;
-const deityOut: Assignable<z.output<typeof exportSchemas.deity>, Deity> = true;
-const deityIn: Assignable<Deity, z.output<typeof exportSchemas.deity>> = true;
-const programOut: Assignable<z.output<typeof exportSchemas.program>, Program> = true;
-const programIn: Assignable<Program, z.output<typeof exportSchemas.program>> = true;
-const traditionOut: Assignable<z.output<typeof exportSchemas.tradition>, Tradition> = true;
-const traditionIn: Assignable<Tradition, z.output<typeof exportSchemas.tradition>> = true;
-const contentPracticeOut: Assignable<z.output<typeof contentSchemas.practice>, Practice> = true;
-void [practiceOut, practiceIn, deityOut, deityIn, programOut, programIn];
-void [traditionOut, traditionIn, contentPracticeOut];
+// Both directions and both forms, so no schema can drift from its type.
+type Same<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
+type Output<S extends z.ZodType> = z.output<S>;
+const contract: [
+  Same<Output<typeof exportSchemas.practice>, Practice>,
+  Same<Output<typeof exportSchemas.deity>, Deity>,
+  Same<Output<typeof exportSchemas.program>, Program>,
+  Same<Output<typeof exportSchemas.tradition>, Tradition>,
+  Same<Output<typeof contentSchemas.practice>, Practice>,
+  Same<Output<typeof contentSchemas.deity>, Deity>,
+  Same<Output<typeof contentSchemas.program>, Program>,
+  Same<Output<typeof contentSchemas.tradition>, Tradition>,
+] = [true, true, true, true, true, true, true, true];
+void contract;
 
 const SHA = 'a'.repeat(64);
 
@@ -192,10 +193,13 @@ describe('exportSchemas.practice', () => {
     expect(exportSchemas.practice.safeParse(practice).success).toBe(false);
   });
 
-  test('a mantra step carries no name or meaning', () => {
+  test.each([
+    ['name', { latin: 'Shiva' }],
+    ['meaning', { en: 'Salutations to Shiva' }],
+  ])('a mantra step carries no %s', (field, value) => {
     const practice = exportMantra();
     const [step] = practice.steps as Record<string, unknown>[];
-    step!.name = { latin: 'Shiva' };
+    step![field] = value;
 
     expect(exportSchemas.practice.safeParse(practice).success).toBe(false);
   });
@@ -235,6 +239,53 @@ describe('exportSchemas.practice', () => {
     const practice = { ...exportNamavali(), steps: [] };
 
     expect(exportSchemas.practice.safeParse(practice).success).toBe(false);
+  });
+
+  test('latin is never a source script: it is generated from the source script', () => {
+    const practice = { ...exportMantra(), source_script: 'latin' };
+
+    expect(issuePaths(exportSchemas.practice.safeParse(practice))).toEqual(['source_script']);
+    expect(issuePaths(contentSchemas.practice.safeParse(practice))).toContain('source_script');
+  });
+
+  describe('stotras', () => {
+    const verse = {
+      text: {
+        devanagari: 'शान्ताकारं भुजगशयनं',
+        iast: 'śāntākāraṃ bhujagaśayanaṃ',
+        latin: 'Shantakaram Bhujagashayanam',
+      },
+      words: null,
+      name: null,
+      meaning: { en: 'Of peaceful form, resting on the serpent' },
+      audio_start_ms: null,
+      audio_end_ms: null,
+    };
+    const stotra = (steps: unknown[]) => ({
+      ...exportMantra(),
+      id: 'vishnu-dhyana',
+      kind: 'stotra',
+      default_round: 1,
+      repetition_word: { en: 'paath' },
+      steps,
+    });
+
+    test('accepts a stotra of verses', () => {
+      expect(exportSchemas.practice.safeParse(stotra([verse, verse])).success).toBe(true);
+    });
+
+    test.each([
+      ['name', { latin: 'Vishnu' }],
+      ['words', { latin: ['Shantakaram'] }],
+    ])('a verse carries no %s', (field, value) => {
+      expect(exportSchemas.practice.safeParse(stotra([{ ...verse, [field]: value }])).success).toBe(
+        false,
+      );
+    });
+
+    test('a stotra has at least one verse', () => {
+      expect(exportSchemas.practice.safeParse(stotra([])).success).toBe(false);
+    });
   });
 
   test('rejects an empty or repeated deity list', () => {
@@ -318,7 +369,7 @@ describe('exportSchemas.practice', () => {
 
     test('rejects a span that ends before it starts or after the recording', () => {
       expect(withSpan(2_000, 1_000).success).toBe(false);
-      expect(withSpan(1_000, 1_000).success).toBe(false);
+      expect(messages(withSpan(1_000, 1_000))).toMatch(/must end after it starts/);
       expect(withSpan(0, 4_001).success).toBe(false);
       expect(withSpan(-1, 1_000).success).toBe(false);
     });

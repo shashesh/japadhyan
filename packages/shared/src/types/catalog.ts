@@ -26,6 +26,12 @@ export type Script =
   | 'gujarati'
   | 'tibetan';
 
+/**
+ * A script catalog text can be authored in. Never `latin`, which is always
+ * generated from the source script and IAST.
+ */
+export type SourceScript = Exclude<Script, 'latin'>;
+
 /** Text keyed by script. A practice need not carry every script. */
 export type TextByScript = Partial<Record<Script, string>>;
 
@@ -146,7 +152,7 @@ interface PracticeBase {
   /** e.g. "108 names". */
   subtitle: TextByLanguage;
   /** Script the text was authored in: Devanagari for Sanskrit, … */
-  source_script: Script;
+  source_script: SourceScript;
   /** Shown in the app: `japa` for a mantra, `paath` for a namavali. */
   repetition_word: TextByLanguage;
   intro: TextByLanguage;

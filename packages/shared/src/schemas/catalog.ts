@@ -138,7 +138,9 @@ function buildSchemas(mode: Mode) {
       .readonly(),
     title: someLanguage,
     subtitle: textByLanguage,
-    source_script: script,
+    source_script: script.exclude(['latin'], {
+      error: '`latin` is generated, so it is never the source script',
+    }),
     repetition_word: someLanguage,
     intro: textByLanguage,
     audio: audio.nullable(),
@@ -252,7 +254,7 @@ function checkAudioSpan(
       'Set both ends of the span, or neither',
     );
   } else if (start >= end) {
-    issue('audio_end_ms', 'The span ends before it starts');
+    issue('audio_end_ms', 'The span must end after it starts');
   } else if (end > durationMs) {
     issue('audio_end_ms', 'The span ends after the recording');
   }
