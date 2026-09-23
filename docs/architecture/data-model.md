@@ -358,6 +358,16 @@ Records where the latest edit wins are ordered by a **hybrid logical clock** (`h
 - **Namavali positions** compare `practice_version`, then `pass_ordinal`, then `hlc`, and marks within the same pass are combined ([merging positions](#practiceposition)), so neither an old version nor a finished pass can come back.
 - Count events and sessions don't use this rule: they are inserted by id, and an id the server already has is ignored.
 
+### Ids for rows that are unique per devotee
+
+Three kinds of row are unique per devotee: one saved practice per practice, one default per deity, one position per practice. Their ids are **derived from what makes them unique**, not generated — `saved_practices` and `practice_positions` from the devotee and the practice, `deity_defaults` from the devotee and the deity.
+
+A random UUIDv7 would break sync. Two devices chanting the same practice offline would each mint their own id for the same logical row, and the second one to reach the server would violate the unique constraint. A constraint violation is not a transient failure, so it is discarded rather than retried — the row and its marks would be lost silently, and the position merge above would never run, because the two rows never meet.
+
+Deriving the id means both devices write the same row, so the conflict rule decides the winner and marks within a pass are combined as intended. Count events, sessions, sankalpas and custom practices are unconstrained — a devotee can have any number of them — so they keep generated UUIDv7 ids.
+
+The id has to include the devotee, because the row is identified by that id alone and two devotees may save the same practice. So **re-keying on first sign-in recomputes these ids** ([signing in](../product/features/accounts-and-sync.md#signing-in-on-a-device-that-already-has-data)), which is safe: it happens once, on the device, in the same step that combines the rows, and a guest's rows have never been uploaded, so no row on the server is left behind under the old id.
+
 ### Sync engine
 
 Chosen by spike **S4**, which is a prerequisite for the local storage milestone in the [Phase 1 plan](../plans/active/2026-09-21-phase-1-plan.md): PowerSync ships its own SQLite layer (op-sqlite on phones, wa-sqlite on web), so choosing it after building on expo-sqlite would mean migrating twice. S4 must show:
