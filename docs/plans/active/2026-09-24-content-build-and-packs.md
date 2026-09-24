@@ -401,6 +401,8 @@ node scripts/content-sign.mjs verify --public-key <base64> --dir dist/content/<c
   - `sign refuses a --key inside the repo, comparing real paths` — the same check as `keygen`
   - `sign refuses to run from a checkout with node_modules or uncommitted changes, and prints the commit it is at`
   - `sign and verify refuse a pack whose real path is outside --dir` — a symbolic link as the `packs/` folder or as one pack, as well as `..`
+  - `sign and verify refuse a manifest.json or manifest.sig.json that is a symbolic link or resolves outside --dir`
+  - `sign writes the signature to a new file and renames it into place` — so an existing link at `manifest.sig.json` is replaced, never written through
   - `sign then verify succeeds`
   - `changing one byte of a pack fails sign: the manifest no longer matches`
   - `a file in packs/ not in the manifest, or a manifest entry with no file, fails sign`
@@ -410,7 +412,7 @@ node scripts/content-sign.mjs verify --public-key <base64> --dir dist/content/<c
   - `a wrong passphrase fails without writing a signature`
   - `verify with a different key fails, naming both key ids`
   - `the passphrase comes from the terminal, or stdin when it isn't one; never argv or env`
-- [ ] Implement. `sign` and `verify` share one check: every manifest path resolves, through real paths, to a file inside `--dir`; its size and SHA-256 match; and `packs/` holds nothing else. Then `sign` signs the exact bytes of `manifest.json` and writes `manifest.sig.json`, and `verify` checks that signature.
+- [ ] Implement. `sign` and `verify` share one check, before any file is read or written: `--dir` is resolved to its real path, and `manifest.json`, `manifest.sig.json` (if present) and every manifest path must resolve, through real paths, to a regular file inside it; its size and SHA-256 match; and `packs/` holds nothing else. Then `sign` signs the exact bytes of `manifest.json` and writes `manifest.sig.json` through a temporary file in `--dir` and a rename, and `verify` checks that signature.
 - [ ] Docs: content-pipeline.md signing section (commands, key ids, current and next keys, signing from a clean clone, and decision 12 in place of "never see the key"); the same sentence in the [transliteration decision](../../decisions/2026-09-23-transliteration-library.md#consequences); `docs/guides/setup.md` (building and signing content locally).
 - [ ] Commit: `feat(scripts): sign and verify the content manifest`. Push, draft PR, request Copilot.
 - [ ] **Owner, after merge:** run `keygen` twice (current and next) to a folder outside the repo, save both passphrases in the password manager, and send the two public keys and key ids. They go into the app with M3.
