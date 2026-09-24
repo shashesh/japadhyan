@@ -189,7 +189,7 @@ describe('validateContent', () => {
     test('a schema issue gives its field path and line', () => {
       const step = mantra('om-namah-shivaya').steps[0]!;
       const bad = mantra('om-namah-shivaya', {
-        steps: [{ ...step, text: { ...step.text, latin: 'Om Namah Shivaya' } }],
+        steps: [{ ...step, text: { ...step.text, tamil: 'ௐ நம꞉ ஶிவாய' } }],
       });
       const files = replace(tree(), file('practices/hindu/shiva/om-namah-shivaya.yaml', bad));
 
@@ -199,7 +199,7 @@ describe('validateContent', () => {
           file: 'practices/hindu/shiva/om-namah-shivaya.yaml',
           path: ['steps', 0, 'text'],
           line: expect.any(Number),
-          message: '`latin` generated at build time; write only `devanagari`, `iast`',
+          message: '`tamil` generated at build time; write only `devanagari`, `iast`',
         },
       ]);
     });
@@ -360,6 +360,35 @@ describe('validateContent', () => {
       expect(validateContent(files).issues.map((i) => i.file)).toEqual([
         'deities/hindu/shiva.yaml',
       ]);
+    });
+  });
+
+  describe('transliteration', () => {
+    test('a practice whose IAST and source disagree, at the line of the IAST', () => {
+      const step = mantra('om-namah-shivaya').steps[0]!;
+      const typo = mantra('om-namah-shivaya', {
+        steps: [{ ...step, text: { devanagari: 'ॐ नमः शिवाय', iast: 'oṃ namaḥ sivāya' } }],
+      });
+      const files = replace(tree(), file('practices/hindu/shiva/om-namah-shivaya.yaml', typo));
+
+      const [issue, ...rest] = validateContent(files).issues;
+      const text = files.find((f) => f.path.startsWith('practices/'))!.text;
+      const iastLine = text.split('\n').findIndex((line) => line.includes('sivāya')) + 1;
+
+      expect(rest).toEqual([]);
+      expect(issue).toEqual({
+        file: 'practices/hindu/shiva/om-namah-shivaya.yaml',
+        path: ['steps', 0, 'text', 'iast'],
+        line: iastLine,
+        message: 'Doesn’t match the `devanagari`, which reads “oṃ namaḥ śivāya”',
+      });
+    });
+
+    test('a practice that failed its schema is not transliterated', () => {
+      const broken = mantra('om-namah-shivaya', { version: 0 });
+      const files = replace(tree(), file('practices/hindu/shiva/om-namah-shivaya.yaml', broken));
+
+      expect(validateContent(files).issues.map((i) => i.path)).toEqual([['version']]);
     });
   });
 

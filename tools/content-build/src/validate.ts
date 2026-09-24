@@ -1,6 +1,7 @@
 import type { Deity, Practice, Program, Tradition } from '@japadhyan/shared';
 
 import type { ContentFile } from './files';
+import { generatePractice } from './generate';
 import { placementOf, type Kind, type Placement } from './layout';
 import { parseFile, type ContentIssue, type Locate } from './parse';
 import { referenceIssues, type Entries, type Entry } from './references';
@@ -25,7 +26,8 @@ const NOT_CATALOG = 'Not a catalog file. See docs/architecture/content-pipeline.
 
 /**
  * Checks every file in `content/`: its place in the layout, its YAML, its
- * content schema, and its references to other files.
+ * content schema, a practice's generated scripts, and its references to
+ * other files.
  */
 export function validateContent(files: readonly ContentFile[]): Validation {
   const issues: ContentIssue[] = [];
@@ -56,6 +58,9 @@ export function validateContent(files: readonly ContentFile[]): Validation {
 
     const entry = { file: path, value: result.value, locate: result.locate };
     issues.push(...placementIssues(entry, placement));
+    if (placement.kind === 'practice') {
+      issues.push(...transliterationIssues(entry as Entry<Practice>));
+    }
     (entries[placement.kind] as Entry<unknown>[]).push(entry);
   }
 
@@ -73,6 +78,16 @@ export function validateContent(files: readonly ContentFile[]): Validation {
 }
 
 type AnyEntity = Tradition | Deity | Practice | Program;
+
+/** What generating the practice's scripts finds wrong, at the line it concerns. */
+function transliterationIssues({ file, value, locate }: Entry<Practice>): ContentIssue[] {
+  return generatePractice(value).issues.map(({ path, message }) => ({
+    file,
+    path,
+    line: locate(path),
+    message,
+  }));
+}
 
 /** The file's name and folders agree with what it says. */
 function placementIssues(

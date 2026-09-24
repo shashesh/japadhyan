@@ -37,13 +37,14 @@ Single source of truth for versions used in this repo. Update in the same PR as 
 
 Runs locally, never ships in the app.
 
-| Package     | Version  | Notes                                                                           |
-| ----------- | -------- | ------------------------------------------------------------------------------- |
-| yaml        | ^2.9.1   | Parses `content/` as YAML 1.2: dates stay strings, duplicate keys are errors    |
-| zod         | ^4.6.5   | Same as shared; the schemas come from `@japadhyan/shared`                       |
-| tsx         | ^4.23.15 | Runs the TypeScript CLI (`npm run content:validate`)                            |
-| @types/node | ^24      | Matches the Node 24 in `.nvmrc`                                                 |
-| Vitest      | ^4.1.11  | Tests, with the same 80% coverage floor as shared; also checks the real content |
+| Package         | Version       | Notes                                                                                                                                                                                                                  |
+| --------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| yaml            | ^2.9.1        | Parses `content/` as YAML 1.2: dates stay strings, duplicate keys are errors                                                                                                                                           |
+| zod             | ^4.6.5        | Same as shared; the schemas come from `@japadhyan/shared`                                                                                                                                                              |
+| @siva-sh/vidyut | 0.3.0 (exact) | vidyut-lipi's WebAssembly build: generates the Indic scripts and reads the source as IAST ([decision](docs/decisions/2026-09-23-transliteration-library.md)). Upgrade deliberately and read the diff of generated text |
+| tsx             | ^4.23.15      | Runs the TypeScript CLI (`npm run content:validate`)                                                                                                                                                                   |
+| @types/node     | ^24           | Matches the Node 24 in `.nvmrc`                                                                                                                                                                                        |
+| Vitest          | ^4.1.11       | Tests, with the same 80% coverage floor as shared; also checks the real content                                                                                                                                        |
 
 ## Tooling
 
