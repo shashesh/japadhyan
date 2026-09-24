@@ -29,11 +29,11 @@ PowerSync or our own Supabase sync. Decided by spike S4 before local storage is 
 
 **PowerSync is accepted** ([decision](../decisions/2026-09-22-sync-engine-powersync.md)): four of the seven criteria are closed on the vendor's documentation, and the question stays open until a prototype closes the other three — the guest-to-account move on React Native, two devices converging offline, and offline persistence in the web export. If it fails one, we fall back to our own sync.
 
-## Content hosting and transliteration
+## Content hosting
 
-Where packs and audio are hosted (Supabase Storage or Cloudflare R2), and which transliteration library generates scripts. Decided in the content pipeline milestone ([content-pipeline](../architecture/content-pipeline.md)).
+Where packs and audio are hosted: Supabase Storage or Cloudflare R2. Decided in the content pipeline milestone ([content-pipeline](../architecture/content-pipeline.md)).
 
-**Transliteration is decided:** vidyut-lipi ([decision](../decisions/2026-09-23-transliteration-library.md)), with our own rules and a hand-written override for `latin`. Hosting is still to decide.
+The transliteration library, once part of this question, is decided: vidyut-lipi ([decision](../decisions/2026-09-23-transliteration-library.md)), with our own rules and a hand-written override for `latin`.
 
 ## Corrections to listening japa (P2)
 
