@@ -4,7 +4,7 @@
 > Add, move or retire a doc → update this file in the same commit.
 > See [README.md](README.md) for folder conventions.
 
-**Last verified:** 2026-09-22
+**Last verified:** 2026-09-23
 
 ## Repo root
 
