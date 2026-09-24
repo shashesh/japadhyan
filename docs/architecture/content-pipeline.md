@@ -39,7 +39,7 @@ content/
 - **Layout.** A file's name is its id. Deities sit in their tradition's folder, and practices in their tradition's and their **primary deity's** folder (the first of `deity_ids`), so Hare Krishna is `practices/hindu/krishna/hare-krishna.yaml`. Any other file is an error, except `content/README.md`.
 - **Audio and images are not in git.** They live in object storage, named by their SHA-256. YAML refers to them by id, checksum, size and (for audio) duration.
 - **Schema.** Every file is checked against a schema in `packages/shared` (`src/schemas`, [Zod](../decisions/2026-09-23-schema-library-zod.md)), which is platform-agnostic and also used by the app to read packs. Each entity has two forms:
-  - **Content** schemas are strict: a field the schema doesn't know is an error, not ignored. A practice's step text, words and names carry exactly the master scripts — the source script and IAST. Generated scripts may not be written by hand. The [transliteration decision](../decisions/2026-09-23-transliteration-library.md#how-latin-is-produced) allows a hand-written `latin` override; it joins this contract and the content schema with the build script, and until then `latin` is no exception.
+  - **Content** schemas are strict: a field the schema doesn't know is an error, not ignored. A practice's step text, words and names carry the master scripts — the source script and IAST. Generated scripts may not be written by hand, except a `latin` that overrides the rules ([how `latin` is produced](../decisions/2026-09-23-transliteration-library.md#how-latin-is-produced)).
   - **Export** schemas drop fields they don't know, so an app can read a pack with fields added after its release. A practice's step text, words and names carry at least the source script, IAST and `latin`; script add-on packs bring more.
   - **Deity names** have no source script, so neither rule applies: they are written by hand per language, each in the scripts that language uses (`en` in `latin`, `hi` in `devanagari`), and are never generated.
   - Both enforce the rules within a single entity, among them: catalog ids, language tags as language, optional script and optional region in canonical case (`en`, `pt-BR`, `sa-Latn`), a source script other than `latin`, one step for a mantra, words only on a mantra, a name on every namavali step, a namavali round of one recitation, a duration on every recording, audio positions inside the recording, program days within the program, and an absent meaning or reading written as `null`, never as an empty map. Rules that span files — a practice's deities exist, versions only go up — belong to the build.
@@ -51,6 +51,12 @@ content/
 
 - The master text is the practice's source script (Devanagari for Sanskrit, Gurmukhi for Sikh practice) plus IAST.
 - `latin` (common spelling such as "Om Namah Shivaya") and other Indic scripts are **generated at build time**, not on the phone, using an established transliteration library chosen in M2 ([vidyut-lipi](../decisions/2026-09-23-transliteration-library.md), with our own rules for `latin` and for each script's conventions).
+- From Devanagari, the build generates Tamil, Telugu, Kannada, Gujarati and Bengali; Gurmukhi and Tibetan wait for P2. `latin` comes from the IAST by rules, unless the step carries a hand-written one. A step's text, words and name are each generated, words one by one.
+- The build checks what it generates (`tools/content-build/src/generate.ts`):
+  - The source script, read as IAST, must match the hand-written IAST, ignoring punctuation. IAST must be lower case with `ṃ`, not `ṁ`.
+  - No generated script may hold letters of the source script. vidyut-lipi passes through letters it has no mapping for, such as ऑ, and a round trip can't see them.
+  - Tamil, Telugu, Kannada and Gujarati must convert back to the source exactly. Bengali writes `va` and `ba` alike, so it relies on review.
+  - The IAST and source have as many words, and so does a hand-written `latin`. A hand-written `latin` on the text needs one on the words too.
 - Generated text is reviewed by the advisor like any other. Some scripts need special handling, e.g. Tamil lacks aspirated consonants.
 
 ## Build
@@ -64,7 +70,7 @@ A script, run locally in P1 (GitHub Actions minutes are limited, see [ci-only-wh
 5. **Sign the manifest** with the content signing key (Ed25519).
 6. **Publish** packs, manifest and signature to the CDN (Supabase Storage or Cloudflare R2, chosen in M2).
 
-Step 1 is `tools/content-build`. It also checks the layout above and the references between files: ids are unique; a deity's tradition, parent and featured practice, a practice's deities and a program's practices all exist; a deity's parent and a practice's deities are in its tradition; a featured practice is one of that deity's; and no deity is its own ancestor. `npm test` runs it, so it is part of `npm run check` and CI; `npm run content:validate` runs it alone and prints each problem with its file and line. Media checksums and "versions only go up" wait for the build steps that need them.
+Step 1 is `tools/content-build`. It also checks the layout above and the references between files: ids are unique; a deity's tradition, parent and featured practice, a practice's deities and a program's practices all exist; a deity's parent and a practice's deities are in its tradition; a featured practice is one of that deity's; and no deity is its own ancestor. It also runs step 2's checks ([transliteration](#transliteration)), though writing the generated text out waits for the pack build. `npm test` runs it, so it is part of `npm run check` and CI; `npm run content:validate` runs it alone and prints each problem with its file and line. Media checksums and "versions only go up" wait for the build steps that need them.
 
 ### Packs
 

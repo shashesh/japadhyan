@@ -10,7 +10,8 @@ programs/<id>.yaml
 ```
 
 - A file's name is its id. The primary deity is the first of a practice's `deity_ids`.
-- Write a practice's text in its source script and IAST only. `latin` and the other scripts are generated.
+- Write a practice's text in its source script and IAST, in lower case with `ṃ` (not `ṁ`). The build checks each against the other. `latin` and the other scripts are generated.
+- Write `latin` by hand only where the common spelling differs from what the rules give, such as "Shri Ram Jai Ram" for श्री राम जय राम. If the text has one, its `words` need one too.
 - Any change to a practice's text bumps its `version`.
 - Leave `review: null` until an advisor has reviewed the practice. Production packs refuse unreviewed content.
 

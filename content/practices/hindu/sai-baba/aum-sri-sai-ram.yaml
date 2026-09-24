@@ -1,5 +1,5 @@
 id: aum-sri-sai-ram
-version: 1
+version: 2
 tradition_id: hindu
 kind: mantra
 deity_ids: [sai-baba]
@@ -11,9 +11,11 @@ steps:
   - text:
       devanagari: ॐ श्री साई राम
       iast: oṃ śrī sāī rāma
+      latin: Om Shri Sai Ram
     words:
       devanagari: [ॐ, श्री, साई, राम]
       iast: [oṃ, śrī, sāī, rāma]
+      latin: [Om, Shri, Sai, Ram]
     name: null
     meaning: null
     audio_start_ms: null
