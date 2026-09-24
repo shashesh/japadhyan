@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-09-21
+updated: 2026-09-24
 ---
 
 # Setup and running
@@ -42,6 +42,28 @@ Prettier formats Markdown and markdownlint checks the rest. The rules are in `.m
 In VS Code, install the recommended Prettier and markdownlint extensions (`.vscode/extensions.json`). Markdown is then formatted on save, and markdownlint warnings show in the editor.
 
 Files use LF line endings on every platform (`.gitattributes`), because Prettier writes LF. A Windows clone made before that rule may still have CRLF files that fail the Prettier check. Run `npm run format` once to fix them; git sees no changes.
+
+## Content
+
+```bash
+npm run content:build -- --channel development   # packs and manifest in dist/content/development/
+```
+
+Commit what changes in `content-snapshot/` ([content/README.md](../../content/README.md)).
+
+To sign a build, make a key once, then sign and verify from a **fresh clone where `npm install` never ran**. The signing script refuses to run anywhere else, so no npm package can change it before you type the passphrase ([signing](../architecture/content-pipeline.md#signing)).
+
+```bash
+git clone <repo> ../japadhyan-signing        # no npm install here, ever
+cd ../japadhyan-signing
+node scripts/content-sign.mjs keygen --out ~/keys/japadhyan-dev.pem   # outside any repo
+node scripts/content-sign.mjs sign --key ~/keys/japadhyan-dev.pem --dir ../japadhyan/dist/content/development
+node scripts/content-sign.mjs verify --public-key <printed by keygen> --dir ../japadhyan/dist/content/development
+```
+
+`keygen` asks for a passphrase of at least 20 characters; generate it in your password manager. Run `git pull` in the signing clone before signing; `sign` prints the commit it runs from. A development key is yours alone; production apps trust only the owner's keys.
+
+## Web export
 
 Export the static web build:
 

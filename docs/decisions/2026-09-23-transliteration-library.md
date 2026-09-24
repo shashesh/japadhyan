@@ -103,8 +103,8 @@ With these rules our four samples become **Om Namah Shivaya**, **Om Shri Vishnav
 
 - **The npm package is young and unofficial.** Upstream vidyut publishes no npm package. `@siva-sh/vidyut` is a one-maintainer binding built from a fork (0.3.0, August 2026, no provenance attestation); its output matched the official Python binding on the samples we compared. We pin the exact version (the lockfile pins its integrity hash), upgrade deliberately, review the package's glue code (standard `wasm-bindgen`, no install scripts) and read the diff of generated text on every upgrade. If the binding goes stale, the exits are building the MIT crate to WebAssembly ourselves or falling back to `sanscript.js`; both are contained, because the build's output is checked against the round trip and the reviewed snapshot.
 - **The package never runs where the signing key can be reached.** Pinning doesn't stop compromised code from running, so the boundary is in how the build runs ([signing](../architecture/content-pipeline.md#signing)):
-  - Generating and packing never touch the key. They run under Node's permission model, allowed only to read the repo and write the build's output folder.
-  - Signing is a separate step: a small script that uses only Node's built-in crypto, imports nothing from the build, re-hashes the packs against the manifest, and signs only that.
+  - The key is protected by its encryption and a clean signing folder, not by the build's sandbox. `npm install` and `npm test` already run the package with the owner's full permissions, so the key file is encrypted, and its passphrase is typed only into the signing script, run from a fresh clone where `npm install` never ran.
+  - Signing is a separate step: a small script that uses only Node's built-ins, imports nothing from the build, re-hashes the packs against the manifest, and signs only that. Generating and packing also run under Node's permission model, as an extra layer.
 
   The worst compromised code can do is write wrong text, which the IAST check, the round trip and the reviewed snapshot are there to catch.
 
