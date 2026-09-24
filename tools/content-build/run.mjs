@@ -11,8 +11,9 @@
  * confused the grant.
  *
  * Node's permission model follows symbolic links, so a link in the repo that
- * resolves outside it would open that file to the build: the launcher
- * refuses to run while there is one.
+ * resolves outside it would open that file to the build, and a link in a
+ * folder the build writes would redirect its writes elsewhere in the repo:
+ * the launcher refuses to run while there is either.
  *
  * The sandbox is an extra layer, not what keeps the signing key safe: see
  * docs/architecture/content-pipeline.md#signing. Imports nothing third-party
@@ -20,7 +21,7 @@
  */
 
 import { spawnSync } from 'node:child_process';
-import { copyFileSync, mkdirSync, readdirSync, realpathSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readdirSync, realpathSync } from 'node:fs';
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -66,6 +67,33 @@ export function linksOutside(repoRoot) {
     .sort();
 }
 
+/**
+ * Links in the folders the build writes, or on the way to them, relative to
+ * the repo and sorted. A write through a link lands where the link points,
+ * permission model or not, so any link here could redirect the build's
+ * writes elsewhere in the repo. A real build writes only plain files.
+ */
+export function linksInWritable(repoRoot) {
+  const root = realpathSync.native(repoRoot);
+  const found = [];
+  for (const folder of WRITABLE) {
+    const path = resolve(repoRoot, folder);
+    if (!existsSync(path)) continue;
+    if (!samePath(realpathSync.native(path), resolve(root, folder))) {
+      found.push(path);
+      continue;
+    }
+    for (const entry of readdirSync(path, { recursive: true, withFileTypes: true })) {
+      if (entry.isSymbolicLink()) found.push(join(entry.parentPath, entry.name));
+    }
+  }
+  return found.map((path) => relative(repoRoot, path)).sort();
+}
+
+/** Windows and macOS file systems ignore case. */
+const samePath = (a, b) =>
+  process.platform === 'linux' ? a === b : a.toLowerCase() === b.toLowerCase();
+
 /** Bundles the build, with the transliterator's WebAssembly beside it. */
 export async function bundle(repoRoot) {
   const { build } = await import('esbuild');
@@ -98,13 +126,17 @@ export async function launch({ repoRoot = REPO_ROOT, argv, log = console.error }
   // be created from inside the sandbox: that needs its parent writable.
   for (const folder of WRITABLE) mkdirSync(resolve(repoRoot, folder), { recursive: true });
 
+  const refuse = (paths, why) => {
+    log(`Refusing to build: ${why}:\n${paths.map((path) => `  ${path}`).join('\n')}`);
+    return 1;
+  };
   const outside = linksOutside(repoRoot);
   if (outside.length > 0) {
-    log(
-      `Refusing to build: these resolve outside the repo, which would let the build read there:\n` +
-        outside.map((path) => `  ${path}`).join('\n'),
-    );
-    return 1;
+    return refuse(outside, 'these resolve outside the repo, which would let the build read there');
+  }
+  const redirected = linksInWritable(repoRoot);
+  if (redirected.length > 0) {
+    return refuse(redirected, 'these links could redirect what the build writes; remove them');
   }
 
   const bundled = await bundle(repoRoot);

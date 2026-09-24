@@ -9,6 +9,7 @@ import {
   BUNDLE,
   bundle,
   launch,
+  linksInWritable,
   linksOutside,
   permissionFlags,
   REPO_ROOT,
@@ -138,6 +139,59 @@ describe('symbolic links', () => {
     rmSync(gone, { recursive: true });
 
     assert.deepEqual(linksOutside(repo), [join('content', 'dangling')]);
+  });
+
+  // A write through a link lands where the link points, even under the
+  // permission model, so a link in a writable folder could redirect the
+  // build's writes anywhere in the repo, such as to the signing script.
+  test('any link in a writable folder is reported, even one inside the repo', () => {
+    setup();
+    mkdirSync(join(repo, 'scripts'));
+    mkdirSync(join(repo, 'content-snapshot'), { recursive: true });
+    link(join(repo, 'scripts'), join(repo, 'content-snapshot', 'practices'));
+    mkdirSync(join(repo, 'dist', 'content', 'development'), { recursive: true });
+    link(join(repo, 'content'), join(repo, 'dist', 'content', 'development', 'packs'));
+
+    assert.deepEqual(
+      linksInWritable(repo),
+      [
+        join('content-snapshot', 'practices'),
+        join('dist', 'content', 'development', 'packs'),
+      ].sort(),
+    );
+  });
+
+  test('a writable folder reached through a link is reported', () => {
+    setup();
+    mkdirSync(join(repo, 'build-output', 'content'), { recursive: true });
+    link(join(repo, 'build-output'), join(repo, 'dist'));
+
+    assert.deepEqual(linksInWritable(repo), [join('dist', 'content')]);
+  });
+
+  test('plain writable folders, or none yet, are fine', () => {
+    setup();
+    assert.deepEqual(linksInWritable(repo), []);
+
+    mkdirSync(join(repo, 'content-snapshot', 'practices'), { recursive: true });
+    mkdirSync(join(repo, 'dist', 'content', 'development'), { recursive: true });
+    assert.deepEqual(linksInWritable(repo), []);
+  });
+
+  test('the launcher refuses to run while a writable folder holds a link', async () => {
+    setup();
+    mkdirSync(join(repo, 'content-snapshot'), { recursive: true });
+    link(join(repo, 'content'), join(repo, 'content-snapshot', 'practices'));
+    const errors = [];
+
+    const code = await launch({
+      repoRoot: repo,
+      argv: ['--channel', 'development'],
+      log: (m) => errors.push(m),
+    });
+
+    assert.equal(code, 1);
+    assert.match(errors.join('\n'), /content-snapshot[\\/]practices/);
   });
 
   test('the launcher refuses to run if a symbolic link in the repo resolves outside it', async () => {

@@ -90,7 +90,7 @@ Steps 1 to 4 are `tools/content-build`. Signing is a separate script, and publis
 
 `npm run content:build` runs `tools/content-build/run.mjs`. It bundles the build with esbuild, because `tsx` can't run under the permission model, and starts the bundle with `node --permission`. The bundle can read only the repo, write only `dist/content/` and `content-snapshot/`, and start no child process, worker, addon or WASI; `run.test.mjs` checks each of these. Reads are granted on the whole repo rather than on the few folders the build reads, because in Node 24.13 granting both `content` and `content-snapshot` stops the build listing `content` itself.
 
-Node's permission model follows symbolic links, so a link in the repo that resolves outside it would open that file to the build. The launcher refuses to run while there is one. The links npm makes for workspaces point inside the repo and are fine.
+Node's permission model follows symbolic links, so a link in the repo that resolves outside it would open that file to the build, and a write through a link lands wherever the link points. The launcher refuses to run while any link in the repo resolves outside it, or while `dist/content/` or `content-snapshot/`, or the way to them, holds a link at all, since a link there could redirect the build's writes to, say, the signing script. The links npm makes for workspaces point inside the repo and are fine.
 
 The sandbox is an extra layer. `npm install` and `npm test` run the same third-party packages with no sandbox at all, so it is not what keeps the signing key safe.
 
