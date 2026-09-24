@@ -370,7 +370,8 @@ export function build(options: BuildOptions): { issues: readonly ContentIssue[] 
 **Files:** `tools/content-build/run.mjs`, `run.test.mjs`, `tools/content-build/package.json`, root `package.json`, `TECH-VERSIONS.md`.
 
 - [ ] Add `esbuild` as an exact-pinned dev dependency of `tools/content-build` (today it arrives only through `tsx`).
-- [ ] Failing tests (`node:test`, run by `npm run test:scripts`; widen its glob to `tools/**/*.test.mjs` if needed):
+- [ ] Widen the root `test:scripts` glob to `"{scripts,tools}/**/*.test.mjs"`, so `npm test` runs these; the workspace's Vitest doesn't pick up `.mjs` tests. Check it lists `run.test.mjs`.
+- [ ] Failing tests (`node:test`):
   - `the permission flags read only the repo and write only dist/content and content-snapshot`
   - `no child process, worker, addon or WASI is allowed`
   - `the bundle cannot read a file outside the repo` — build, then run a one-line probe under the same flags, and expect `ERR_ACCESS_DENIED`
@@ -397,6 +398,7 @@ node scripts/content-sign.mjs verify --public-key <base64> --dir dist/content/<c
 - [ ] Failing tests in `scripts/content-sign.test.mjs`, each with a key generated into a temp folder:
   - `keygen writes an encrypted PKCS#8 PEM and prints the base64 public key and key_id`
   - `keygen refuses a path inside the repo, comparing real paths` — including through a symbolic link
+  - `sign refuses a --key inside the repo, comparing real paths` — the same check as `keygen`
   - `sign refuses to run from a checkout with node_modules or uncommitted changes, and prints the commit it is at`
   - `sign refuses a manifest path that resolves outside --dir`
   - `sign then verify succeeds`
