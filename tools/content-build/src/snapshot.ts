@@ -14,6 +14,7 @@ import { parseDocument, stringify } from 'yaml';
 
 import { canonicalJson } from './canonical';
 import { readContentTree } from './files';
+import { practicePath } from './layout';
 import { firstLine, type ContentIssue } from './parse';
 
 const HEADER =
@@ -45,7 +46,7 @@ export function versionIssues(
   return practices.flatMap((practice) => {
     const before = snapshot.get(practice.id);
     const problem = before && versionProblem(practice, before);
-    return problem ? [{ file: contentPathOf(practice), path: ['version'], message: problem }] : [];
+    return problem ? [{ file: practicePath(practice), path: ['version'], message: problem }] : [];
   });
 }
 
@@ -72,10 +73,6 @@ function chanted(practice: Practice): string {
     canonicalJson(practice.steps.map(({ text, words, name }) => ({ text, words, name }))),
   );
 }
-
-/** Where the practice lives in `content/`, which the layout check guarantees. */
-const contentPathOf = (p: Practice) =>
-  `practices/${p.tradition_id}/${p.deity_ids[0]}/${p.id}${EXTENSION}`;
 
 export interface SnapshotRead {
   snapshot: Map<string, Practice>;

@@ -17,9 +17,7 @@ describe('canonicalJson', () => {
   });
 
   test('keys sort by code point, not by locale', () => {
-    expect(text(canonicalJson({ b: 1, B: 2, a: 3, 'a-b': 4 }))).toBe(
-      '{"B":2,"a":3,"a-b":4,"b":1}',
-    );
+    expect(text(canonicalJson({ b: 1, B: 2, a: 3, 'a-b': 4 }))).toBe('{"B":2,"a":3,"a-b":4,"b":1}');
   });
 
   test('strings are NFC', () => {

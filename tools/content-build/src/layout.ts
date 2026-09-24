@@ -53,3 +53,12 @@ export function placementOf(path: string): Placement | 'ignored' | null {
       return null;
   }
 }
+
+/** Where a practice lives in `content/`, which the layout check guarantees. */
+export function practicePath(practice: {
+  id: string;
+  tradition_id: string;
+  deity_ids: readonly string[];
+}): string {
+  return `practices/${practice.tradition_id}/${practice.deity_ids[0]}/${practice.id}${EXTENSION}`;
+}
