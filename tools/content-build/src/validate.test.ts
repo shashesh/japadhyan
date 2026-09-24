@@ -392,6 +392,68 @@ describe('validateContent', () => {
     });
   });
 
+  describe('base packs are English', () => {
+    const NEEDS_EN = 'Needs `en`: base packs are English';
+    const PRACTICE = 'practices/hindu/shiva/om-namah-shivaya.yaml';
+
+    /** The line a field's value starts on: for a map, its first entry. */
+    const valueLineOf = (files: ContentFile[], path: string, field: string) =>
+      files
+        .find((f) => f.path === path)!
+        .text.split('\n')
+        .findIndex((line) => line.startsWith(`${field}:`)) + 2;
+
+    test.each(['title', 'repetition_word'])(
+      'a practice %s without en is an issue at its line',
+      (field) => {
+        const files = replace(
+          tree(),
+          file(PRACTICE, mantra('om-namah-shivaya', { [field]: { hi: 'हिन्दी' } })),
+        );
+
+        expect(validateContent(files).issues).toEqual([
+          {
+            file: PRACTICE,
+            path: [field],
+            line: valueLineOf(files, PRACTICE, field),
+            message: NEEDS_EN,
+          },
+        ]);
+      },
+    );
+
+    test('deity names without en are an issue at their line', () => {
+      const path = 'deities/hindu/shiva.yaml';
+      const files = replace(
+        tree(),
+        file(path, deity('shiva', { names: { hi: { devanagari: 'शिव' } } })),
+      );
+
+      expect(validateContent(files).issues).toEqual([
+        { file: path, path: ['names'], line: valueLineOf(files, path, 'names'), message: NEEDS_EN },
+      ]);
+    });
+
+    test('other languages beside en are fine', () => {
+      const files = replace(
+        tree(),
+        file(
+          'deities/hindu/shiva.yaml',
+          deity('shiva', { names: { en: { latin: 'Shiva' }, hi: { devanagari: 'शिव' } } }),
+        ),
+        file(
+          PRACTICE,
+          mantra('om-namah-shivaya', {
+            title: { en: 'Om Namah Shivaya', hi: 'ॐ नमः शिवाय' },
+            repetition_word: { en: 'japa', hi: 'जप' },
+          }),
+        ),
+      );
+
+      expect(validateContent(files).issues).toEqual([]);
+    });
+  });
+
   test('issues are sorted by file', () => {
     const files = replace(
       tree(),

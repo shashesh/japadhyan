@@ -25,6 +25,16 @@ export interface Validation {
 const NOT_CATALOG = 'Not a catalog file. See docs/architecture/content-pipeline.md for the layout';
 
 /**
+ * Fields a base pack carries in English only: every other language is an
+ * add-on, so these need `en`. See docs/architecture/content-pipeline.md#packs.
+ */
+const ENGLISH_FIELDS: Partial<Record<Kind, readonly string[]>> = {
+  deity: ['names'],
+  practice: ['title', 'repetition_word'],
+};
+const NEEDS_EN = 'Needs `en`: base packs are English';
+
+/**
  * Checks every file in `content/`: its place in the layout, its YAML, its
  * content schema, a practice's generated scripts, and its references to
  * other files.
@@ -58,6 +68,7 @@ export function validateContent(files: readonly ContentFile[]): Validation {
 
     const entry = { file: path, value: result.value, locate: result.locate };
     issues.push(...placementIssues(entry, placement));
+    issues.push(...englishIssues(entry, placement.kind));
     if (placement.kind === 'practice') {
       issues.push(...transliterationIssues(entry as Entry<Practice>));
     }
@@ -87,6 +98,16 @@ function transliterationIssues({ file, value, locate }: Entry<Practice>): Conten
     line: locate(path),
     message,
   }));
+}
+
+/** The fields a base pack carries in English have it. */
+function englishIssues(
+  { file, value, locate }: { file: string; value: AnyEntity; locate: Locate },
+  kind: Kind,
+): ContentIssue[] {
+  return (ENGLISH_FIELDS[kind] ?? [])
+    .filter((field) => !('en' in (value as unknown as Record<string, object>)[field]!))
+    .map((field) => ({ file, path: [field], line: locate([field]), message: NEEDS_EN }));
 }
 
 /** The file's name and folders agree with what it says. */

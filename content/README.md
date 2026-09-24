@@ -16,3 +16,5 @@ programs/<id>.yaml
 - Leave `review: null` until the advisor has reviewed the practice, then write `review: { advisor, reviewed_on, version }`. A review covers that version only: after a bump, the practice is unreviewed again. Production packs refuse unreviewed content.
 
 Check your changes with `npm run content:validate`. It prints each problem with its file and line. `npm test` runs the same check.
+
+Then run `npm run content:build -- --channel development` and commit what changes in `content-snapshot/`: each practice with every generated script, for the advisor to review. `npm test` fails until the snapshot matches `content/`, and the build refuses a change to a practice's chanted text without a version bump.

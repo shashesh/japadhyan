@@ -4,27 +4,25 @@
  */
 
 import { CONTENT_ROOT, readContentTree } from './files';
+import { formatIssue, plural } from './report';
 import { validateContent } from './validate';
 
 const { catalog, issues } = validateContent(readContentTree(CONTENT_ROOT));
 
-for (const { file, line, path, message } of issues) {
-  const where = line === undefined ? file : `${file}:${line}`;
-  const field = path.length > 0 ? ` ${path.map(String).join('.')}:` : '';
-  console.error(`content/${where}${field} ${message}`);
+for (const issue of issues) {
+  console.error(formatIssue({ ...issue, file: `content/${issue.file}` }));
 }
 
 if (issues.length > 0) {
-  console.error(`\n${issues.length} problem${issues.length === 1 ? '' : 's'} in content/`);
+  console.error(`\n${plural(issues.length, 'problem')} in content/`);
   process.exit(1);
 }
 
-const count = (n: number, noun: string) => `${n} ${noun}${n === 1 ? '' : 's'}`;
 console.log(
   `content/ is valid: ${[
-    count(catalog.traditions.length, 'tradition'),
-    count(catalog.deities.length, 'deity').replace(/deitys$/, 'deities'),
-    count(catalog.practices.length, 'practice'),
-    count(catalog.programs.length, 'program'),
+    plural(catalog.traditions.length, 'tradition'),
+    plural(catalog.deities.length, 'deity'),
+    plural(catalog.practices.length, 'practice'),
+    plural(catalog.programs.length, 'program'),
   ].join(', ')}`,
 );

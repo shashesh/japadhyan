@@ -1,6 +1,6 @@
 ---
 title: Content build — packs, manifest and signing
-status: planned
+status: in-progress
 created: 2026-09-24
 ---
 
@@ -68,7 +68,7 @@ dist/content/<channel>/            ← gitignored (dist/ already is)
    ├─ deity/shiva/script/tamil.<hash>.json
    └─ deity/shiva/lang/hi.<hash>.json
 content-snapshot/                  ← committed, reviewed
-└─ practices/hindu/shiva/om-namah-shivaya.yaml
+└─ practices/om-namah-shivaya.yaml
 ```
 
 ### Pack and manifest types (`packages/shared/src/types/packs.ts`)
@@ -195,7 +195,9 @@ A script or language pack's practice entries carry the `version` they were built
 
 Tested while writing this plan: `tsx` can't run under `node --permission`, because it talks to its own process over a named pipe the permission model blocks. Bundling with esbuild works. The bundle runs as plain `node --permission --allow-fs-read=<repo>`, validates `content/` in about 0.3 s, and a read of a file in the home folder is denied. It needs two things: a `createRequire` banner, because `yaml` calls `require('process')`, and `vidyut_bg.wasm` copied beside the bundle.
 
-So `npm run content:build` runs `tools/content-build/run.mjs`, a launcher that imports nothing third-party. It bundles, then starts `node --permission` with read access to the repo, write access to `dist/content/` and `content-snapshot/` only, and no child processes, workers, addons or WASI. The signing script is a separate file in `scripts/` that the bundle never includes.
+So `npm run content:build` runs `tools/content-build/run.mjs`, a launcher that imports nothing third-party but esbuild. It bundles, then starts `node --permission` with read access to the repo, write access to `dist/content/` and `content-snapshot/` only, and no child processes, workers, addons or WASI. The signing script is a separate file in `scripts/` that the bundle never includes.
+
+**As built (PR 2):** reads stay granted on the whole repo. Granting only the folders the build reads would keep `node_modules` out of reach too, but in Node 24.13 granting both `content` and `content-snapshot` stops the build listing `content` itself. So the link check walks the whole repo, which takes a few seconds. The launcher creates `dist/content/` and `content-snapshot/` before starting the sandbox, since creating a folder needs its parent writable. The bundle's entry is `src/build-cli.ts`, which calls `build.ts`, so importing `build.ts` in tests runs nothing.
 
 This sandbox is an extra layer, not what keeps the key safe (decision 12). Node's permission model follows symbolic links, so a link inside the repo pointing at the key would open it to the build; the launcher refuses to run if any link in the repo resolves outside it.
 
@@ -225,7 +227,7 @@ Three PRs, each a draft against `master` and each passing `npm run check` locall
 
 **Files:** create `packages/shared/src/types/packs.ts`, `packages/shared/src/schemas/packs.ts`, `packages/shared/src/schemas/packs.test.ts`; export both from their `index.ts`.
 
-- [ ] Write the failing tests in `packs.test.ts`:
+- [x] Write the failing tests in `packs.test.ts`:
   - `a minimal pack of each kind parses` — one fixture per kind, built from the existing catalog test fixtures
   - `a pack with a higher schema_version is rejected` — the app ignores it (spec: newer major version)
   - `unknown fields are dropped, not rejected` — the export behaviour, for forward compatibility
@@ -237,28 +239,28 @@ Three PRs, each a draft against `master` and each passing `npm run check` locall
   - `release is a non-negative integer; channel is development or production`
   - `a signature needs algorithm ed25519, a 16-hex key_id and base64`
   - `the schemas and the types can't drift` — the same `expectTypeOf` check `catalog.test.ts` uses
-- [ ] Run `npm test --workspace=packages/shared`. They fail: the module doesn't exist.
-- [ ] Implement the types above, and the schemas with `exportSchemas` from `catalog.ts` for the embedded entities. `schema_version` is `z.literal(PACK_SCHEMA_VERSION)`. `core`'s `packs` is a union of the other kinds, told apart by `id` (`index`, `programs`, `deity/<id>`, `deity/<id>/script/<script>`, `deity/<id>/lang/<tag>`).
-- [ ] Run the tests. They pass. Then `npm run check`.
-- [ ] Commit: `feat(shared): pack, manifest and signature schemas`.
+- [x] Run `npm test --workspace=packages/shared`. They fail: the module doesn't exist.
+- [x] Implement the types above, and the schemas with `exportSchemas` from `catalog.ts` for the embedded entities. `schema_version` is `z.literal(PACK_SCHEMA_VERSION)`. `core`'s `packs` is a union of the other kinds, told apart by `id` (`index`, `programs`, `deity/<id>`, `deity/<id>/script/<script>`, `deity/<id>/lang/<tag>`).
+- [x] Run the tests. They pass. Then `npm run check`.
+- [x] Commit: `feat(shared): pack, manifest and signature schemas`.
 
 #### Task 2: a review records the version it covers
 
 **Files:** `packages/shared/src/types/catalog.ts`, `packages/shared/src/schemas/catalog.ts`, `catalog.test.ts`, the `mantra` fixture in `tools/content-build/src/validate.test.ts`.
 
-- [ ] Failing tests in `catalog.test.ts`:
+- [x] Failing tests in `catalog.test.ts`:
   - `a review needs the version it covers: a positive integer`
   - `a review of a version after the practice's own is an issue` — you can't have reviewed text that doesn't exist yet
   - `a review of an earlier version parses` — the practice is simply unreviewed again, which is the build's call (decision 8)
-- [ ] Add `version: number` to `ContentReview`, and to the schema's `review` object for both forms. Export `isReviewed(practice): boolean` from `packages/shared` (`review !== null && review.version === version`), with its own tests, so the build and the app use one rule.
-- [ ] Run `npm test --workspace=packages/shared`, then `npm test --workspace=tools/content-build`. The five practices in `content/` have `review: null`, so they need no change.
-- [ ] Commit: `feat(shared): a review records the version it covers`.
+- [x] Add `version: number` to `ContentReview`, and to the schema's `review` object for both forms. Export `isReviewed(practice): boolean` from `packages/shared` (`review !== null && review.version === version`), with its own tests, so the build and the app use one rule.
+- [x] Run `npm test --workspace=packages/shared`, then `npm test --workspace=tools/content-build`. The five practices in `content/` have `review: null`, so they need no change.
+- [x] Commit: `feat(shared): a review records the version it covers`.
 
 #### Task 3: docs for PR 1
 
-- [ ] In [content-pipeline.md](../../architecture/content-pipeline.md): the pack shapes in brief, decisions 1, 3, 4 and 5 (the spec changes), and "the app installs `core` by installing each pack in it". In its review bullet, [data-model.md](../../architecture/data-model.md#practice) and [content/README.md](../../../content/README.md): `review` now records `version`, and a changed practice goes back to the advisor. Decision 11 in the same three places: "any text change bumps the version" becomes "any change to the chanted text", with what that covers.
-- [ ] Run `npm run format` then `npm run lint:md`.
-- [ ] Commit: `docs: pack formats and release numbers`. Push, open the draft PR, request Copilot.
+- [x] In [content-pipeline.md](../../architecture/content-pipeline.md): the pack shapes in brief, decisions 1, 3, 4 and 5 (the spec changes), and "the app installs `core` by installing each pack in it". In its review bullet, [data-model.md](../../architecture/data-model.md#practice) and [content/README.md](../../../content/README.md): `review` now records `version`, and a changed practice goes back to the advisor. Decision 11 in the same three places: "any text change bumps the version" becomes "any change to the chanted text", with what that covers.
+- [x] Run `npm run format` then `npm run lint:md`.
+- [x] Commit: `docs: pack formats and release numbers`. Push, open the draft PR, request Copilot.
 
 ### PR 2 — the build
 
@@ -266,19 +268,19 @@ Three PRs, each a draft against `master` and each passing `npm run check` locall
 
 **Files:** `tools/content-build/src/canonical.ts`, `canonical.test.ts`.
 
-- [ ] Failing tests:
+- [x] Failing tests:
   - `keys are sorted at every depth; arrays keep their order`
   - `strings are NFC` — `'शि'` written as decomposed and composed gives the same bytes
   - `no whitespace, UTF-8, no trailing newline`
   - `undefined fields are an error, not dropped` — a build bug should show, not vanish
-- [ ] Implement `canonicalJson(value: unknown): Uint8Array`. Run the tests, commit: `feat(content-build): canonical JSON`.
+- [x] Implement `canonicalJson(value: unknown): Uint8Array`. Run the tests, commit: `feat(content-build): canonical JSON`.
 
 #### Task 5: the English rule
 
 **Files:** `tools/content-build/src/validate.ts`, `validate.test.ts`, `content/` if any file fails.
 
-- [ ] Failing tests: `a practice title without en is an issue at its line`, the same for `repetition_word` and deity `names`, and `other languages beside en are fine`.
-- [ ] Implement in `validateContent`, with the message ``Needs `en`: base packs are English``. Run `npm test --workspace=tools/content-build`; `content/ is valid` must still pass. Commit: `feat(content-build): base packs need English`.
+- [x] Failing tests: `a practice title without en is an issue at its line`, the same for `repetition_word` and deity `names`, and `other languages beside en are fine`.
+- [x] Implement in `validateContent`, with the message ``Needs `en`: base packs are English``. Run `npm test --workspace=tools/content-build`; `content/ is valid` must still pass. Commit: `feat(content-build): base packs need English`.
 
 #### Task 6: packs
 
@@ -292,7 +294,7 @@ export interface BuiltCatalog {
 export function buildPacks(built: BuiltCatalog): Pack[]; // core last
 ```
 
-- [ ] Failing tests, on a fixture of two deities, a mantra and a namavali:
+- [x] Failing tests, on a fixture of two deities, a mantra and a namavali:
   - `a practice goes in its primary deity's pack only`
   - `a base pack keeps only the source script, iast and latin`, and `only en` in language fields
   - `one script pack per generated script per deity; none for a deity with no practices`
@@ -303,7 +305,7 @@ export function buildPacks(built: BuiltCatalog): Pack[]; // core last
   - `programs go in the programs pack` (empty list today)
   - `core holds index, programs and every deity's base, script and language packs` (decisions 1 and 2)
   - `every pack parses with its export schema` — over the repo's own `content/`
-- [ ] Implement. Run the tests, commit: `feat(content-build): build packs`.
+- [x] Implement. Run the tests, commit: `feat(content-build): build packs`.
 
 #### Task 7: snapshot and version rules
 
@@ -318,7 +320,7 @@ export function versionIssues(
 ): ContentIssue[];
 ```
 
-- [ ] Failing tests:
+- [x] Failing tests:
   - `a new practice needs no snapshot`
   - `changed text with the same version is an issue that names the version to use`
   - `a changed generated script alone also needs a bump` — the library-upgrade case
@@ -329,7 +331,7 @@ export function versionIssues(
   - `a removed practice keeps its snapshot, and coming back needs a version above it`
   - `moving a practice to another tradition or primary deity keeps the same snapshot and still requires a higher version before reintroduction`
   - `snapshotYaml is stable: the same practice gives the same bytes`
-- [ ] Implement. Run the tests, commit: `feat(content-build): reviewed snapshot and version rules`.
+- [x] Implement. Run the tests, commit: `feat(content-build): reviewed snapshot and version rules`.
 
 #### Task 8: manifest and the build entry point
 
@@ -353,7 +355,7 @@ export interface BuildOptions {
 export function build(options: BuildOptions): { issues: readonly ContentIssue[] };
 ```
 
-- [ ] Failing tests:
+- [x] Failing tests:
   - `a pack's path is packs/<id>.<16 hex of its sha256>.json`
   - `the manifest lists every pack sorted by id, with bytes and sha256 of the exact file`
   - `building twice writes identical files` — in a temp folder
@@ -364,26 +366,26 @@ export function build(options: BuildOptions): { issues: readonly ContentIssue[] 
   - `a practice removed from content/ keeps its snapshot and is not packed`
   - `the output folder is emptied first, so no stale pack survives`
   - `production needs --release; development defaults to 0`
-- [ ] Implement. `cli.ts` stays the validator; `build.ts` has its own `main` that reads `--channel` and `--release`.
-- [ ] Run the tests, commit: `feat(content-build): manifest and build`.
+- [x] Implement. `cli.ts` stays the validator; `build.ts` has its own `main` that reads `--channel` and `--release`.
+- [x] Run the tests, commit: `feat(content-build): manifest and build`.
 
 #### Task 9: run under the permission model
 
 **Files:** `tools/content-build/run.mjs`, `run.test.mjs`, `tools/content-build/package.json`, root `package.json`, `TECH-VERSIONS.md`.
 
-- [ ] Add `esbuild` as an exact-pinned dev dependency of `tools/content-build` (today it arrives only through `tsx`).
-- [ ] Widen the root `test:scripts` glob to `"{scripts,tools}/**/*.test.mjs"`, so `npm test` runs these; the workspace's Vitest doesn't pick up `.mjs` tests. Check it lists `run.test.mjs`.
-- [ ] Failing tests (`node:test`):
+- [x] Add `esbuild` as an exact-pinned dev dependency of `tools/content-build` (today it arrives only through `tsx`).
+- [x] Widen the root `test:scripts` glob to `"{scripts,tools}/**/*.test.mjs"`, so `npm test` runs these; the workspace's Vitest doesn't pick up `.mjs` tests. Check it lists `run.test.mjs`.
+- [x] Failing tests (`node:test`):
   - `the permission flags read only the repo and write only dist/content and content-snapshot`
   - `no child process, worker, addon or WASI is allowed`
   - `the bundle cannot read a file outside the repo` — build, then run a one-line probe under the same flags, and expect `ERR_ACCESS_DENIED`
   - `the launcher refuses to run if a symbolic link in the repo resolves outside it` — `node_modules` workspace links point inside the repo and are fine
-- [ ] Implement `run.mjs`: bundle `src/build.ts` to `tools/content-build/dist/build.mjs` with the `createRequire` banner, copy `vidyut_bg.wasm` beside it, then spawn `node --permission …` with absolute paths.
-- [ ] Root scripts: `"content:build": "node tools/content-build/run.mjs"`.
-- [ ] Run `npm run content:build -- --channel development`; commit the new `content-snapshot/`. Read it: each of the five mantras in every script.
-- [ ] Add `the committed snapshot matches content/` to `files.test.ts`, beside `content/ is valid`. It checks both that the files are current and the version rules; its message says to run `npm run content:build`. Check it fails after changing one word of a mantra, then revert.
-- [ ] Docs: content-pipeline.md (build, snapshot, channels, decisions 6–9, the permission model as tested), `content/README.md` (run `content:build` and commit the snapshot), TECH-VERSIONS, phase 1 plan items ticked, INDEX. `npm run format`, `npm run lint:md`, `npm run check`.
-- [ ] Commit: `feat(content-build): run the build under the permission model`. Push, draft PR, request Copilot.
+- [x] Implement `run.mjs`: bundle `src/build-cli.ts` to `tools/content-build/dist/build.mjs` with the `createRequire` banner, copy `vidyut_bg.wasm` beside it, then spawn `node --permission …` with absolute paths.
+- [x] Root scripts: `"content:build": "node tools/content-build/run.mjs"`.
+- [x] Run `npm run content:build -- --channel development`; commit the new `content-snapshot/`. Read it: each of the five mantras in every script.
+- [x] Add `the committed snapshot matches content/` to `files.test.ts`, beside `content/ is valid`. It checks both that the files are current and the version rules; its message says to run `npm run content:build`. Check it fails after changing one word of a mantra, then revert.
+- [x] Docs: content-pipeline.md (build, snapshot, channels, decisions 6–9, the permission model as tested), `content/README.md` (run `content:build` and commit the snapshot), TECH-VERSIONS, phase 1 plan items ticked, INDEX. `npm run format`, `npm run lint:md`, `npm run check`.
+- [x] Commit: `feat(content-build): run the build under the permission model`. Push, draft PR, request Copilot.
 
 ### PR 3 — signing
 
@@ -431,9 +433,9 @@ node scripts/content-sign.mjs verify --public-key <base64> --dir dist/content/<c
 
 ## Done when
 
-- [ ] `npm run content:build -- --channel development` writes the packs and manifest to `dist/content/development/` and the snapshot to `content-snapshot/`, under `node --permission`
-- [ ] `--channel production` refuses today's content, since all five practices are unreviewed, and lists them
-- [ ] Every pack parses with the export schemas in `packages/shared`, and building twice gives identical bytes
-- [ ] `npm test` fails when the snapshot is out of date or a practice's text changed without a version bump
+- [x] `npm run content:build -- --channel development` writes the packs and manifest to `dist/content/development/` and the snapshot to `content-snapshot/`, under `node --permission`
+- [x] `--channel production` refuses today's content, since all five practices are unreviewed, and lists them
+- [x] Every pack parses with the export schemas in `packages/shared`, and building twice gives identical bytes
+- [x] `npm test` fails when the snapshot is out of date or a practice's text changed without a version bump
 - [ ] `scripts/content-sign.mjs` signs a development build, verify accepts it, and one changed byte anywhere makes it fail
 - [ ] content-pipeline.md, content/README.md, the setup guide, TECH-VERSIONS and the phase 1 plan match what was built
