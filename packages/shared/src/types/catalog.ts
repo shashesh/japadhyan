@@ -150,7 +150,9 @@ interface PracticeBase {
   /** Readable slug, e.g. `om-namah-shivaya`. Never changes once published. */
   id: string;
   /**
-   * Bumped on any text change. The number of steps may only change with a
+   * Bumped on any change to the chanted text: a step's text, words or name
+   * in any script, or the number of steps. Titles, intros and meanings can
+   * be corrected without a bump. The number of steps may only change with a
    * version bump, and any version change resets a saved namavali position.
    */
   version: number;
