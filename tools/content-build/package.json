@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@japadhyan/shared": "*",
+    "@siva-sh/vidyut": "0.3.0",
     "yaml": "^2.9.1",
     "zod": "^4.6.5"
   },

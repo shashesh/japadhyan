@@ -75,17 +75,17 @@ No library produces the spelling devotees know. Aksharamukha and vidyut-lipi off
 
 **The rules** keep every vowel the IAST has (no schwa deletion: "Shivaya", not "Shivay"), and:
 
-| IAST            | `latin`                                                                | Example                                        |
-| --------------- | ---------------------------------------------------------------------- | ---------------------------------------------- |
-| ā ī ū           | a i u                                                                  | nārāyaṇa → Narayana                            |
-| ṛ ṝ             | ri                                                                     | kṛṣṇa → Krishna                                |
-| ś ṣ             | sh                                                                     | śiva → Shiva                                   |
-| c, ch           | ch, chh                                                                | vicce → Vichche                                |
-| ṭ ḍ ṇ ṅ ñ       | t d n n n                                                              | cāmuṇḍā → Chamunda                             |
-| ṃ m̐             | n before k, g, c, j, ṭ, ḍ, t, d and their aspirates; m everywhere else | śaṃkara → Shankara, oṃ → Om, saṃsāra → Samsara |
-| ḥ               | h                                                                      | namaḥ → Namah                                  |
-| avagraha, daṇḍa | dropped                                                                | so'ham → Soham                                 |
-| every word      | capitalised                                                            | Om Namah Shivaya                               |
+| IAST                               | `latin`                                                                | Example                                        |
+| ---------------------------------- | ---------------------------------------------------------------------- | ---------------------------------------------- |
+| ā ī ū                              | a i u                                                                  | nārāyaṇa → Narayana                            |
+| ṛ ṝ                                | ri                                                                     | kṛṣṇa → Krishna                                |
+| ś ṣ                                | sh                                                                     | śiva → Shiva                                   |
+| c, ch                              | ch, chh                                                                | vicce → Vichche                                |
+| ṭ ḍ ṇ ṅ ñ                          | t d n n n                                                              | cāmuṇḍā → Chamunda                             |
+| ṃ m̐                                | n before k, g, c, j, ṭ, ḍ, t, d and their aspirates; m everywhere else | śaṃkara → Shankara, oṃ → Om, saṃsāra → Samsara |
+| ḥ                                  | h                                                                      | namaḥ → Namah                                  |
+| avagraha, daṇḍa, other punctuation | dropped; a hyphen joins the compound                                   | so'ham → Soham, mahā-mantra → Mahamantra       |
+| every word                         | capitalised                                                            | Om Namah Shivaya                               |
 
 With these rules our four samples become **Om Namah Shivaya**, **Om Shri Vishnave Namah**, **Om Krishnaya Namah** and **Om Aim Hrim Klim Chamundayai Vichche**. The rules are a table of IAST and `latin` pairs the advisor approves, with a test for each pair. Conventions that vary by region or community — "Hrim" or "Hreem", "Jnana" or "Gyana" — are the advisor's call, made once in the rules.
 

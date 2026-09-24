@@ -3,8 +3,9 @@
  *
  * - **content** — what is authored in `content/` as YAML. Strict: an unknown
  *   field is a typo, and scripts the build generates may not be written by
- *   hand. A practice's step text, words and names carry exactly the master
- *   scripts: the source script and IAST.
+ *   hand. A practice's step text, words and names carry the master scripts —
+ *   the source script and IAST — and may carry a hand-written `latin`, which
+ *   the build uses instead of generating one.
  * - **export** — what packs carry and the app reads. Unknown fields are
  *   dropped, so an older app can read a pack with fields added later. A
  *   practice's step text, words and names carry at least the source script,
@@ -185,12 +186,14 @@ function buildSchemas(mode: Mode) {
     .superRefine((p, ctx) => {
       const master = [...new Set<Script>([p.source_script, 'iast'])];
       const required = mode === 'content' ? master : [...new Set<Script>([...master, 'latin'])];
+      // A hand-written `latin` overrides the generated one.
+      const authored = [...master, 'latin'];
 
       const checkScripts = (map: object | null, path: PropertyKey[]) => {
         if (map === null) return;
         const present = Object.keys(map) as Script[];
         const missing = required.filter((s) => !present.includes(s));
-        const generated = mode === 'content' ? present.filter((s) => !master.includes(s)) : [];
+        const generated = mode === 'content' ? present.filter((s) => !authored.includes(s)) : [];
         if (missing.length > 0) {
           ctx.addIssue({ code: 'custom', path, message: `Missing ${quoted(missing)}` });
         }

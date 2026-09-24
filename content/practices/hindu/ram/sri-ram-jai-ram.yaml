@@ -1,5 +1,5 @@
 id: sri-ram-jai-ram
-version: 1
+version: 2
 tradition_id: hindu
 kind: mantra
 deity_ids: [ram]
@@ -11,9 +11,11 @@ steps:
   - text:
       devanagari: श्री राम जय राम जय जय राम
       iast: śrī rāma jaya rāma jaya jaya rāma
+      latin: Shri Ram Jai Ram Jai Jai Ram
     words:
       devanagari: [श्री, राम, जय, राम, जय, जय, राम]
       iast: [śrī, rāma, jaya, rāma, jaya, jaya, rāma]
+      latin: [Shri, Ram, Jai, Ram, Jai, Jai, Ram]
     name: null
     meaning: null
     audio_start_ms: null
