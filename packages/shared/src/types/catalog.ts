@@ -133,18 +133,26 @@ export interface StotraStep extends StepBase {
  */
 export type Step = MantraStep | NamavaliStep | StotraStep;
 
-/** Who reviewed this practice. Unreviewed content never ships in production. */
+/**
+ * Who reviewed this practice, and at which version. A practice whose chanted
+ * text changed since its review counts as unreviewed (`isReviewed`), and unreviewed content
+ * never ships in production.
+ */
 export interface ContentReview {
   advisor: string;
   /** Local day, YYYY-MM-DD. */
   reviewed_on: string;
+  /** The practice's `version` when it was reviewed. Never above it. */
+  version: number;
 }
 
 interface PracticeBase {
   /** Readable slug, e.g. `om-namah-shivaya`. Never changes once published. */
   id: string;
   /**
-   * Bumped on any text change. The number of steps may only change with a
+   * Bumped on any change to the chanted text: a step's text, words or name
+   * in any script, or the number of steps. Titles, intros and meanings can
+   * be corrected without a bump. The number of steps may only change with a
    * version bump, and any version change resets a saved namavali position.
    */
   version: number;

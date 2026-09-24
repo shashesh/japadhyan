@@ -229,7 +229,7 @@ describe('validateContent', () => {
 
     test('dates stay strings: YAML timestamps are not parsed', () => {
       const reviewed = mantra('om-namah-shivaya', {
-        review: { advisor: 'Pandit A', reviewed_on: '2026-09-20' },
+        review: { advisor: 'Pandit A', reviewed_on: '2026-09-20', version: 1 },
       });
       const text = stringify(reviewed).replace("'2026-09-20'", '2026-09-20');
       const files = replace(tree(), {

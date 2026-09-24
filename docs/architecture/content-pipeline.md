@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-09-23
+updated: 2026-09-24
 ---
 
 # Content pipeline
@@ -43,8 +43,8 @@ content/
   - **Export** schemas drop fields they don't know, so an app can read a pack with fields added after its release. A practice's step text, words and names carry at least the source script, IAST and `latin`; script add-on packs bring more.
   - **Deity names** have no source script, so neither rule applies: they are written by hand per language, each in the scripts that language uses (`en` in `latin`, `hi` in `devanagari`), and are never generated.
   - Both enforce the rules within a single entity, among them: catalog ids, language tags as language, optional script and optional region in canonical case (`en`, `pt-BR`, `sa-Latn`), a source script other than `latin`, one step for a mantra, words only on a mantra, a name on every namavali step, a namavali round of one recitation, a duration on every recording, audio positions inside the recording, program days within the program, and an absent meaning or reading written as `null`, never as an empty map. Rules that span files — a practice's deities exist, versions only go up — belong to the build.
-- **Review.** Each practice carries `review: { advisor, reviewed_on }`, `source` and `licence`. Production packs refuse unreviewed content; development packs include it, flagged.
-- **Versions.** Any text change bumps the practice's `version`. The number of steps may only change with a version bump. Counts refer to the practice id, so fixing a typo never changes anyone's history. A saved place in a namavali resets on any version change ([data-model](data-model.md#practiceposition)).
+- **Review.** Each practice carries `review: { advisor, reviewed_on, version }`, `source` and `licence`. A review covers the version it names: a practice whose chanted text changed since is unreviewed again (`isReviewed` in `packages/shared`), so that change goes back to the advisor. Titles, intros and meanings can change without a version bump ([versions](#source-content)), so they keep the review; the advisor sees them in the PR like any other change. Production packs refuse unreviewed content; development packs include it, flagged.
+- **Versions.** Any change to the chanted text bumps the practice's `version`: a step's text, words or name in any script, generated scripts included, or the number of steps. Titles, subtitles, intros, meanings, repetition words, source and licence can be corrected without a bump, because a saved place in a namavali resets on any version change ([data-model](data-model.md#practiceposition)). Counts refer to the practice id, so fixing a typo never changes anyone's history.
 - **Changes go through PRs** like code. If advisors aren't comfortable reviewing on GitHub, a CMS can later sit in front of the same build step without changing packs or the app.
 
 ### Transliteration
@@ -65,8 +65,8 @@ A script, run locally in P1 (GitHub Actions minutes are limited, see [ci-only-wh
 
 1. **Validate** every file against the schema; check media checksums.
 2. **Generate** scripts from the master text.
-3. **Build packs:** compressed JSON, versioned.
-4. **Write the manifest:** each pack's id, version, size, SHA-256 and schema version.
+3. **Build packs:** plain JSON, one file per pack, named by its hash ([packs](#packs)).
+4. **Write the manifest:** its schema version, the channel, a `release` number that only goes up, and each pack's id, path, size and SHA-256.
 5. **Sign the manifest** with the content signing key (Ed25519).
 6. **Publish** packs, manifest and signature to the CDN (Supabase Storage or Cloudflare R2, chosen in M2).
 
@@ -74,17 +74,22 @@ Step 1 is `tools/content-build`. It also checks the layout above and the referen
 
 ### Packs
 
-| Pack                         | Contents                                                                                                                                                                       |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `index`                      | Every deity and practice: id, titles, deity, kind, step count, pack id, has audio. About 100 KB                                                                                |
-| `core`                       | Everything that ships inside the app: the index, programs and every launch deity's base pack, in one file. Corrections to bundled content arrive as a new version of this pack |
-| `deity/<id>`                 | The deity and its practices in the source script, IAST, `latin` and English                                                                                                    |
-| `deity/<id>/script/<script>` | The same practices in one extra script                                                                                                                                         |
-| `deity/<id>/lang/<language>` | Titles, meanings and intros in one extra language                                                                                                                              |
-| `programs`                   | Sankalpa templates and festival programs                                                                                                                                       |
-| Audio                        | One file per practice, not packed                                                                                                                                              |
+| Pack                         | Contents                                                                                                                                                                                                                                                                                                                                |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `index`                      | Every tradition, and every deity and practice: id, titles and names in every language, deity, kind, step count, pack id, has audio, reviewed. About 100 KB                                                                                                                                                                              |
+| `core`                       | Everything that ships inside the app, in one file: in P1, every other pack (the index, programs, and every launch deity's base pack with its script and language add-ons), each installed as if downloaded. Launch deities are, for now, every deity in `content/`. Corrections to bundled content arrive in a new release of this pack |
+| `deity/<id>`                 | The deity and its practices in the source script, IAST, `latin` and English                                                                                                                                                                                                                                                             |
+| `deity/<id>/script/<script>` | The same practices in one extra script; never `latin` or `iast`, which the base pack has                                                                                                                                                                                                                                                |
+| `deity/<id>/lang/<language>` | The deity's summary, and practices' titles, subtitles, repetition words, intros and meanings, in one extra language. Names are in the index                                                                                                                                                                                             |
+| `programs`                   | Sankalpa templates and festival programs                                                                                                                                                                                                                                                                                                |
+| Audio                        | One file per practice, not packed                                                                                                                                                                                                                                                                                                       |
 
-A pack with a newer schema major version than the app understands is ignored; the app keeps what it has and suggests updating.
+- **Format.** Plain JSON, hashed exactly as stored. Compression happens in transit (HTTP `Content-Encoding`, which the app's networking decodes) and inside the app bundle, so the app needs no decompression library and the SHA-256 covers exactly the bytes it parses.
+- **Names.** A pack is published as `packs/<id>.<first 16 hex digits of its SHA-256>.json`, so new content always has a new name and a CDN can never serve a stale copy under it. Only `manifest.json` keeps a fixed name.
+- **Schema version.** Every pack and the manifest carry `schema_version`, the format's major version. A pack with one the app doesn't understand is ignored; the app keeps what it has and suggests updating. Fields added within a major version are dropped by older apps.
+- **Releases, not pack versions.** A pack has no version of its own: the app fetches a pack when its SHA-256 changes. The manifest carries a `release` number that only goes up. The app remembers the highest it has accepted and rejects a signed manifest with a lower one, so an old but validly signed manifest can't roll a correction back. The bundled `core` ships with its manifest, so a fresh install knows its starting release.
+- **Add-ons** carry the `version` of each practice they were built from and apply only to that version, step by step.
+- **Shapes:** `packages/shared/src/types/packs.ts`. The build checks every pack against the schemas in `src/schemas/packs.ts` before writing it, and the app reads packs with the same schemas. The schemas check each pack on its own; that `core` holds every pack and that packs agree with one another is the build's job.
 
 ### Signing
 
@@ -95,17 +100,17 @@ A pack with a newer schema major version than the app understands is ignored; th
 
 ## Device
 
-| Layer                | What                                                                                                  | When                                                                                                                                                                                                                |
-| -------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Core bundle**      | The `index` pack, `programs`, and the base packs of **every launch deity** (about 2 MB of text in P1) | Inside the app. Works offline from the moment it's installed, with no request to anyone. A **signed `core` pack with a higher version replaces it**, so a correction reaches installed apps without a store release |
-| **Downloaded packs** | Base and add-on packs, stored in the local catalog tables and search index                            | When a deity is opened, and **automatically for anything saved or starred**                                                                                                                                         |
-| **Audio**            | Per practice                                                                                          | On demand, or "Download for offline"                                                                                                                                                                                |
+| Layer                | What                                                                                                                | When                                                                                                                                                                                                                |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Core bundle**      | The `core` pack: the index, programs, and **every launch deity's** base pack and add-ons (about 2 MB of text in P1) | Inside the app. Works offline from the moment it's installed, with no request to anyone. A **signed `core` pack from a higher release replaces it**, so a correction reaches installed apps without a store release |
+| **Downloaded packs** | Base and add-on packs, stored in the local catalog tables and search index                                          | When a deity is opened, and **automatically for anything saved or starred**                                                                                                                                         |
+| **Audio**            | Per practice                                                                                                        | On demand, or "Download for offline"                                                                                                                                                                                |
 
 - **In P1 nothing is downloaded to use the library:** it is all in the app. The only text the app fetches is a **corrected `core` pack**, in one piece covering every launch deity, so no request names a deity. Per-deity downloads begin only when the library grows beyond the bundle, and for audio.
 - **Browsing and search work offline** because the index is bundled. A deity that hasn't been downloaded shows "Download to open", not an empty screen.
 - **Settings → Storage** lists downloaded packs and audio, with sizes, and offers "Download everything for offline".
-- **Updates:** the app checks the manifest when online and fetches only packs that changed. Content fixes need no app release.
-- **Authenticity:** the app has the content signing public key built in and rejects a manifest whose signature doesn't verify. Every pack must match the SHA-256 listed in the signed manifest, so a compromised CDN can't swap in altered text, and must pass the export schema, so a build bug can't either. Audio and images must match the SHA-256 recorded in their pack. The core bundle is covered by the app's own store signature.
+- **Updates:** the app checks the manifest when online and fetches only packs whose SHA-256 changed. Content fixes need no app release.
+- **Authenticity:** the app has the content signing public key built in and rejects a manifest whose signature doesn't verify, or whose `release` is lower than one it has accepted. Every pack must match the SHA-256 listed in the signed manifest, so a compromised CDN can't swap in altered text, and must pass the export schema, so a build bug can't either. Audio and images must match the SHA-256 recorded in their pack. The core bundle is covered by the app's own store signature.
 - **Unpublished content** stays on devices that have it, and its counts remain; it is hidden from browsing.
 
 ## Privacy of downloads
