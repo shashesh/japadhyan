@@ -39,7 +39,7 @@ content/
 - **Layout.** A file's name is its id. Deities sit in their tradition's folder, and practices in their tradition's and their **primary deity's** folder (the first of `deity_ids`), so Hare Krishna is `practices/hindu/krishna/hare-krishna.yaml`. Any other file is an error, except `content/README.md`.
 - **Audio and images are not in git.** They live in object storage, named by their SHA-256. YAML refers to them by id, checksum, size and (for audio) duration.
 - **Schema.** Every file is checked against a schema in `packages/shared` (`src/schemas`, [Zod](../decisions/2026-09-23-schema-library-zod.md)), which is platform-agnostic and also used by the app to read packs. Each entity has two forms:
-  - **Content** schemas are strict: a field the schema doesn't know is an error, not ignored. A practice's step text, words and names carry exactly the master scripts — the source script and IAST. Generated scripts may not be written by hand.
+  - **Content** schemas are strict: a field the schema doesn't know is an error, not ignored. A practice's step text, words and names carry exactly the master scripts — the source script and IAST. Generated scripts may not be written by hand. The [transliteration decision](../decisions/2026-09-23-transliteration-library.md#how-latin-is-produced) allows a hand-written `latin` override; it joins this contract and the content schema with the build script, and until then `latin` is no exception.
   - **Export** schemas drop fields they don't know, so an app can read a pack with fields added after its release. A practice's step text, words and names carry at least the source script, IAST and `latin`; script add-on packs bring more.
   - **Deity names** have no source script, so neither rule applies: they are written by hand per language, each in the scripts that language uses (`en` in `latin`, `hi` in `devanagari`), and are never generated.
   - Both enforce the rules within a single entity, among them: catalog ids, language tags as language, optional script and optional region in canonical case (`en`, `pt-BR`, `sa-Latn`), a source script other than `latin`, one step for a mantra, words only on a mantra, a name on every namavali step, a namavali round of one recitation, a duration on every recording, audio positions inside the recording, program days within the program, and an absent meaning or reading written as `null`, never as an empty map. Rules that span files — a practice's deities exist, versions only go up — belong to the build.
@@ -50,7 +50,7 @@ content/
 ### Transliteration
 
 - The master text is the practice's source script (Devanagari for Sanskrit, Gurmukhi for Sikh practice) plus IAST.
-- `latin` (common spelling such as "Om Namah Shivaya") and other Indic scripts are **generated at build time**, not on the phone, using an established transliteration library chosen in M2.
+- `latin` (common spelling such as "Om Namah Shivaya") and other Indic scripts are **generated at build time**, not on the phone, using an established transliteration library chosen in M2 ([vidyut-lipi](../decisions/2026-09-23-transliteration-library.md), with our own rules for `latin` and for each script's conventions).
 - Generated text is reviewed by the advisor like any other. Some scripts need special handling, e.g. Tamil lacks aspirated consonants.
 
 ## Build
@@ -83,6 +83,7 @@ A pack with a newer schema major version than the app understands is ignored; th
 ### Signing
 
 - The **private key** never goes to CI or the CDN. The owner holds it (password manager or hardware key) and signs when publishing.
+- **Signing is its own step**, a small script that uses only Node's built-in crypto and imports nothing from the build. It re-hashes the packs against the manifest and signs only that. The earlier steps, and their third-party packages such as the transliterator, run under Node's permission model and never see the key.
 - The app ships the **current and next public keys**, so the key can be rotated without breaking installed apps. A compromised key is retired by an app release that drops it.
 - Packs are **data only**: text and references, never code or markup. The app renders text as text.
 
