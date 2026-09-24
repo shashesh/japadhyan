@@ -40,7 +40,7 @@ All accepted by the owner on 2026-09-24, as recommended, with an addition to 8. 
 5. **Content-addressed pack paths:** `packs/<id>.<first 16 hex of sha256>.json`. A CDN cache serving an old pack under an unchanged name would fail the hash check; a new name for new content can't go stale. The manifest lists each path, so this can change later. _Accepted._
 6. **The reviewed snapshot lives in `content-snapshot/`**, beside `content/` and mirroring its paths (`content-snapshot/practices/hindu/shiva/om-namah-shivaya.yaml`). Each file is the practice as packs carry it, with every generated script, so the advisor reviews generated text as a diff and a library upgrade shows up as one. `content/` stays source only, which its layout check already requires. `npm test` fails when the snapshot is out of date. _Accepted._
 7. **The snapshot is the baseline for the version rules.** A practice whose steps differ from its snapshot (any script, or the number of steps) must have a higher `version`, and no version may go down. Checking against the committed snapshot needs no git and no published manifest, but it means a practice changed twice before one release bumps twice, so versions can skip numbers. That does no harm: devices only ever see a higher number. Publishing will later check against the live manifest as well. _Accepted._
-8. **A production build refuses to run if any practice is unreviewed**, and lists every one of them. It doesn't quietly leave them out, because leaving one out can break a deity's `featured_practice_id`. Development builds include them; the index marks each `reviewed: false` so the app can flag them. _Accepted._ **Added:** `review` records the `version` it covers (`review: { advisor, reviewed_on, version }`), and a practice counts as reviewed only while `review.version` equals its `version`. Decision 7 forces a bump whenever the text or a generated script changes, so any change a devotee would see goes back to the advisor. The owner is the Hindu advisor and reviews the five development mantras once PR 2 has built their snapshot.
+8. **A production build refuses to run if any practice is unreviewed**, and lists every one of them. It doesn't quietly leave them out, because leaving one out can break a deity's `featured_practice_id`. Development builds include them; the index marks each `reviewed: false` so the app can flag them. _Accepted._ **Added:** `review` records the `version` it covers (`review: { advisor, reviewed_on, version }`), and a practice counts as reviewed only while `review.version` equals its `version`. Decision 7 forces a bump whenever the chanted text or a generated script changes, so that change goes back to the advisor. Titles, intros and meanings change without a bump (decision 11) and keep the review; the advisor sees them in the PR. The owner is the Hindu advisor and reviews the five development mantras once PR 2 has built their snapshot.
 9. **Base packs are English.** The spec says base packs carry "English"; every other language comes as an add-on. So a practice's `title` and `repetition_word`, and a deity's `names`, must have `en`, which the validator checks. The index keeps every language for titles and names, since search needs them and they are small. _Accepted._
 10. **Keys:** the production private key is an encrypted PKCS#8 PEM file kept outside the repo, with its passphrase in the owner's password manager, entered at a prompt, never taken from an env var or argument. The owner generates two key pairs, _current_ and _next_, and the app ships both public keys. Development builds are signed with a key each developer generates for themselves, which production apps never trust. Hardware keys can come later: Node's crypto can't sign with a hardware key directly. _Accepted._
 11. **Only the chanted text bumps a version** (spec change: the specs say "bumped on any text change"). A version change resets a devotee's saved place in a namavali, so a typo fixed in an English intro shouldn't send someone 600 names into the Sahasranama back to the start. The version covers each step's text, words and name in every script, and the number of steps. Titles, subtitles, intros, meanings, repetition words, source and licence can be corrected without a bump. _Accepted._
@@ -188,7 +188,7 @@ A script or language pack's practice entries carry the `version` they were built
 - Every pack parses with its **export** schema from `packages/shared`, the one the app will use, before it is written.
 - Packs are **canonical JSON**: keys sorted, no whitespace, strings in NFC, entities sorted by id, steps in order. Building twice gives identical bytes.
 - A production build refuses unreviewed practices (decision 8).
-- The version rules against the snapshot (decisions 7 and 11). A practice removed from `content/` **keeps** its snapshot, as a record of the highest version it reached: it isn't packed, and bringing the id back needs a higher version. Ids never change once published, and devotees' counts and saved places are keyed by them, so an id must never come back at a lower version with different text.
+- The version rules against the snapshot (decisions 7 and 11), run on the **generated** practices, so a transliterator upgrade that changes a script can't skip the bump. A practice removed from `content/` **keeps** its snapshot, as a record of the highest version it reached: it isn't packed, and bringing the id back needs a higher version. Ids never change once published, and devotees' counts and saved places are keyed by them, so an id must never come back at a lower version with different text.
 - The snapshot is written only when validation and the version rules pass, so a failed build leaves the committed baseline as it was.
 
 ### The build's sandbox
@@ -210,7 +210,7 @@ This sandbox is an extra layer, not what keeps the key safe (decision 12). Node'
 | `tools/content-build/src/packs.ts` (+ test)            | Catalog with generated practices → every pack, `core` included. Pure                                         |
 | `tools/content-build/src/snapshot.ts` (+ test)         | Snapshot paths, YAML form, reading it back, and the version rules. Pure apart from reading and writing files |
 | `tools/content-build/src/manifest.ts` (+ test)         | Packs → files with content-addressed paths, plus the manifest. Pure                                          |
-| `tools/content-build/src/build.ts` (+ test)            | Runs validate → version rules → generate → snapshot → packs → manifest; the build's entry point              |
+| `tools/content-build/src/build.ts` (+ test)            | Runs validate → generate → version rules → snapshot → packs → manifest; the build's entry point              |
 | `tools/content-build/src/validate.ts`                  | Gains the English rule (decision 9)                                                                          |
 | `tools/content-build/run.mjs` (+ `run.test.mjs`)       | Bundles, then starts the build under the permission model                                                    |
 | `scripts/content-sign.mjs` (+ `content-sign.test.mjs`) | `keygen`, `sign`, `verify`. Node built-ins only                                                              |
@@ -231,6 +231,7 @@ Three PRs, each a draft against `master` and each passing `npm run check` locall
   - `unknown fields are dropped, not rejected` — the export behaviour, for forward compatibility
   - `a script pack's steps carry plain strings, not maps by script`
   - `a manifest entry needs a lowercase sha256 and positive bytes`
+  - `a path is the pack id and the start of its sha256` — an entry for `deity/shiva` pointing at `packs/deity/ram.<hash>.json`, or with another hash prefix, is rejected, so the path stays content-addressed (done in #15)
   - `a manifest path must be packs/<id>.<16 hex>.json` — each segment of the id is checked for what it is (a catalog id, a script, a language tag in its canonical case such as `pt-BR`), so `..`, backslashes, absolute paths and empty segments are rejected and no path can leave the pack folder
   - `manifest packs must be sorted by id and unique`
   - `release is a non-negative integer; channel is development or production`
@@ -312,7 +313,7 @@ export function buildPacks(built: BuiltCatalog): Pack[]; // core last
 export function snapshotPath(practice: Practice): string; // practices/<tradition>/<deity>/<id>.yaml
 export function snapshotYaml(practice: Practice): string; // stable key order, NFC
 export function versionIssues(
-  practices: readonly Practice[],
+  practices: readonly Practice[], // generated: every script, as packs carry them
   snapshot: ReadonlyMap<string, Practice>,
 ): ContentIssue[];
 ```
@@ -401,8 +402,9 @@ node scripts/content-sign.mjs verify --public-key <base64> --dir dist/content/<c
   - `sign refuses a --key inside the repo, comparing real paths` — the same check as `keygen`
   - `sign refuses to run from a checkout with node_modules or uncommitted changes, and prints the commit it is at`
   - `sign and verify refuse a pack whose real path is outside --dir` — a symbolic link as the `packs/` folder or as one pack, as well as `..`
-  - `sign and verify refuse a manifest.json or manifest.sig.json that is a symbolic link or resolves outside --dir`
-  - `sign writes the signature to a new file and renames it into place` — so an existing link at `manifest.sig.json` is replaced, never written through
+  - `sign and verify refuse a manifest.json that is a symbolic link or resolves outside --dir`
+  - `verify refuses a manifest.sig.json that is a symbolic link or resolves outside --dir`
+  - `sign never reads an existing manifest.sig.json: it writes a new file in --dir and renames it into place` — so an existing link there is replaced, never followed or written through
   - `sign then verify succeeds`
   - `changing one byte of a pack fails sign: the manifest no longer matches`
   - `a file in packs/ not in the manifest, or a manifest entry with no file, fails sign`
@@ -412,7 +414,7 @@ node scripts/content-sign.mjs verify --public-key <base64> --dir dist/content/<c
   - `a wrong passphrase fails without writing a signature`
   - `verify with a different key fails, naming both key ids`
   - `the passphrase comes from the terminal, or stdin when it isn't one; never argv or env`
-- [ ] Implement. `sign` and `verify` share one check, before any file is read or written: `--dir` is resolved to its real path, and `manifest.json`, `manifest.sig.json` (if present) and every manifest path must resolve, through real paths, to a regular file inside it; its size and SHA-256 match; and `packs/` holds nothing else. Then `sign` signs the exact bytes of `manifest.json` and writes `manifest.sig.json` through a temporary file in `--dir` and a rename, and `verify` checks that signature.
+- [ ] Implement. `sign` and `verify` share one check, before any file is read or written: `--dir` is resolved to its real path, and `manifest.json` and every manifest path must resolve, through real paths, to a regular file inside it; its size and SHA-256 match; and `packs/` holds nothing else. Then `sign` signs the exact bytes of `manifest.json` and writes `manifest.sig.json` through a temporary file in `--dir` and a rename, and `verify` checks that signature, after checking `manifest.sig.json` the same way as `manifest.json`.
 - [ ] Docs: content-pipeline.md signing section (commands, key ids, current and next keys, signing from a clean clone, and decision 12 in place of "never see the key"); the same sentence in the [transliteration decision](../../decisions/2026-09-23-transliteration-library.md#consequences); `docs/guides/setup.md` (building and signing content locally).
 - [ ] Commit: `feat(scripts): sign and verify the content manifest`. Push, draft PR, request Copilot.
 - [ ] **Owner, after merge:** run `keygen` twice (current and next) to a folder outside the repo, save both passphrases in the password manager, and send the two public keys and key ids. They go into the app with M3.
