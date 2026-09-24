@@ -151,6 +151,23 @@ describe('generatePractice', () => {
       expect(issuesOf(mantra({ devanagari: 'नमः ।', iast }))).toEqual([]);
     });
 
+    test.each([
+      ['a hyphen in a compound', 'महामन्त्रः', 'mahā-mantraḥ'],
+      ['brackets', 'नमः', '(namaḥ)'],
+      ['a colon and a comma', 'ॐ नमः शिवाय', 'oṃ: namaḥ, śivāya'],
+    ])('punctuation is ignored: %s', (_, devanagari, iast) => {
+      expect(issuesOf(mantra({ devanagari, iast }))).toEqual([]);
+    });
+
+    test('the avagraha is a letter, not punctuation', () => {
+      expect(issuesOf(mantra({ devanagari: 'सोऽहम्', iast: 'soham' }))).toEqual([
+        {
+          path: ['steps', 0, 'text', 'iast'],
+          message: "Doesn’t match the `devanagari`, which reads “so'ham”",
+        },
+      ]);
+    });
+
     test('ā before another vowel reads right, as the source is read, never the IAST', () => {
       // vidyut-lipi reads the IAST sāī as सी (ambuda-org/vidyut#253); the
       // Devanagari साई reads correctly as sāī.
@@ -246,6 +263,24 @@ describe('generatePractice', () => {
           message: '`text` has a hand-written `latin`, so write one here too',
         },
       ]);
+    });
+
+    test('a hand-written latin text has as many words as the IAST', () => {
+      const practice = mantra({
+        devanagari: 'श्री राम जय',
+        iast: 'śrī rāma jaya',
+        latin: 'Shri Ram',
+      });
+
+      expect(issuesOf(practice)).toEqual([
+        { path: ['steps', 0, 'text', 'latin'], message: 'Has 2 words; the `iast` has 3' },
+      ]);
+    });
+
+    test('punctuation is not a word when counting', () => {
+      const practice = mantra({ devanagari: 'नमः ।', iast: 'namaḥ |', latin: 'Namah' });
+
+      expect(issuesOf(practice)).toEqual([]);
     });
 
     test('hand-written latin words are as many as the IAST words', () => {

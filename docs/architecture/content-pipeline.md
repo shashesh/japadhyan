@@ -53,7 +53,7 @@ content/
 - `latin` (common spelling such as "Om Namah Shivaya") and other Indic scripts are **generated at build time**, not on the phone, using an established transliteration library chosen in M2 ([vidyut-lipi](../decisions/2026-09-23-transliteration-library.md), with our own rules for `latin` and for each script's conventions).
 - From Devanagari, the build generates Tamil, Telugu, Kannada, Gujarati and Bengali; Gurmukhi and Tibetan wait for P2. `latin` comes from the IAST by rules, unless the step carries a hand-written one. A step's text, words and name are each generated, words one by one.
 - The build checks what it generates (`tools/content-build/src/generate.ts`):
-  - The source script, read as IAST, must match the hand-written IAST, ignoring punctuation. IAST must be lower case with `ṃ`, not `ṁ`.
+  - The source script, read as IAST, must match the hand-written IAST, ignoring punctuation (daṇḍas, hyphens, brackets; never the avagraha). IAST must be lower case with `ṃ`, not `ṁ`.
   - No generated script may hold letters of the source script. vidyut-lipi passes through letters it has no mapping for, such as ऑ, and a round trip can't see them.
   - Tamil, Telugu, Kannada and Gujarati must convert back to the source exactly. Bengali writes `va` and `ba` alike, so it relies on review.
   - The IAST and source have as many words, and so does a hand-written `latin`. A hand-written `latin` on the text needs one on the words too.

@@ -26,8 +26,16 @@ const LETTERS: Readonly<Record<string, string>> = {
   ḥ: 'h',
 };
 
-/** Avagraha and daṇḍas, in the forms IAST writes them. */
-const DROPPED = new Set(["'", '’', '|', '.', '।', '॥']);
+/** The avagraha, as IAST writes it: a letter, which `latin` drops. */
+const AVAGRAHA = new Set(["'", '’']);
+
+/**
+ * Punctuation, which `latin` drops and the IAST check ignores: daṇḍas in any
+ * form (| . । ॥), hyphens, brackets and the like. Never the avagraha.
+ */
+export function isPunctuation(char: string): boolean {
+  return char === '|' || (/^\p{P}$/u.test(char) && !AVAGRAHA.has(char));
+}
 
 const ANUSVARA = 'ṃ';
 const CANDRABINDU = /m̐/g;
@@ -45,7 +53,7 @@ export function latinFromIast(iast: string): LatinResult {
   const out = letters.map((letter, i) => {
     if (letter === ANUSVARA) return N_BEFORE.has(letters[i + 1] ?? '') ? 'n' : 'm';
     if (letter in LETTERS) return LETTERS[letter];
-    if (DROPPED.has(letter)) return '';
+    if (AVAGRAHA.has(letter) || isPunctuation(letter)) return '';
     if (/^[a-z\s]$/.test(letter)) return letter;
     unknown.add(letter);
     return '';

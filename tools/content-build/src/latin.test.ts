@@ -60,6 +60,8 @@ describe('latinFromIast', () => {
     ['daṇḍa as .', 'namaḥ.', 'Namah'],
     ['double daṇḍa as ..', 'namaḥ ..', 'Namah'],
     ['Devanagari daṇḍas', 'namaḥ । śivāya ॥', 'Namah Shivaya'],
+    ['other punctuation', 'namaḥ, (śivāya)! kiṃ? oṃ: śāntiḥ;', 'Namah Shivaya Kim Om Shantih'],
+    ['hyphen, joining the compound', 'mahā-mantra', 'Mahamantra'],
   ])('drops the %s', (_, iast, expected) => {
     expect(latin(iast)).toBe(expected);
   });

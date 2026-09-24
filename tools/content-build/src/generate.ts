@@ -14,7 +14,7 @@
 
 import type { Practice, Script, SourceScript, TextByScript } from '@japadhyan/shared';
 
-import { latinFromIast } from './latin';
+import { isPunctuation, latinFromIast } from './latin';
 import { transliterate } from './lipi';
 
 export interface GenerationIssue {
@@ -55,9 +55,6 @@ const GENERATED: Partial<Record<SourceScript, SourceRules>> = {
 
 /** Scripts that convert back letter for letter. Bengali writes va and ba alike. */
 const ROUND_TRIPS: ReadonlySet<SourceScript> = new Set(['tamil', 'telugu', 'kannada', 'gujarati']);
-
-/** Punctuation the IAST check ignores: daṇḍas in any form, and the like. */
-const PUNCTUATION = /[|.।॥,;!?]/g;
 
 type Path = readonly PropertyKey[];
 
@@ -140,7 +137,10 @@ function generateText(
   }
 
   let latin = text.latin;
-  if (latin === undefined && !formProblem) {
+  if (latin !== undefined) {
+    const [n, m] = [wordCount(latin), wordCount(iast)];
+    if (n !== m) issue('latin', `Has ${nWords(n)}; the \`iast\` has ${m}`);
+  } else if (!formProblem) {
     const result = latinFromIast(iast);
     if (result.ok) latin = result.latin;
     else issue('latin', result.message);
@@ -164,7 +164,7 @@ function generateWords(
 
   const count = (script: Script, n: number, other: Script, m: number): GenerationIssue => ({
     path: [...path, script],
-    message: `Has ${n} word${n === 1 ? '' : 's'}; the \`${other}\` has ${m}`,
+    message: `Has ${nWords(n)}; the \`${other}\` has ${m}`,
   });
   if (iast.length !== master.length) {
     return { value: words, issues: [count('iast', iast.length, source, master.length)] };
@@ -205,8 +205,18 @@ function iastFormProblem(iast: string): string | null {
   return null;
 }
 
-const comparable = (iast: string) =>
-  iast.normalize('NFC').replace(/’/g, "'").replace(PUNCTUATION, ' ').replace(/\s+/g, ' ').trim();
+/** The text without punctuation, in NFC, with single spaces. */
+const comparable = (text: string) =>
+  [...text.normalize('NFC').replace(/’/g, "'")]
+    .filter((char) => !isPunctuation(char))
+    .join('')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+/** Words in a text; punctuation alone, such as a daṇḍa, is not a word. */
+const wordCount = (text: string) => comparable(text).split(' ').filter(Boolean).length;
+
+const nWords = (n: number) => `${n} word${n === 1 ? '' : 's'}`;
 
 /** Letters of the source script in `text`, each once. */
 function leftovers(text: string, ranges: SourceRules['letters']): string[] {
