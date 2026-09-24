@@ -1,0 +1,14 @@
+id: shiva
+tradition_id: hindu
+parent_id: null
+names:
+  en:
+    latin: Shiva
+  hi:
+    devanagari: शिव
+summary:
+  en: The auspicious one, lord of meditation.
+image: null
+suggested_mala: null
+featured_practice_id: om-namah-shivaya
+sort_order: 1

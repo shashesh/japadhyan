@@ -5,11 +5,13 @@
   "description": "JapaDhyan - devotee-first naam japam app for iOS, Android and web",
   "workspaces": [
     "apps/*",
-    "packages/*"
+    "packages/*",
+    "tools/*"
   ],
   "scripts": {
     "mobile": "npm run start --workspace=apps/mobile",
     "web": "npm run web --workspace=apps/mobile",
+    "content:validate": "npm run validate --workspace=tools/content-build",
     "test": "npm run test:scripts && npm run test --workspaces --if-present",
     "test:scripts": "node --test \"scripts/**/*.test.mjs\"",
     "lint": "eslint . && npm run lint:md",

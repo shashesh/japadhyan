@@ -1,0 +1,29 @@
+id: om-gam-ganapataye
+version: 1
+tradition_id: hindu
+kind: mantra
+deity_ids: [ganesh]
+title:
+  en: Om Gam Ganapataye Namaha
+subtitle: {}
+source_script: devanagari
+steps:
+  - text:
+      devanagari: ॐ गं गणपतये नमः
+      iast: oṃ gaṃ gaṇapataye namaḥ
+    words:
+      devanagari: [ॐ, गं, गणपतये, नमः]
+      iast: [oṃ, gaṃ, gaṇapataye, namaḥ]
+    name: null
+    meaning: null
+    audio_start_ms: null
+    audio_end_ms: null
+default_round: 108
+repetition_word:
+  en: japa
+intro:
+  en: Salutations to Ganesh, remover of obstacles.
+audio: null
+source: Traditional; the advisor confirms the source
+licence: Public domain
+review: null

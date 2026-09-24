@@ -1,0 +1,14 @@
+id: krishna
+tradition_id: hindu
+parent_id: null
+names:
+  en:
+    latin: Krishna
+  hi:
+    devanagari: कृष्ण
+summary:
+  en: The divine cowherd and teacher of the Gita.
+image: null
+suggested_mala: null
+featured_practice_id: hare-krishna
+sort_order: 4

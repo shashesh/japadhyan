@@ -1,0 +1,25 @@
+{
+  "name": "@japadhyan/content-build",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Builds content/ into signed packs. Run locally; never shipped in the app",
+  "type": "module",
+  "scripts": {
+    "validate": "tsx src/cli.ts",
+    "test": "vitest run --coverage",
+    "test:watch": "vitest",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@japadhyan/shared": "*",
+    "yaml": "^2.9.1",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "^24",
+    "@vitest/coverage-v8": "^4.1.11",
+    "tsx": "^4.23.15",
+    "typescript": "~6.0.3",
+    "vitest": "^4.1.11"
+  }
+}

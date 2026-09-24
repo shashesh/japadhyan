@@ -26,7 +26,8 @@ npm install            # once, from the repo root
 npm run mobile         # Expo dev server (press i / a / w for iOS / Android / web)
 npm run web            # Expo dev server for web
 npm run check          # lint (incl. Markdown) + type-check + all tests — run before every PR
-npm test               # tests only (node:test for scripts/, Vitest in shared, Jest in mobile)
+npm test               # tests only (node:test for scripts/, Vitest in shared and tools, Jest in mobile)
+npm run content:validate  # check content/ against the schemas, with file and line per problem
 npm run lint:md        # markdownlint + Prettier check on every .md file
 npm run format         # Prettier: fixes formatting, including Markdown tables
 ```

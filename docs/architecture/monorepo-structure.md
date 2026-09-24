@@ -1,11 +1,11 @@
 ---
 status: active
-updated: 2026-09-22
+updated: 2026-09-23
 ---
 
 # Monorepo structure
 
-npm workspaces, one app for three platforms, one shared package.
+npm workspaces, one app for three platforms, one shared package, and build tools that never ship in the app.
 
 ```text
 japadhyan/
@@ -24,7 +24,9 @@ japadhyan/
 │        ├─ types/            Domain types (snake_case fields)
 │        ├─ logic/            Pure business logic + Vitest tests
 │        └─ constants/        Round sizes and other fixed values
-├─ content/                   Deities, practices, programs as YAML — built into packs (P1)
+├─ tools/
+│  └─ content-build/          Checks content/; grows into the pack build in M2. Runs locally
+├─ content/                   Deities, practices, programs as YAML — built into packs
 ├─ docs/                      Product, architecture, decisions, plans
 ├─ scripts/                   Repo tooling: git hooks setup, CI guard tests (node:test)
 ├─ .githooks/                 Git hooks: no commits or pushes to master; Markdown checks
@@ -45,15 +47,15 @@ Per the [tech stack decision](../decisions/2026-09-21-tech-stack.md), the web ap
 | ----------------- | ---------------------------------------------------------------------------------------------- |
 | `apps/mobile`     | `@japadhyan/shared`, React, React Native, Expo packages                                        |
 | `packages/shared` | Nothing platform-specific. No `react`, `react-native`, `expo-*`, `next` — ESLint enforces this |
+| `tools/*`         | `@japadhyan/shared` and Node packages. Nothing imports from `tools/`                           |
 
-Shared code is consumed as TypeScript source (`main: src/index.ts`); Metro transpiles it, so there is no build step.
+Shared code is consumed as TypeScript source (`main: src/index.ts`, `"type": "module"`); Metro transpiles it for the app and tsx runs it for the tools, so there is no build step.
 
 ## Future apps and packages
 
-| Path                                | Phase | Purpose                                                     |
-| ----------------------------------- | ----- | ----------------------------------------------------------- |
-| `apps/mobile/targets/watch`         | P2    | Apple Watch app (SwiftUI via expo-apple-targets)            |
-| `apps/wear`                         | P2    | Wear OS app (Kotlin + Compose)                              |
-| `apps/mobile/modules/voice-counter` | P2    | Native on-device voice counting module                      |
-| `supabase/`                         | P1    | Database migrations and policies                            |
-| `content/`                          | P1    | Catalog source; see [content-pipeline](content-pipeline.md) |
+| Path                                | Phase | Purpose                                          |
+| ----------------------------------- | ----- | ------------------------------------------------ |
+| `apps/mobile/targets/watch`         | P2    | Apple Watch app (SwiftUI via expo-apple-targets) |
+| `apps/wear`                         | P2    | Wear OS app (Kotlin + Compose)                   |
+| `apps/mobile/modules/voice-counter` | P2    | Native on-device voice counting module           |
+| `supabase/`                         | P1    | Database migrations and policies                 |
