@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { after, afterEach, before, describe, test } from 'node:test';
@@ -79,6 +79,13 @@ describe('the bundle', () => {
     const code = `try { require('fs').writeFileSync(${file}, ''); console.log('wrote') } catch (e) { console.log(e.code) }`;
 
     assert.equal(probe(code).stdout.trim(), 'ERR_ACCESS_DENIED');
+  });
+
+  test('the launcher checks, bundles and starts the build under the flags', async () => {
+    // A bad channel stops the build before it reads or writes anything.
+    const code = await launch({ argv: ['--channel', 'nowhere'], log: () => {} });
+
+    assert.equal(code, 2);
   });
 
   test('loads and runs under the flags', () => {
@@ -166,7 +173,42 @@ describe('symbolic links', () => {
     mkdirSync(join(repo, 'build-output', 'content'), { recursive: true });
     link(join(repo, 'build-output'), join(repo, 'dist'));
 
-    assert.deepEqual(linksInWritable(repo), [join('dist', 'content')]);
+    assert.deepEqual(linksInWritable(repo), ['dist']);
+  });
+
+  test('a link on the way to a writable folder that doesn’t exist yet is reported', () => {
+    setup();
+    mkdirSync(join(repo, 'build-output'));
+    link(join(repo, 'build-output'), join(repo, 'dist'));
+
+    assert.deepEqual(linksInWritable(repo), ['dist']);
+  });
+
+  test('the bundle folder is protected like the writable ones', () => {
+    setup();
+    mkdirSync(join(repo, 'scripts'));
+    mkdirSync(join(repo, 'tools', 'content-build'), { recursive: true });
+    link(join(repo, 'scripts'), join(repo, 'tools', 'content-build', 'dist'));
+
+    assert.deepEqual(linksInWritable(repo), [join('tools', 'content-build', 'dist')]);
+  });
+
+  test('a link inside the bundle folder is reported', () => {
+    setup();
+    mkdirSync(join(repo, 'tools', 'content-build', 'dist'), { recursive: true });
+    link(join(repo, 'content'), join(repo, 'tools', 'content-build', 'dist', 'packs'));
+
+    assert.deepEqual(linksInWritable(repo), [join('tools', 'content-build', 'dist', 'packs')]);
+  });
+
+  test('the launcher creates nothing through a link before refusing', async () => {
+    setup();
+    link(outside, join(repo, 'dist'));
+
+    const code = await launch({ repoRoot: repo, argv: [], log: () => {} });
+
+    assert.equal(code, 1);
+    assert.deepEqual(readdirSync(outside), []);
   });
 
   test('plain writable folders, or none yet, are fine', () => {
