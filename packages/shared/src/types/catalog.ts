@@ -134,8 +134,8 @@ export interface StotraStep extends StepBase {
 export type Step = MantraStep | NamavaliStep | StotraStep;
 
 /**
- * Who reviewed this practice, and at which version. A practice changed since
- * its review counts as unreviewed (`isReviewed`), and unreviewed content
+ * Who reviewed this practice, and at which version. A practice whose chanted
+ * text changed since its review counts as unreviewed (`isReviewed`), and unreviewed content
  * never ships in production.
  */
 export interface ContentReview {

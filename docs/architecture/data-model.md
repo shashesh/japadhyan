@@ -77,7 +77,7 @@ Every practice is an **ordered list of steps**. One pass through the steps is on
 | `audio`           | Optional media reference for the full recording, with its duration                                                                                                                                                                                                                                                 |
 | `source`          | Where the text comes from                                                                                                                                                                                                                                                                                          |
 | `licence`         | Licence of the text, transliteration and translation                                                                                                                                                                                                                                                               |
-| `review`          | `{ advisor, reviewed_on, version }`. A review covers one version: a practice changed since is unreviewed again. Unreviewed practices never ship in production packs                                                                                                                                                |
+| `review`          | `{ advisor, reviewed_on, version }`. A review covers one version: a practice whose chanted text changed since is unreviewed again. Titles, intros and meanings can change without a bump, and keep the review. Unreviewed practices never ship in production packs                                                 |
 
 ### Step
 

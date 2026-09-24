@@ -19,7 +19,7 @@ describe('isReviewed', () => {
     expect(isReviewed(practice(1, null))).toBe(false);
   });
 
-  test('a practice changed since its review is not: the change goes back to the advisor', () => {
+  test('a practice whose chanted text changed since its review is not', () => {
     expect(isReviewed(practice(3, 2))).toBe(false);
   });
 });
