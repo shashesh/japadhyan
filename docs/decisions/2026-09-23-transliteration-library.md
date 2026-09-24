@@ -1,11 +1,11 @@
 ---
-status: proposed
+status: accepted
 date: 2026-09-23
 ---
 
 # Transliteration: vidyut-lipi, with our own rules for `latin`
 
-Recommended, not yet accepted. It adds a young, single-maintainer npm package to the content build, so the owner decides.
+Accepted by the owner on 2026-09-23, knowing it adds a young, single-maintainer npm package to the content build. The package is installed when the build first generates a script, not before.
 
 ## Context
 
@@ -21,7 +21,7 @@ vidyut-lipi is Ambuda's MIT-licensed Rust transliterator, written to reach [Aksh
 
 - **Indic scripts are generated from the source script**, not from IAST, because the source script is what the advisor wrote first.
 - **The build checks the two master texts agree:** it transliterates the source script to IAST and fails if that differs from the hand-written IAST, after normalising punctuation. A typo in either shows up before review.
-- **Scripts that round-trip are checked by round-tripping.** IAST, Tamil, Telugu, Kannada and Gujarati came back to identical Devanagari on every sample, so the build converts each generated text back and fails on any difference. Bengali and Tibetan merge `va` and `ba`, so they can't round-trip and rely on review.
+- **Scripts that round-trip are checked by round-tripping.** Tamil, Telugu, Kannada and Gujarati came back to identical Devanagari on every sample, so the build converts each generated text back and fails on any difference. Bengali and Tibetan merge `va` and `ba`, so they can't round-trip and rely on review. IAST is checked by the comparison above, never by reading it back: vidyut-lipi misreads some IAST (below).
 - **Tamil uses superscript numerals** for the aspirated and voiced consonants (ப⁴க³வதே), and Grantha letters for ś, ṣ, s, h and j, as Aksharamukha does. If the advisor wants plain Tamil as well, it can be derived by dropping the numerals and marks.
 - **Gurmukhi and Tibetan are not generated until P2** (below).
 
@@ -50,6 +50,24 @@ Compared with Aksharamukha 2.3 and `sanscript.js` 1.3.3:
 - **Gurmukhi to IAST, ਵਾਹਿਗੁਰੂ:** vidyut-lipi reads vāhiguṝ, which is wrong; the other two read vāhigurū.
 - **ॐ in Gurmukhi:** all three write ੴ.
 - **Telugu, Kannada and Gujarati** were identical across all three, apart from Aksharamukha's default "nativize" option writing ణ్డ as ండ.
+
+### Checked against our content
+
+Run on the owner's request before accepting, on the same versions:
+
+- **Our five development mantras:** Devanagari to IAST matches the hand-written IAST in `content/` exactly, for all five.
+- **A real typo is caught.** Vaidika Vignanam published वर्शिष्ठान्ते for वर्षिष्ठान्ते in every script for over two years (below). vidyut-lipi turns the typo into varśiṣṭhānte, which differs from the hand-written varṣiṣṭhānte, so our IAST check stops it at build time.
+- **Where Vignanam's converter is wrong, vidyut-lipi is right:** Bengali शान्ति → শান্তি (not শাংতি), Bengali य → য়, Gujarati ॐ → ૐ.
+- **Seed syllables and clusters** — ह्रीं श्रीं क्लीं, ऐं, त्र्यम्बकं, महागणाधिपतये — convert cleanly to IAST, Tamil and Bengali, and a verse with conjunct nasals round-trips through Telugu, Kannada, Tamil, Bengali, Gujarati, Malayalam and Odia.
+- **Speed:** 108 names into six scripts takes about 70 ms.
+
+## How others do it
+
+- **[Vaidika Vignanam](https://vignanam.org/)** offers some 1,200 texts in 19 scripts from one master text. Its converter is its own and undocumented, but the archive shows how it works: in February 2023 the Dakshinamurthy Stotram carried the same typos (तत्वं for तत्त्वं, वर्शिष्ठ for वर्षिष्ठ) in Devanagari, Telugu, Tamil, Kannada, Bengali, Gujarati and its romanisation, and by 2025 all were fixed together. Readers report errors by email and in a [public group](https://groups.google.com/g/vignanam). Its per-script conventions are rules too — nasals become anusvara outside Devanagari, which reads oddly in Bengali — and its romanisation is ISO 15919 with `ch` (ōṃ, vēdāṃścha), with no plain spelling like our `latin`.
+- **[Sanskrit Documents](https://sanskritdocuments.org/noteonotherfonts.html)** converts its Devanagari with Aksharamukha and warns that Vedic accents and some special letters come out wrong.
+- **Sikh apps** built on [BaniDB](https://docs.shabados.com/gurmukhi-utils/) generate English, Hindi and Shahmukhi from Gurmukhi with their own library, `gurmukhi-utils`. It is the reference to look at for Gurmukhi in P2.
+
+So one master text plus a converter is the norm, and every converter is wrong at the edges. What we add is a hand-written IAST checked against the source, review before publishing, and a reviewed snapshot of every generated script.
 
 ## How `latin` is produced
 
@@ -90,9 +108,11 @@ With these rules our four samples become **Om Namah Shivaya**, **Om Shri Vishnav
 - **Does generated text alone bump `version`?** The pipeline says any text change does, and a new version resets saved places in a namavali. A fix to Tamil rendering shouldn't reset a devotee's place. Settled with the build script.
 - **Gurmukhi and Tibetan wait for P2.** All three libraries write ॐ as ੴ (Ik Onkar), which must never stand in for a Hindu Om; vidyut-lipi drops ष in Gurmukhi (its table maps it to an empty string) and reads ਰੂ back as ṝ, which matters for Sikh texts whose source is Gurmukhi. Before P2 the advisor chooses the Gurmukhi conventions, we fix or report the table upstream, and Aksharamukha's output is the reference to compare with. Tibetan waits for the Buddhist catalog and its advisor.
 - **Tamil needs a few more characters in the font.** The superscript numerals ² ³ ⁴, `ʼ` (U+02BC), `ˮ` (U+02EE) and the visarga `꞉` (U+A789) must render on real phones with the chosen Tamil font, which spike S1 should check.
+- **vidyut-lipi misreads ā followed by a separate vowel in IAST.** After a consonant, `sāī` becomes सी instead of साई and `sāu` becomes सु; the official Python package does the same. Devanagari to IAST is correct (साई → sāī), and the build never reads IAST back, so our checks are unaffected. It matters for names such as Sai and Bhai; we report it upstream.
+- **Each script's conventions are ours to choose.** vidyut-lipi follows the source spelling: शान्ति stays శాన్తి in Telugu, where Telugu readers usually write శాంతి; Tamil marks anusvara as ம்ʼ; chandrabindu reads oddly in Tamil (हँस → ஹம்ˮஸ). The build applies a small, tested set of rules per script after transliterating, like the `latin` rules, and a reader of that script signs them off before the script ships.
 - **IAST is written in lower case with ṃ, not ṁ.** vidyut-lipi garbles capitalised IAST and reads ṁ as a Vedic anusvara (ꣳ). The build rejects both.
 - **`@siva-sh/vidyut` goes into [TECH-VERSIONS](../../TECH-VERSIONS.md)** when the build installs it.
 
 ## Sources
 
-Checked 2026-09-23: [vidyut-lipi README](https://github.com/ambuda-org/vidyut/tree/main/vidyut-lipi), [its Gurmukhi table](https://github.com/ambuda-org/vidyut/blob/main/vidyut-lipi/src/autogen_schemes.rs), [crate](https://crates.io/crates/vidyut-lipi), [`vidyut` on PyPI](https://pypi.org/project/vidyut/), [`@siva-sh/vidyut`](https://www.npmjs.com/package/@siva-sh/vidyut) and [its source](https://github.com/sivashaktift/vidyut/tree/dev), [Aksharamukha](https://github.com/virtualvinodh/aksharamukha-python) and [on PyPI](https://pypi.org/project/aksharamukha/), [`aksharamukha` on npm](https://www.npmjs.com/package/aksharamukha), [`sanscript.js`](https://github.com/indic-transliteration/sanscript.js), [`indic-transliteration`](https://github.com/indic-transliteration/indic_transliteration_py).
+Checked 2026-09-23: [Vaidika Vignanam on the Wayback Machine](http://web.archive.org/web/20230210050806/https://vignanam.org/devanagari/dakshina-murthy-stotram.html), [vidyut-lipi README](https://github.com/ambuda-org/vidyut/tree/main/vidyut-lipi), [its Gurmukhi table](https://github.com/ambuda-org/vidyut/blob/main/vidyut-lipi/src/autogen_schemes.rs), [crate](https://crates.io/crates/vidyut-lipi), [`vidyut` on PyPI](https://pypi.org/project/vidyut/), [`@siva-sh/vidyut`](https://www.npmjs.com/package/@siva-sh/vidyut) and [its source](https://github.com/sivashaktift/vidyut/tree/dev), [Aksharamukha](https://github.com/virtualvinodh/aksharamukha-python) and [on PyPI](https://pypi.org/project/aksharamukha/), [`aksharamukha` on npm](https://www.npmjs.com/package/aksharamukha), [`sanscript.js`](https://github.com/indic-transliteration/sanscript.js), [`indic-transliteration`](https://github.com/indic-transliteration/indic_transliteration_py).

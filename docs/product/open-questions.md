@@ -33,7 +33,7 @@ PowerSync or our own Supabase sync. Decided by spike S4 before local storage is 
 
 Where packs and audio are hosted (Supabase Storage or Cloudflare R2), and which transliteration library generates scripts. Decided in the content pipeline milestone ([content-pipeline](../architecture/content-pipeline.md)).
 
-**vidyut-lipi is proposed** for transliteration ([decision](../decisions/2026-09-23-transliteration-library.md)), with our own rules and a hand-written override for `latin`. It stays open until the owner accepts it; hosting is still to decide.
+**Transliteration is decided:** vidyut-lipi ([decision](../decisions/2026-09-23-transliteration-library.md)), with our own rules and a hand-written override for `latin`. Hosting is still to decide.
 
 ## Corrections to listening japa (P2)
 
