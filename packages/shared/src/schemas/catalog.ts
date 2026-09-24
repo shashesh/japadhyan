@@ -23,6 +23,15 @@
 import { z } from 'zod';
 
 import type { Script } from '../types';
+import {
+  languageTag,
+  nonBlank,
+  nonNegativeInt,
+  positiveInt,
+  script,
+  sha256,
+  traditionId,
+} from './primitives';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
@@ -36,34 +45,6 @@ export const catalogIdSchema = z
   .regex(/^[a-z0-9-]+$/, 'Use lowercase letters, digits and hyphens only')
   .refine((id) => !UUID.test(id), 'A catalog id must not look like a UUID');
 
-const nonBlank = z.string().regex(/\S/, 'Must not be blank');
-const positiveInt = z.number().int().positive();
-const nonNegativeInt = z.number().int().nonnegative();
-
-const traditionId = z.enum(['hindu', 'sikh', 'buddhist', 'jain']);
-const script = z.enum([
-  'latin',
-  'iast',
-  'devanagari',
-  'gurmukhi',
-  'tamil',
-  'telugu',
-  'kannada',
-  'bengali',
-  'gujarati',
-  'tibetan',
-]);
-
-/**
- * A language tag: a BCP 47 language, optional script and optional region, in
- * canonical case — `en`, `pt-BR`, `es-419`, `sa-Latn`, `zh-Hant-TW`. Narrower
- * than BCP 47 on purpose: keys are matched exactly, so each language has one
- * spelling, and extensions (`-u-`, `-x-`) say nothing about a text's language.
- */
-const languageTag = z
-  .string()
-  .regex(/^[a-z]{2,3}(-[A-Z][a-z]{3})?(-([A-Z]{2}|[0-9]{3}))?$/, 'Not a language tag');
-
 const textByScript = z.partialRecord(script, nonBlank);
 const wordsByScript = z.partialRecord(script, z.array(nonBlank).min(1).readonly());
 const textByLanguage = z.partialRecord(languageTag, nonBlank);
@@ -72,7 +53,6 @@ const notEmpty = (map: object) => Object.keys(map).length > 0;
 /** Required text, or optional text that is `null` when absent — never `{}`. */
 const someLanguage = textByLanguage.refine(notEmpty, 'Needs at least one language');
 
-const sha256 = z.string().regex(/^[0-9a-f]{64}$/, 'Not a lowercase SHA-256');
 const date = z.iso.date();
 
 type Mode = 'content' | 'export';

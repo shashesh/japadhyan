@@ -3,6 +3,19 @@ import type { z } from 'zod';
 
 import type { Deity, Practice, Program, Tradition } from '../types';
 import { catalogIdSchema, contentSchemas, exportSchemas } from './catalog';
+import {
+  exportMantra,
+  contentMantra,
+  exportNamavali,
+  audio,
+  issuePaths,
+  without,
+  messages,
+  deity,
+  navaratri,
+  hindu,
+} from './catalog.fixtures';
+import type { mantraStep, nameStep } from './catalog.fixtures';
 
 // Both directions and both forms, so no schema can drift from its type.
 type Same<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
@@ -18,109 +31,6 @@ const contract: [
   Same<Output<typeof contentSchemas.tradition>, Tradition>,
 ] = [true, true, true, true, true, true, true, true];
 void contract;
-
-const SHA = 'a'.repeat(64);
-
-const mantraStep = (text: Record<string, string>, words: Record<string, string[]> | null) => ({
-  text,
-  words,
-  name: null,
-  meaning: null,
-  audio_start_ms: null,
-  audio_end_ms: null,
-});
-
-const practiceBase = {
-  id: 'om-namah-shivaya',
-  version: 1,
-  tradition_id: 'hindu',
-  deity_ids: ['shiva'],
-  title: { en: 'Om Namah Shivaya' },
-  subtitle: {},
-  source_script: 'devanagari',
-  repetition_word: { en: 'japa' },
-  intro: { en: 'Salutations to Shiva.' },
-  audio: null,
-  source: 'Shri Rudram',
-  licence: 'Public domain',
-  review: { advisor: 'Pandit A', reviewed_on: '2026-09-20' },
-};
-
-/** A mantra as a pack carries it: master text plus the generated `latin`. */
-function exportMantra(): Record<string, unknown> {
-  return {
-    ...practiceBase,
-    kind: 'mantra',
-    default_round: 108,
-    steps: [
-      mantraStep(
-        { devanagari: 'ॐ नमः शिवाय', iast: 'oṃ namaḥ śivāya', latin: 'Om Namah Shivaya' },
-        {
-          devanagari: ['ॐ', 'नमः', 'शिवाय'],
-          iast: ['oṃ', 'namaḥ', 'śivāya'],
-          latin: ['Om', 'Namah', 'Shivaya'],
-        },
-      ),
-    ],
-  };
-}
-
-/** The same mantra as authored in `content/`: master text only. */
-function contentMantra(): Record<string, unknown> {
-  return {
-    ...practiceBase,
-    kind: 'mantra',
-    default_round: 108,
-    steps: [
-      mantraStep(
-        { devanagari: 'ॐ नमः शिवाय', iast: 'oṃ namaḥ śivāya' },
-        { devanagari: ['ॐ', 'नमः', 'शिवाय'], iast: ['oṃ', 'namaḥ', 'śivāya'] },
-      ),
-    ],
-  };
-}
-
-const nameStep = (devanagari: string, iast: string, latin: string, name: string) => ({
-  text: { devanagari, iast, latin },
-  words: null,
-  name: { latin: name, devanagari: name, iast: name },
-  meaning: { en: 'One of the names' },
-  audio_start_ms: null,
-  audio_end_ms: null,
-});
-
-function exportNamavali(): Record<string, unknown> {
-  return {
-    ...practiceBase,
-    id: 'vishnu-ashtottara',
-    deity_ids: ['vishnu'],
-    title: { en: 'Vishnu Ashtottara Shatanamavali' },
-    subtitle: { en: '108 names' },
-    repetition_word: { en: 'paath' },
-    kind: 'namavali',
-    default_round: 1,
-    steps: [
-      nameStep('ॐ केशवाय नमः', 'oṃ keśavāya namaḥ', 'Om Keshavaya Namah', 'Keshava'),
-      nameStep('ॐ नारायणाय नमः', 'oṃ nārāyaṇāya namaḥ', 'Om Narayanaya Namah', 'Narayana'),
-    ],
-  };
-}
-
-const audio = { id: 'om-namah-shivaya-recitation', sha256: SHA, bytes: 90_000, duration_ms: 4_000 };
-
-/** Paths of every issue, so a test can say exactly what was rejected. */
-function issuePaths(result: { success: boolean; error?: { issues: { path: PropertyKey[] }[] } }) {
-  return (result.error?.issues ?? []).map((issue) => issue.path.join('.'));
-}
-
-/** A copy of `object` without `key`. */
-function without(object: Record<string, unknown>, key: string): Record<string, unknown> {
-  return Object.fromEntries(Object.entries(object).filter(([k]) => k !== key));
-}
-
-function messages(result: { success: boolean; error?: { issues: { message: string }[] } }) {
-  return (result.error?.issues ?? []).map((issue) => issue.message).join('\n');
-}
 
 describe('catalogIdSchema', () => {
   test.each(['vishnu-ashtottara', 'om-namah-shivaya', 'navaratri', 'mandala-40'])(
@@ -421,20 +331,6 @@ describe('contentSchemas.practice', () => {
   });
 });
 
-function deity(): Record<string, unknown> {
-  return {
-    id: 'shailaputri',
-    tradition_id: 'hindu',
-    parent_id: 'durga',
-    names: { en: { latin: 'Shailaputri' }, hi: { devanagari: 'शैलपुत्री' } },
-    summary: { en: 'Daughter of the mountain, first form of Navadurga.' },
-    image: { id: 'shailaputri-image', sha256: SHA, bytes: 40_000 },
-    suggested_mala: 'rudraksha',
-    featured_practice_id: 'shailaputri-mantra',
-    sort_order: 1,
-  };
-}
-
 describe('deity schemas', () => {
   test('accept a deity in both forms', () => {
     expect(exportSchemas.deity.safeParse(deity()).success).toBe(true);
@@ -511,18 +407,6 @@ describe('deity schemas', () => {
   });
 });
 
-function navaratri(): Record<string, unknown> {
-  return {
-    id: 'navaratri',
-    kind: 'festival',
-    duration: 9,
-    days: [
-      { day: 1, practice_id: 'shailaputri-mantra', target: 108, reading: { en: 'Day one' } },
-      { day: 2, practice_id: 'brahmacharini-mantra', target: null, reading: null },
-    ],
-  };
-}
-
 describe('program schemas', () => {
   test('accept a festival program with a plan per day', () => {
     expect(exportSchemas.program.safeParse(navaratri()).success).toBe(true);
@@ -575,16 +459,6 @@ describe('program schemas', () => {
     expect(exportSchemas.program.safeParse({ ...navaratri(), duration: 0 }).success).toBe(false);
   });
 });
-
-function hindu(): Record<string, unknown> {
-  return {
-    id: 'hindu',
-    deity_label: { en: 'Deity' },
-    offering_label: { en: 'Offer at the lotus feet' },
-    default_round_size: 108,
-    show_images_by_default: true,
-  };
-}
 
 describe('tradition schemas', () => {
   test('accept a tradition in both forms', () => {

@@ -7,3 +7,4 @@
 export * from './catalog';
 export * from './sync';
 export * from './practice';
+export * from './packs';
