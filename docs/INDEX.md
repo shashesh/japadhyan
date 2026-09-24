@@ -53,7 +53,10 @@
 
 - [plans/_template.md](plans/_template.md) — template for new plans
 - [plans/active/2026-09-21-phase-1-plan.md](plans/active/2026-09-21-phase-1-plan.md) — Phase 1 build plan: milestones M0–M11 and early spikes
-- [plans/active/2026-09-24-content-build-and-packs.md](plans/active/2026-09-24-content-build-and-packs.md) — M2: build packs, the manifest and the reviewed snapshot; sign the manifest
+
+### Archived plans
+
+- [archive/plans/2026-09-24-content-build-and-packs.md](archive/plans/2026-09-24-content-build-and-packs.md) — M2 (done): build packs, the manifest and the reviewed snapshot; sign the manifest
 
 ## Decisions
 
