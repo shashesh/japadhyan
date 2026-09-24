@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-09-23
+updated: 2026-09-24
 ---
 
 # Monorepo structure
@@ -25,8 +25,9 @@ japadhyan/
 │        ├─ logic/            Pure business logic + Vitest tests
 │        └─ constants/        Round sizes and other fixed values
 ├─ tools/
-│  └─ content-build/          Checks content/; grows into the pack build in M2. Runs locally
+│  └─ content-build/          Builds content/ into packs, under Node's permission model. Runs locally
 ├─ content/                   Deities, practices, programs as YAML — built into packs
+├─ content-snapshot/          Each practice with every generated script, as reviewed. Written by the build
 ├─ docs/                      Product, architecture, decisions, plans
 ├─ scripts/                   Repo tooling: git hooks setup, CI guard tests (node:test)
 ├─ .githooks/                 Git hooks: no commits or pushes to master; Markdown checks
