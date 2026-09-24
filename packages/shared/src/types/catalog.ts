@@ -27,8 +27,8 @@ export type Script =
   | 'tibetan';
 
 /**
- * A script catalog text can be authored in. Never `latin`, which is always
- * generated from the source script and IAST.
+ * A script catalog text can be authored in. Never `latin`, which is
+ * generated from the IAST, or hand-written only to override that.
  */
 export type SourceScript = Exclude<Script, 'latin'>;
 

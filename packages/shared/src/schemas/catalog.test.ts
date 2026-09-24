@@ -381,11 +381,20 @@ describe('contentSchemas.practice', () => {
     expect(contentSchemas.practice.safeParse(contentMantra()).success).toBe(true);
   });
 
-  test('rejects hand-written latin, which the build generates', () => {
-    const result = contentSchemas.practice.safeParse(exportMantra());
+  test('accepts a hand-written latin, which overrides the generated one', () => {
+    expect(contentSchemas.practice.safeParse(exportMantra()).success).toBe(true);
+  });
+
+  test('rejects the scripts the build generates', () => {
+    const practice = contentMantra();
+    const [step] = practice.steps as ReturnType<typeof mantraStep>[];
+    step!.text = { ...step!.text, tamil: 'ௐ நம꞉ ஶிவாய' };
+    step!.words = { ...step!.words, telugu: ['ఓం', 'నమః', 'శివాయ'] };
+
+    const result = contentSchemas.practice.safeParse(practice);
 
     expect(issuePaths(result)).toEqual(['steps.0.text', 'steps.0.words']);
-    expect(messages(result)).toMatch(/latin.*generated/);
+    expect(messages(result)).toMatch(/`tamil` generated at build time/);
   });
 
   test('requires IAST alongside the source script', () => {
