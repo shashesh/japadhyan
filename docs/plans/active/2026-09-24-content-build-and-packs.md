@@ -231,7 +231,7 @@ Three PRs, each a draft against `master` and each passing `npm run check` locall
   - `unknown fields are dropped, not rejected` — the export behaviour, for forward compatibility
   - `a script pack's steps carry plain strings, not maps by script`
   - `a manifest entry needs a lowercase sha256 and positive bytes`
-  - `a manifest path must be packs/<id>.<16 hex>.json` — `..`, backslashes, absolute paths, empty segments and anything outside `[a-z0-9-/.]` are rejected, so no path can leave the pack folder
+  - `a manifest path must be packs/<id>.<16 hex>.json` — each segment of the id is checked for what it is (a catalog id, a script, a language tag in its canonical case such as `pt-BR`), so `..`, backslashes, absolute paths and empty segments are rejected and no path can leave the pack folder
   - `manifest packs must be sorted by id and unique`
   - `release is a non-negative integer; channel is development or production`
   - `a signature needs algorithm ed25519, a 16-hex key_id and base64`
@@ -400,15 +400,17 @@ node scripts/content-sign.mjs verify --public-key <base64> --dir dist/content/<c
   - `keygen refuses a path inside the repo, comparing real paths` — including through a symbolic link
   - `sign refuses a --key inside the repo, comparing real paths` — the same check as `keygen`
   - `sign refuses to run from a checkout with node_modules or uncommitted changes, and prints the commit it is at`
-  - `sign refuses a manifest path that resolves outside --dir`
+  - `sign and verify refuse a pack whose real path is outside --dir` — a symbolic link as the `packs/` folder or as one pack, as well as `..`
   - `sign then verify succeeds`
   - `changing one byte of a pack fails sign: the manifest no longer matches`
   - `a file in packs/ not in the manifest, or a manifest entry with no file, fails sign`
   - `changing one byte of manifest.json after signing fails verify`
+  - `changing one byte of a pack after signing fails verify` — `verify` re-hashes every pack, not just the signature
+  - `a pack missing, or a file in packs/ not in the manifest, fails verify as well as sign`
   - `a wrong passphrase fails without writing a signature`
   - `verify with a different key fails, naming both key ids`
   - `the passphrase comes from the terminal, or stdin when it isn't one; never argv or env`
-- [ ] Implement. `sign` re-hashes every pack against the manifest, then signs the exact bytes of `manifest.json`, then writes `manifest.sig.json`.
+- [ ] Implement. `sign` and `verify` share one check: every manifest path resolves, through real paths, to a file inside `--dir`; its size and SHA-256 match; and `packs/` holds nothing else. Then `sign` signs the exact bytes of `manifest.json` and writes `manifest.sig.json`, and `verify` checks that signature.
 - [ ] Docs: content-pipeline.md signing section (commands, key ids, current and next keys, signing from a clean clone, and decision 12 in place of "never see the key"); the same sentence in the [transliteration decision](../../decisions/2026-09-23-transliteration-library.md#consequences); `docs/guides/setup.md` (building and signing content locally).
 - [ ] Commit: `feat(scripts): sign and verify the content manifest`. Push, draft PR, request Copilot.
 - [ ] **Owner, after merge:** run `keygen` twice (current and next) to a folder outside the repo, save both passphrases in the password manager, and send the two public keys and key ids. They go into the app with M3.
