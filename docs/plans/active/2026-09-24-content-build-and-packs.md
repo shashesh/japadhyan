@@ -31,7 +31,7 @@ Covers the M2 items _build script_ (minus publishing), _pack layout_, _productio
 
 ## Decisions
 
-All accepted by the owner on 2026-09-24, as recommended, with an addition to 8. Those marked **spec change** amend [content-pipeline.md](../../architecture/content-pipeline.md), and the amendment lands in the same PR as the code.
+All accepted by the owner on 2026-09-24, as recommended, with an addition to 8. Decisions 11 and 12 came from Copilot's review of this plan. Those marked **spec change** amend [content-pipeline.md](../../architecture/content-pipeline.md), and the amendment lands in the same PR as the code.
 
 1. **`core` includes every launch deity's script and language add-ons in P1** (spec change). The spec puts only base packs in `core`, so a devotee reading Tamil would have to download `deity/shiva/script/tamil`, and that request names the deity. P1 promises that nothing is fetched to use the library. The spec's own estimate is about 2 MB of text for every script and several languages. _Accepted._
 2. **Launch deities are every deity in `content/`**, with no flag, until the library outgrows the bundle. _Accepted; add a flag when we first need one._
@@ -43,6 +43,14 @@ All accepted by the owner on 2026-09-24, as recommended, with an addition to 8. 
 8. **A production build refuses to run if any practice is unreviewed**, and lists every one of them. It doesn't quietly leave them out, because leaving one out can break a deity's `featured_practice_id`. Development builds include them; the index marks each `reviewed: false` so the app can flag them. _Accepted._ **Added:** `review` records the `version` it covers (`review: { advisor, reviewed_on, version }`), and a practice counts as reviewed only while `review.version` equals its `version`. Decision 7 forces a bump whenever the text or a generated script changes, so any change a devotee would see goes back to the advisor. The owner is the Hindu advisor and reviews the five development mantras once PR 2 has built their snapshot.
 9. **Base packs are English.** The spec says base packs carry "English"; every other language comes as an add-on. So a practice's `title` and `repetition_word`, and a deity's `names`, must have `en`, which the validator checks. The index keeps every language for titles and names, since search needs them and they are small. _Accepted._
 10. **Keys:** the production private key is an encrypted PKCS#8 PEM file kept outside the repo, with its passphrase in the owner's password manager, entered at a prompt, never taken from an env var or argument. The owner generates two key pairs, _current_ and _next_, and the app ships both public keys. Development builds are signed with a key each developer generates for themselves, which production apps never trust. Hardware keys can come later: Node's crypto can't sign with a hardware key directly. _Accepted._
+11. **Only the chanted text bumps a version** (spec change: the specs say "bumped on any text change"). A version change resets a devotee's saved place in a namavali, so a typo fixed in an English intro shouldn't send someone 600 names into the Sahasranama back to the start. The version covers each step's text, words and name in every script, and the number of steps. Titles, subtitles, intros, meanings, repetition words, source and licence can be corrected without a bump. _Accepted._
+12. **The key is protected by its encryption and a clean signing folder, not by the build's sandbox** (spec change). `npm install` and `npm test` already run every third-party package, the transliterator included, with the owner's full permissions, so the permission model around the build can't be what keeps the key safe, and the spec shouldn't claim it does. What does:
+    - The key file is encrypted (decision 10). A malicious package could copy it but not use it.
+    - The passphrase is typed only into the signing script, and **signing runs from a fresh clone where `npm install` never ran**. The script needs nothing from npm. It refuses to run if its checkout has a `node_modules` folder or uncommitted changes, and prints the commit it is at. So a package that tampered with the signing script in the everyday checkout never gets the passphrase.
+    - The build keeps its permission-model sandbox as an extra layer. esbuild stays, pinned: it is no riskier than `npm test`.
+    - Not covered: on a compromised machine the build itself could put text in a pack that differs from the reviewed snapshot, and the owner would sign it. The follow-up is a reproducible build checked by a second machine (see [risks](#risks-and-open-questions)).
+
+    _Accepted._
 
 ## Design
 
@@ -180,14 +188,16 @@ A script or language pack's practice entries carry the `version` they were built
 - Every pack parses with its **export** schema from `packages/shared`, the one the app will use, before it is written.
 - Packs are **canonical JSON**: keys sorted, no whitespace, strings in NFC, entities sorted by id, steps in order. Building twice gives identical bytes.
 - A production build refuses unreviewed practices (decision 8).
-- The version rules against the snapshot (decision 7). A practice removed from `content/` has its snapshot file removed, which shows in the PR.
+- The version rules against the snapshot (decisions 7 and 11). A practice removed from `content/` **keeps** its snapshot, as a record of the highest version it reached: it isn't packed, and bringing the id back needs a higher version. Ids never change once published, and devotees' counts and saved places are keyed by them, so an id must never come back at a lower version with different text.
 - The snapshot is written only when validation and the version rules pass, so a failed build leaves the committed baseline as it was.
 
-### How the build is kept away from the key
+### The build's sandbox
 
 Tested while writing this plan: `tsx` can't run under `node --permission`, because it talks to its own process over a named pipe the permission model blocks. Bundling with esbuild works. The bundle runs as plain `node --permission --allow-fs-read=<repo>`, validates `content/` in about 0.3 s, and a read of a file in the home folder is denied. It needs two things: a `createRequire` banner, because `yaml` calls `require('process')`, and `vidyut_bg.wasm` copied beside the bundle.
 
 So `npm run content:build` runs `tools/content-build/run.mjs`, a launcher that imports nothing third-party. It bundles, then starts `node --permission` with read access to the repo, write access to `dist/content/` and `content-snapshot/` only, and no child processes, workers, addons or WASI. The signing script is a separate file in `scripts/` that the bundle never includes.
+
+This sandbox is an extra layer, not what keeps the key safe (decision 12). Node's permission model follows symbolic links, so a link inside the repo pointing at the key would open it to the build; the launcher refuses to run if any link in the repo resolves outside it.
 
 ## File structure
 
@@ -220,7 +230,8 @@ Three PRs, each a draft against `master` and each passing `npm run check` locall
   - `a pack with a higher schema_version is rejected` — the app ignores it (spec: newer major version)
   - `unknown fields are dropped, not rejected` — the export behaviour, for forward compatibility
   - `a script pack's steps carry plain strings, not maps by script`
-  - `a manifest entry needs a lowercase sha256, positive bytes and a path under packs/`
+  - `a manifest entry needs a lowercase sha256 and positive bytes`
+  - `a manifest path must be packs/<id>.<16 hex>.json` — `..`, backslashes, absolute paths, empty segments and anything outside `[a-z0-9-/.]` are rejected, so no path can leave the pack folder
   - `manifest packs must be sorted by id and unique`
   - `release is a non-negative integer; channel is development or production`
   - `a signature needs algorithm ed25519, a 16-hex key_id and base64`
@@ -244,7 +255,7 @@ Three PRs, each a draft against `master` and each passing `npm run check` locall
 
 #### Task 3: docs for PR 1
 
-- [ ] In [content-pipeline.md](../../architecture/content-pipeline.md): the pack shapes in brief, decisions 1, 3, 4 and 5 (the spec changes), and "the app installs `core` by installing each pack in it". In its review bullet, [data-model.md](../../architecture/data-model.md#practice) and [content/README.md](../../../content/README.md): `review` now records `version`, and a changed practice goes back to the advisor.
+- [ ] In [content-pipeline.md](../../architecture/content-pipeline.md): the pack shapes in brief, decisions 1, 3, 4 and 5 (the spec changes), and "the app installs `core` by installing each pack in it". In its review bullet, [data-model.md](../../architecture/data-model.md#practice) and [content/README.md](../../../content/README.md): `review` now records `version`, and a changed practice goes back to the advisor. Decision 11 in the same three places: "any text change bumps the version" becomes "any change to the chanted text", with what that covers.
 - [ ] Run `npm run format` then `npm run lint:md`.
 - [ ] Commit: `docs: pack formats and release numbers`. Push, open the draft PR, request Copilot.
 
@@ -313,7 +324,8 @@ export function versionIssues(
   - `a different number of steps with the same version is an issue`
   - `a lower version is an issue: versions only go up`
   - `a higher version with changed text is fine`
-  - `a changed intro or title needs no bump` — the rule covers step text only
+  - `a changed intro, title, meaning or repetition word needs no bump` — decision 11
+  - `a removed practice keeps its snapshot, and coming back needs a version above it`
   - `snapshotYaml is stable: the same practice gives the same bytes`
 - [ ] Implement. Run the tests, commit: `feat(content-build): reviewed snapshot and version rules`.
 
@@ -347,7 +359,7 @@ export function build(options: BuildOptions): { issues: readonly ContentIssue[] 
   - `a development build includes unreviewed practices, marked reviewed: false`
   - `a practice reviewed at an earlier version counts as unreviewed` — in both channels, through `isReviewed`
   - `a build with content or version issues writes no snapshot and no packs`
-  - `the build removes the snapshot of a practice no longer in content/`
+  - `a practice removed from content/ keeps its snapshot and is not packed`
   - `the output folder is emptied first, so no stale pack survives`
   - `production needs --release; development defaults to 0`
 - [ ] Implement. `cli.ts` stays the validator; `build.ts` has its own `main` that reads `--channel` and `--release`.
@@ -362,6 +374,7 @@ export function build(options: BuildOptions): { issues: readonly ContentIssue[] 
   - `the permission flags read only the repo and write only dist/content and content-snapshot`
   - `no child process, worker, addon or WASI is allowed`
   - `the bundle cannot read a file outside the repo` — build, then run a one-line probe under the same flags, and expect `ERR_ACCESS_DENIED`
+  - `the launcher refuses to run if a symbolic link in the repo resolves outside it` — `node_modules` workspace links point inside the repo and are fine
 - [ ] Implement `run.mjs`: bundle `src/build.ts` to `tools/content-build/dist/build.mjs` with the `createRequire` banner, copy `vidyut_bg.wasm` beside it, then spawn `node --permission …` with absolute paths.
 - [ ] Root scripts: `"content:build": "node tools/content-build/run.mjs"`.
 - [ ] Run `npm run content:build -- --channel development`; commit the new `content-snapshot/`. Read it: each of the five mantras in every script.
@@ -373,7 +386,7 @@ export function build(options: BuildOptions): { issues: readonly ContentIssue[] 
 
 #### Task 10: `scripts/content-sign.mjs`
 
-Plain Node, built-ins only (`node:crypto`, `node:fs`, `node:path`, `node:readline`), nothing imported from the build.
+Plain Node, built-ins only (`node:crypto`, `node:fs`, `node:path`, `node:readline`, and `node:child_process` for `git`), nothing imported from the build. `sign` runs from a fresh clone with no `node_modules` (decision 12); `--dir` may point at the build output in the everyday checkout, since packs are only data and are checked against the manifest.
 
 ```text
 node scripts/content-sign.mjs keygen --out <path outside the repo>
@@ -383,7 +396,9 @@ node scripts/content-sign.mjs verify --public-key <base64> --dir dist/content/<c
 
 - [ ] Failing tests in `scripts/content-sign.test.mjs`, each with a key generated into a temp folder:
   - `keygen writes an encrypted PKCS#8 PEM and prints the base64 public key and key_id`
-  - `keygen refuses a path inside the repo`
+  - `keygen refuses a path inside the repo, comparing real paths` — including through a symbolic link
+  - `sign refuses to run from a checkout with node_modules or uncommitted changes, and prints the commit it is at`
+  - `sign refuses a manifest path that resolves outside --dir`
   - `sign then verify succeeds`
   - `changing one byte of a pack fails sign: the manifest no longer matches`
   - `a file in packs/ not in the manifest, or a manifest entry with no file, fails sign`
@@ -392,13 +407,14 @@ node scripts/content-sign.mjs verify --public-key <base64> --dir dist/content/<c
   - `verify with a different key fails, naming both key ids`
   - `the passphrase comes from the terminal, or stdin when it isn't one; never argv or env`
 - [ ] Implement. `sign` re-hashes every pack against the manifest, then signs the exact bytes of `manifest.json`, then writes `manifest.sig.json`.
-- [ ] Docs: content-pipeline.md signing section (commands, key ids, current and next keys); `docs/guides/setup.md` (building and signing content locally).
+- [ ] Docs: content-pipeline.md signing section (commands, key ids, current and next keys, signing from a clean clone, and decision 12 in place of "never see the key"); the same sentence in the [transliteration decision](../../decisions/2026-09-23-transliteration-library.md#consequences); `docs/guides/setup.md` (building and signing content locally).
 - [ ] Commit: `feat(scripts): sign and verify the content manifest`. Push, draft PR, request Copilot.
 - [ ] **Owner, after merge:** run `keygen` twice (current and next) to a folder outside the repo, save both passphrases in the password manager, and send the two public keys and key ids. They go into the app with M3.
 
 ## Risks and open questions
 
-- **Node 24's permission model limits the file system, not the network.** The key is safe because the build can't read it, not because the build is offline. A compromised dependency could still send the public content repo somewhere, which is harmless, or write wrong text, which the IAST check, round trip, snapshot review and signing check are there to catch.
+- **Node 24's permission model limits the file system, not the network**, and `npm test` runs the same packages with no sandbox at all. The key's safety rests on decision 12, not on the sandbox.
+- **A compromised machine could change what the build packs.** Its output could differ from the reviewed snapshot, and the owner would sign it. Follow-up after this plan: builds are already byte-for-byte reproducible, so CI (or a second machine) builds the same commit and the owner signs only when the two manifests' SHA-256 match.
 - **The snapshot can be edited by hand**, which would weaken the version rules. PR review is the guard; publishing will also compare against the live manifest.
 - **Deities and traditions have no `review` field**, so production gates only practices. Deity names and summaries are hand-written text too. Worth asking the advisor whether they want to sign these off.
 - **The esbuild bundle depends on how `@siva-sh/vidyut` finds its wasm**: `wasm-url` resolves beside the importing file. An upgrade that changes this breaks the build loudly, not silently.
