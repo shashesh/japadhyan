@@ -399,7 +399,7 @@ node scripts/content-sign.mjs sign   --key <pem> --dir dist/content/<channel>
 node scripts/content-sign.mjs verify --public-key <base64> --dir dist/content/<channel>
 ```
 
-- [ ] Failing tests in `scripts/content-sign.test.mjs`, each with a key generated into a temp folder:
+- [x] Failing tests in `scripts/content-sign.test.mjs`, each with a key generated into a temp folder:
   - `keygen writes an encrypted PKCS#8 PEM and prints the base64 public key and key_id`
   - `keygen refuses a path inside the repo, comparing real paths` — including through a symbolic link
   - `sign refuses a --key inside the repo, comparing real paths` — the same check as `keygen`
@@ -417,9 +417,16 @@ node scripts/content-sign.mjs verify --public-key <base64> --dir dist/content/<c
   - `a wrong passphrase fails without writing a signature`
   - `verify with a different key fails, naming both key ids`
   - `the passphrase comes from the terminal, or stdin when it isn't one; never argv or env`
-- [ ] Implement. `sign` and `verify` share one check in this order: resolve `--dir` to its real path; validate that `manifest.json` is itself a regular file inside it before opening it; parse the manifest; validate that every manifest path resolves, through real paths, to a regular file inside `--dir`; re-hash those files and check their size and SHA-256; and confirm `packs/` holds nothing else. Then `sign` signs the exact bytes of `manifest.json` and writes `manifest.sig.json` through a temporary file in `--dir` and a rename, and `verify` validates `manifest.sig.json` the same way as `manifest.json` before checking that signature.
-- [ ] Docs: content-pipeline.md signing section (commands, key ids, current and next keys, signing from a clean clone, and decision 12 in place of "never see the key"); the same sentence in the [transliteration decision](../../decisions/2026-09-23-transliteration-library.md#consequences); `docs/guides/setup.md` (building and signing content locally).
-- [ ] Commit: `feat(scripts): sign and verify the content manifest`. Push, draft PR, request Copilot.
+- [x] Implement. `sign` and `verify` share one check in this order: resolve `--dir` to its real path; validate that `manifest.json` is itself a regular file inside it before opening it; parse the manifest; validate that every manifest path resolves, through real paths, to a regular file inside `--dir`; re-hash those files and check their size and SHA-256; and confirm `packs/` holds nothing else. Then `sign` signs the exact bytes of `manifest.json` and writes `manifest.sig.json` through a temporary file in `--dir` and a rename, and `verify` validates `manifest.sig.json` the same way as `manifest.json` before checking that signature.
+- [x] Docs: content-pipeline.md signing section (commands, key ids, current and next keys, signing from a clean clone, and decision 12 in place of "never see the key"); the same sentence in the [transliteration decision](../../decisions/2026-09-23-transliteration-library.md#consequences); `docs/guides/setup.md` (building and signing content locally).
+- [x] Commit: `feat(scripts): sign and verify the content manifest`. Push, draft PR, request Copilot.
+
+**As built (PR 3):**
+
+- `keygen` takes the passphrase too, so it runs from a fresh clone like `sign`, with the same check. It asks twice and needs at least 20 characters: Node writes the PEM with PBKDF2 at 2048 rounds and can't raise that, so the passphrase carries the strength. It never overwrites a file.
+- `sign` also refuses a key that isn't an encrypted PEM, and the check for `node_modules` walks the whole clone, since git doesn't list an empty folder.
+- `sign` and `verify` never follow a link in `packs/`: they list it without following links and compare that list with the manifest, which also catches `..` and paths outside `packs/`.
+- Windows allows file links only in Developer Mode, so the four tests that make one skip there; CI runs them on Linux. The terminal prompt was checked by hand through a pseudo-terminal.
 - [ ] **Owner, after merge:** run `keygen` twice (current and next) to a folder outside the repo, save both passphrases in the password manager, and send the two public keys and key ids. They go into the app with M3.
 
 ## Risks and open questions
@@ -437,5 +444,5 @@ node scripts/content-sign.mjs verify --public-key <base64> --dir dist/content/<c
 - [x] `--channel production` refuses today's content, since all five practices are unreviewed, and lists them
 - [x] Every pack parses with the export schemas in `packages/shared`, and building twice gives identical bytes
 - [x] `npm test` fails when the snapshot is out of date or a practice's text changed without a version bump
-- [ ] `scripts/content-sign.mjs` signs a development build, verify accepts it, and one changed byte anywhere makes it fail
-- [ ] content-pipeline.md, content/README.md, the setup guide, TECH-VERSIONS and the phase 1 plan match what was built
+- [x] `scripts/content-sign.mjs` signs a development build, verify accepts it, and one changed byte anywhere makes it fail
+- [x] content-pipeline.md, content/README.md, the setup guide, TECH-VERSIONS and the phase 1 plan match what was built
