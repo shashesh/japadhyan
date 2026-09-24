@@ -196,6 +196,16 @@ describe('pack schemas', () => {
     );
   });
 
+  test.each(['latin', 'iast'])('there is no %s add-on: the base pack carries it', (base) => {
+    const result = packSchemas.script.safeParse({
+      ...scriptPack(),
+      id: `deity/shiva/script/${base}`,
+      script: base,
+    });
+
+    expect(result.success).toBe(false);
+  });
+
   test('a script pack is named after its script', () => {
     const result = packSchemas.script.safeParse({ ...scriptPack(), script: 'telugu' });
 
@@ -283,6 +293,10 @@ describe('packIdSchema', () => {
     'deity/shiva/script/klingon',
     'deity/shiva/lang/english',
     'deity/shiva/audio/x',
+    'deity/shiva/script/latin',
+    'deity/shiva/script/iast',
+    'deity/0192f8e4-7c1a-7b3e-9d4f-2a6b8c0d1e2f',
+    'deity/0192f8e4-7c1a-7b3e-9d4f-2a6b8c0d1e2f/script/tamil',
     'deity/../core',
     'other',
   ])('rejects %s', (id) => {

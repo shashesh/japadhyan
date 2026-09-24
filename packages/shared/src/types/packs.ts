@@ -77,12 +77,15 @@ export interface ScriptStep {
   name: string | null;
 }
 
+/** A script an add-on can bring: the base pack always has `latin` and `iast`. */
+export type AddOnScript = Exclude<Script, 'latin' | 'iast'>;
+
 /**
  * One extra script for a deity's practices. Each entry applies only to the
  * practice at the `version` it was built from, merged step by step.
  */
 export interface ScriptPack extends PackBase {
-  script: Script;
+  script: AddOnScript;
   practices: readonly {
     id: string;
     version: number;

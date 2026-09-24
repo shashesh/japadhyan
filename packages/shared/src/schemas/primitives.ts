@@ -29,7 +29,9 @@ export const script = z.enum([
  * than BCP 47 on purpose: keys are matched exactly, so each language has one
  * spelling, and extensions (`-u-`, `-x-`) say nothing about a text's language.
  */
-export const LANGUAGE_TAG = /^[a-z]{2,3}(-[A-Z][a-z]{3})?(-([A-Z]{2}|[0-9]{3}))?$/;
+/** Unanchored, so a pack id can embed it. */
+export const LANGUAGE_TAG_PATTERN = '[a-z]{2,3}(?:-[A-Z][a-z]{3})?(?:-(?:[A-Z]{2}|[0-9]{3}))?';
+export const LANGUAGE_TAG = new RegExp(`^${LANGUAGE_TAG_PATTERN}$`);
 export const languageTag = z.string().regex(LANGUAGE_TAG, 'Not a language tag');
 
 export const sha256 = z.string().regex(/^[0-9a-f]{64}$/, 'Not a lowercase SHA-256');

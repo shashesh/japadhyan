@@ -10,18 +10,38 @@
 import { z } from 'zod';
 
 import { PACK_SCHEMA_VERSION } from '../constants/packs';
-import { exportSchemas } from './catalog';
-import { LANGUAGE_TAG, nonBlank, nonNegativeInt, positiveInt, script, sha256 } from './primitives';
+import { catalogIdSchema, exportSchemas } from './catalog';
+import {
+  LANGUAGE_TAG,
+  LANGUAGE_TAG_PATTERN,
+  nonBlank,
+  nonNegativeInt,
+  positiveInt,
+  script,
+  sha256,
+} from './primitives';
 
 const schemaVersion = z.literal(PACK_SCHEMA_VERSION);
 
-const CATALOG_ID = '[a-z0-9-]+';
-const SCRIPT = script.options.join('|');
-const LANGUAGE = LANGUAGE_TAG.source.slice(1, -1);
-const PACK_ID = `index|programs|core|deity/${CATALOG_ID}(?:/script/(?:${SCRIPT})|/lang/${LANGUAGE})?`;
+/** The base pack carries the source script, IAST and `latin`, so no add-on does. */
+const addOnScript = script.exclude(['latin', 'iast'], {
+  error: '`latin` and `iast` are in the base pack, never an add-on',
+});
 
-/** A pack's id. Letters, digits, hyphens and `/` only, so it is safe in a path. */
-export const packIdSchema = z.string().regex(new RegExp(`^(?:${PACK_ID})$`), 'Not a pack id');
+const CATALOG_ID = '[a-z0-9-]+';
+const PACK_ID = `index|programs|core|deity/(${CATALOG_ID})(?:/script/(?:${addOnScript.options.join('|')})|/lang/${LANGUAGE_TAG_PATTERN})?`;
+
+/**
+ * A pack's id. Letters, digits, hyphens and `/` only, so it is safe in a
+ * path, and a deity's id is a catalog id, never shaped like a UUID.
+ */
+export const packIdSchema = z
+  .string()
+  .regex(new RegExp(`^(?:${PACK_ID})$`), 'Not a pack id')
+  .refine((id) => {
+    const deityId = new RegExp(`^(?:${PACK_ID})$`).exec(id)?.[1];
+    return deityId === undefined || catalogIdSchema.safeParse(deityId).success;
+  }, 'Not a catalog id');
 
 const deityPackId = (deityId: string) => `deity/${deityId}`;
 
@@ -122,7 +142,7 @@ const scriptPack = z
   .object({
     id: packIdSchema,
     schema_version: schemaVersion,
-    script,
+    script: addOnScript,
     practices: z
       .array(
         z.object({
