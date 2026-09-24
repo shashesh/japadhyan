@@ -41,8 +41,20 @@ const ENCRYPTED_PEM_HEADER = '-----BEGIN ENCRYPTED PRIVATE KEY-----';
 const KEY_ID_HEX_DIGITS = 16;
 const CHANNELS = ['development', 'production'];
 const PACK_PATH = /^packs\/(?:[A-Za-z0-9_.-]+\/)*[A-Za-z0-9_.-]+\.json$/;
+// The same patterns as manifestSignatureSchema in packages/shared, which this can't import.
+const KEY_ID = /^[0-9a-f]{16}$/;
+const SIGNATURE = /^[A-Za-z0-9+/]{85}[AQgw]==$/;
 
 class SignError extends Error {}
+
+// A name read from the build folder, which isn't trusted: control characters are shown as
+// \u escapes, so a crafted file name can't send escape codes to the terminal.
+function printable(name) {
+  // eslint-disable-next-line no-control-regex
+  return name.replace(/[\u0000-\u001f\u007f-\u009f]/g, (char) => {
+    return `\\u${char.charCodeAt(0).toString(16).padStart(4, '0')}`;
+  });
+}
 
 // --- Paths -----------------------------------------------------------------------------
 
@@ -228,10 +240,11 @@ function listPackFiles(dir, prefix = 'packs') {
   const files = [];
   for (const entry of readdirSync(join(dir, prefix), { withFileTypes: true })) {
     const path = `${prefix}/${entry.name}`;
-    if (entry.isSymbolicLink()) throw new SignError(`${path} is a link. Refusing to follow it.`);
+    const shown = printable(path);
+    if (entry.isSymbolicLink()) throw new SignError(`${shown} is a link. Refusing to follow it.`);
     if (entry.isDirectory()) files.push(...listPackFiles(dir, path));
     else if (entry.isFile()) files.push(path);
-    else throw new SignError(`${path} is not a file or folder.`);
+    else throw new SignError(`${shown} is not a file or folder.`);
   }
   return files;
 }
@@ -244,7 +257,7 @@ function packProblems(dir, manifest) {
   const listed = new Set(manifest.packs.map((entry) => entry.path));
   const problems = [...found]
     .filter((path) => !listed.has(path))
-    .map((path) => `${path} is not in the manifest.`);
+    .map((path) => `${printable(path)} is not in the manifest.`);
   for (const { path, bytes, sha256 } of manifest.packs) {
     if (!found.has(path)) {
       problems.push(`${path} is missing.`);
@@ -352,7 +365,7 @@ function parseSignature(bytes) {
     throw new SignError('manifest.sig.json is not valid JSON.');
   }
   const { algorithm, key_id: keyId, signature: base64 } = signature ?? {};
-  if (algorithm !== 'ed25519' || typeof keyId !== 'string' || typeof base64 !== 'string') {
+  if (algorithm !== 'ed25519' || !KEY_ID.test(keyId) || !SIGNATURE.test(base64)) {
     throw new SignError('manifest.sig.json is not an Ed25519 manifest signature.');
   }
   return { keyId, bytes: Buffer.from(base64, 'base64') };

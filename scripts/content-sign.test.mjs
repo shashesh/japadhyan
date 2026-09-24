@@ -401,6 +401,49 @@ test('a manifest with an unknown channel or a release that is not a whole number
   }
 });
 
+test('a file name in packs/ with a terminal escape is printed escaped', (t) => {
+  const { key, publicKey, dir } = setUp();
+  sign(key, dir);
+  try {
+    writeFileSync(join(dir, 'packs', '\u001b[2J.json'), '{}');
+  } catch (error) {
+    if (!['EINVAL', 'ENOENT'].includes(error.code)) throw error;
+    t.skip('this file system refuses control characters in names');
+    return;
+  }
+
+  const verified = verify(publicKey, dir);
+  rmSync(join(dir, 'manifest.sig.json'));
+  const signed = sign(key, dir);
+
+  for (const result of [verified, signed]) {
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /packs\/\\u001b\[2J\.json.*not in the manifest/);
+    assert.ok(!(result.stdout + result.stderr).includes('\u001b'), 'no escape printed');
+  }
+});
+
+test('verify refuses a manifest.sig.json whose key_id or signature is malformed, without printing them', () => {
+  const { key, publicKey, dir } = setUp();
+  sign(key, dir);
+  const good = JSON.parse(readFileSync(join(dir, 'manifest.sig.json'), 'utf8'));
+  const bad = [
+    { ...good, key_id: '\u001b[2J0123456789ab' },
+    { ...good, key_id: good.key_id.toUpperCase() },
+    { ...good, signature: good.signature.slice(0, -4) },
+    { ...good, signature: ` ${good.signature}` },
+  ];
+
+  for (const signature of bad) {
+    writeFileSync(join(dir, 'manifest.sig.json'), JSON.stringify(signature));
+    const result = verify(publicKey, dir);
+
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /not an Ed25519 manifest signature/);
+    assert.ok(!(result.stdout + result.stderr).includes('\u001b'), 'no escape printed');
+  }
+});
+
 test('changing one byte of a pack fails sign: the manifest no longer matches', () => {
   const { key, dir, entries } = setUp();
   flipLastByte(join(dir, entries[1].path));
