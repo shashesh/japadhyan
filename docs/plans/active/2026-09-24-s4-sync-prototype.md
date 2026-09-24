@@ -6,7 +6,7 @@ created: 2026-09-24
 
 # S4 — sync prototype on PowerSync
 
-> **For agentic workers:** use superpowers:subagent-driven-development or superpowers:executing-plans to carry this out task by task. The [decisions](#decisions) are **proposed** and wait for the owner. The interfaces and test cases below are binding; the implementation is left to the task.
+> **For agentic workers:** use superpowers:subagent-driven-development or superpowers:executing-plans to carry this out task by task. The owner accepted every [decision](#decisions) on 2026-09-24. The interfaces and test cases below are binding; the implementation is left to the task.
 
 ## Goal
 
@@ -35,7 +35,7 @@ Closes the three open criteria of the [sync engine decision](../../decisions/202
 
 ## Decisions
 
-Proposed. Those marked **spec change** amend [data-model.md](../../architecture/data-model.md), and the amendment lands in the same PR as the code.
+All accepted by the owner on 2026-09-24, as proposed. Those marked **spec change** amend [data-model.md](../../architecture/data-model.md), and the amendment lands in the same PR as the code.
 
 1. **Local first, cloud last.** PRs 1–4 run on a local stack: `supabase start`, plus `journeyapps/powersync-service` 1.26.1 (Open Edition, GA) with Postgres bucket storage, in Docker. PowerSync publishes this setup as its [self-host demo](https://github.com/powersync-ja/self-host-demo/tree/main/demos/supabase). The tests then need no accounts, cost nothing, and can be reset in seconds. Only PR 5 needs the owner to create a PowerSync Cloud instance on the free plan and a Supabase project. PR 5 checks what the local stack can't: Cloud reaching Supabase over IPv6, deploying the sync config with the CLI, and Safari over HTTPS.
 2. **Only three tables, but the real ones.** `count_events`, `sessions` and `practice_positions` carry every column in the data model, with the RLS, grants and constraints the [server section](../../architecture/data-model.md#server-supabase) asks for. They are what criteria 1 and 2 are about, and M10 keeps them rather than rewriting a toy schema.
@@ -419,14 +419,14 @@ Manual. Record each run in the results doc, with platform, OS and browser versio
 
 ### PR 5 — PowerSync Cloud, iOS and Safari
 
-Needs the owner: a PowerSync account (free plan) and a Supabase project (free plan). An Expo account for an iOS development build (EAS free tier) and an iPhone, if available.
+Needs the owner: a PowerSync account (free plan), a Supabase project (free plan), and their iPhone and Mac.
 
 - [ ] **Owner:** create the Supabase project and the PowerSync Cloud instance. Connect them with Supabase's **direct connection** string, as the PowerSync guide says. Share the project ref and instance id, not the passwords.
 - [ ] Apply the migrations with `supabase db push`. Set `max_wal_size` and `max_slot_wal_keep_size` to 1 GB (`supabase --experimental postgres-config update`).
 - [ ] `powersync link cloud`, then `powersync deploy sync-config` from the repo, so the config in git is the config running.
 - [ ] Point `tools/sync-lab` at Cloud through environment variables and run Tasks 10–11 against it. The merge parity test can stay local.
-- [ ] **Safari**: OPFS needs a secure context. Serve the static export over HTTPS (EAS Hosting preview, or a Cloudflare quick tunnel) against Cloud. Repeat the Chrome run on iPhone Safari, and on macOS Safari if available. Compare `OPFSCoopSyncVFS` with IndexedDB, and try a private window.
-- [ ] **iOS**, if an iPhone is available: EAS development build, then the Android run.
+- [ ] **Safari**: OPFS needs a secure context. Serve the static export over HTTPS (EAS Hosting preview, or a Cloudflare quick tunnel) against Cloud. Repeat the Chrome run on iPhone Safari and on macOS Safari. Compare `OPFSCoopSyncVFS` with IndexedDB, and try a private window.
+- [ ] **iOS**: a development build on the owner's iPhone, built on their Mac with Xcode (`npx expo run:ios --device`), or with EAS if that's easier. Then the Android run.
 - [ ] Afterwards: a free-plan instance idle for 7 days is deprovisioned and leaves its replication slot behind, which grows the WAL. Either keep it in use or delete the instance and drop the slot (`pg_drop_replication_slot`). Write down which.
 - [ ] Ask PowerSync the decision's three questions (Pro caps without Team, IPv6 or IPv4, New Architecture), and record the answers.
 
@@ -445,7 +445,7 @@ Needs the owner: a PowerSync account (free plan) and a Supabase project (free pl
 - **op-sqlite is listed as Beta** on PowerSync's feature-status page, although SDK 2 makes it the only native driver. Worth asking PowerSync.
 - **`requestCheckpoint` is alpha.** It's only a fallback for knowing that a device has caught up.
 - **Supabase's local Postgres keeps at most 5 replication slots.** Each sync config deploy makes a new slot, and a crashed service can leave one behind. `sync:reset` drops inactive slots.
-- **Devices for the manual runs:** Android is covered by the emulator on the owner's Windows machine. iOS and Safari need an iPhone or a Mac. Without them, PR 5 reports Safari as untested and the decision stays qualified.
+- **Devices for the manual runs:** Android runs on the emulator on the owner's Windows machine; iOS and Safari on the owner's iPhone and Mac. If the Mac is to hand during PR 4, macOS Safari can be tried early: served from `localhost` on the Mac, the page is a secure context, so OPFS works against the local stack over the LAN.
 
 ## Done when
 
