@@ -1,0 +1,31 @@
+id: hare-krishna
+version: 1
+tradition_id: hindu
+kind: mantra
+deity_ids: [krishna, ram]
+title:
+  en: Hare Krishna Maha-mantra
+subtitle: {}
+source_script: devanagari
+steps:
+  - text:
+      devanagari: हरे कृष्ण हरे कृष्ण कृष्ण कृष्ण हरे हरे हरे राम हरे राम राम राम हरे हरे
+      iast: hare kṛṣṇa hare kṛṣṇa kṛṣṇa kṛṣṇa hare hare hare rāma hare rāma rāma rāma hare hare
+    words:
+      devanagari:
+        [हरे, कृष्ण, हरे, कृष्ण, कृष्ण, कृष्ण, हरे, हरे, हरे, राम, हरे, राम, राम, राम, हरे, हरे]
+      iast:
+        [hare, kṛṣṇa, hare, kṛṣṇa, kṛṣṇa, kṛṣṇa, hare, hare, hare, rāma, hare, rāma, rāma, rāma, hare, hare]
+    name: null
+    meaning: null
+    audio_start_ms: null
+    audio_end_ms: null
+default_round: 108
+repetition_word:
+  en: japa
+intro:
+  en: A call to the divine names Hare, Krishna and Rama.
+audio: null
+source: Traditional; the advisor confirms the source
+licence: Public domain
+review: null

@@ -2,6 +2,7 @@
   "name": "@japadhyan/shared",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "description": "Platform-agnostic types, business logic and constants shared by all apps",
   "main": "src/index.ts",
   "types": "src/index.ts",

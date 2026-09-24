@@ -1,0 +1,14 @@
+id: sai-baba
+tradition_id: hindu
+parent_id: null
+names:
+  en:
+    latin: Sai Baba
+  hi:
+    devanagari: साई बाबा
+summary:
+  en: The saint of Shirdi.
+image: null
+suggested_mala: null
+featured_practice_id: aum-sri-sai-ram
+sort_order: 5

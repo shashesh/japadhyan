@@ -36,6 +36,7 @@ content/
 └─ programs/navaratri.yaml
 ```
 
+- **Layout.** A file's name is its id. Deities sit in their tradition's folder, and practices in their tradition's and their **primary deity's** folder (the first of `deity_ids`), so Hare Krishna is `practices/hindu/krishna/hare-krishna.yaml`. Any other file is an error, except `content/README.md`.
 - **Audio and images are not in git.** They live in object storage, named by their SHA-256. YAML refers to them by id, checksum, size and (for audio) duration.
 - **Schema.** Every file is checked against a schema in `packages/shared` (`src/schemas`, [Zod](../decisions/2026-09-23-schema-library-zod.md)), which is platform-agnostic and also used by the app to read packs. Each entity has two forms:
   - **Content** schemas are strict: a field the schema doesn't know is an error, not ignored. A practice's step text, words and names carry exactly the master scripts — the source script and IAST. Generated scripts may not be written by hand.
@@ -63,7 +64,7 @@ A script, run locally in P1 (GitHub Actions minutes are limited, see [ci-only-wh
 5. **Sign the manifest** with the content signing key (Ed25519).
 6. **Publish** packs, manifest and signature to the CDN (Supabase Storage or Cloudflare R2, chosen in M2).
 
-Schema validation also runs in `npm run check`.
+Step 1 is `tools/content-build`. It also checks the layout above and the references between files: ids are unique; a deity's tradition, parent and featured practice, a practice's deities and a program's practices all exist; a deity's parent and a practice's deities are in its tradition; a featured practice is one of that deity's; and no deity is its own ancestor. `npm test` runs it, so it is part of `npm run check` and CI; `npm run content:validate` runs it alone and prints each problem with its file and line. Media checksums and "versions only go up" wait for the build steps that need them.
 
 ### Packs
 

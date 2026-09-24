@@ -1,0 +1,7 @@
+id: hindu
+deity_label:
+  en: Deity
+offering_label:
+  en: Offer at the lotus feet
+default_round_size: 108
+show_images_by_default: true
