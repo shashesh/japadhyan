@@ -82,5 +82,5 @@ function lineOf(doc: Document, lines: LineCounter, path: Path): number | undefin
 }
 
 /** The YAML library's message without its " at line …" suffix and source excerpt. */
-const firstLine = (message: string) =>
+export const firstLine = (message: string): string =>
   message.split('\n')[0]!.replace(/ at line \d+, column \d+:?$/, '');
