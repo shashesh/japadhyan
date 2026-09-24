@@ -30,7 +30,7 @@ export const practiceBase = {
   audio: null,
   source: 'Shri Rudram',
   licence: 'Public domain',
-  review: { advisor: 'Pandit A', reviewed_on: '2026-09-20' },
+  review: { advisor: 'Pandit A', reviewed_on: '2026-09-20', version: 1 },
 };
 
 /** A mantra as a pack carries it: master text plus the generated `latin`. */

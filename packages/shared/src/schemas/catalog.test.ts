@@ -228,12 +228,52 @@ describe('exportSchemas.practice', () => {
   test('rejects a review without a real date or advisor', () => {
     const badDate = {
       ...exportMantra(),
-      review: { advisor: 'Pandit A', reviewed_on: '2026-02-30' },
+      review: { advisor: 'Pandit A', reviewed_on: '2026-02-30', version: 1 },
     };
-    const noAdvisor = { ...exportMantra(), review: { advisor: '', reviewed_on: '2026-09-20' } };
+    const noAdvisor = {
+      ...exportMantra(),
+      review: { advisor: '', reviewed_on: '2026-09-20', version: 1 },
+    };
 
     expect(exportSchemas.practice.safeParse(badDate).success).toBe(false);
     expect(exportSchemas.practice.safeParse(noAdvisor).success).toBe(false);
+  });
+
+  describe('the version a review covers', () => {
+    const reviewedAt = (version: unknown) => ({
+      ...exportMantra(),
+      version: 2,
+      review: { advisor: 'Pandit A', reviewed_on: '2026-09-20', version },
+    });
+
+    test('is required, as a positive whole number', () => {
+      const noVersion = without(reviewedAt(2).review, 'version');
+
+      expect(
+        exportSchemas.practice.safeParse({ ...reviewedAt(2), review: noVersion }).success,
+      ).toBe(false);
+      expect(exportSchemas.practice.safeParse(reviewedAt(0)).success).toBe(false);
+      expect(exportSchemas.practice.safeParse(reviewedAt(1.5)).success).toBe(false);
+    });
+
+    test('can’t be after the practice’s own: that text doesn’t exist yet', () => {
+      expect(issuePaths(exportSchemas.practice.safeParse(reviewedAt(3)))).toEqual([
+        'review.version',
+      ]);
+      expect(
+        issuePaths(
+          contentSchemas.practice.safeParse({
+            ...contentMantra(),
+            ...reviewedAt(3),
+            steps: contentMantra().steps,
+          }),
+        ),
+      ).toEqual(['review.version']);
+    });
+
+    test('can be earlier: the practice is simply unreviewed again', () => {
+      expect(exportSchemas.practice.safeParse(reviewedAt(1)).success).toBe(true);
+    });
   });
 
   test('accepts unreviewed content; keeping it out of production is the build’s job', () => {

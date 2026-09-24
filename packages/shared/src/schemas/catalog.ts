@@ -139,7 +139,7 @@ function buildSchemas(mode: Mode) {
     audio: audio.nullable(),
     source: nonBlank,
     licence: nonBlank,
-    review: object({ advisor: nonBlank, reviewed_on: date }).nullable(),
+    review: object({ advisor: nonBlank, reviewed_on: date, version: positiveInt }).nullable(),
   };
 
   const practice = z
@@ -185,6 +185,14 @@ function buildSchemas(mode: Mode) {
           });
         }
       };
+
+      if (p.review !== null && p.review.version > p.version) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['review', 'version'],
+          message: `Reviewed at version ${p.review.version}, but the practice is at ${p.version}`,
+        });
+      }
 
       p.steps.forEach((step, i) => {
         checkScripts(step.text, ['steps', i, 'text']);

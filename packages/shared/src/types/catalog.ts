@@ -133,11 +133,17 @@ export interface StotraStep extends StepBase {
  */
 export type Step = MantraStep | NamavaliStep | StotraStep;
 
-/** Who reviewed this practice. Unreviewed content never ships in production. */
+/**
+ * Who reviewed this practice, and at which version. A practice changed since
+ * its review counts as unreviewed (`isReviewed`), and unreviewed content
+ * never ships in production.
+ */
 export interface ContentReview {
   advisor: string;
   /** Local day, YYYY-MM-DD. */
   reviewed_on: string;
+  /** The practice's `version` when it was reviewed. Never above it. */
+  version: number;
 }
 
 interface PracticeBase {
