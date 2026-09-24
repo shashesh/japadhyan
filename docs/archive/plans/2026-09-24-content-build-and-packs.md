@@ -1,6 +1,6 @@
 ---
 title: Content build — packs, manifest and signing
-status: in-progress
+status: implemented
 created: 2026-09-24
 ---
 
@@ -12,7 +12,7 @@ created: 2026-09-24
 
 `npm run content:build` turns `content/` into the packs, manifest and reviewed snapshot the app will read, and a separate signing script signs the manifest with a key the build can never reach. Once this is done, M3 has a real `core` pack to bundle and verify.
 
-Covers the M2 items _build script_ (minus publishing), _pack layout_, _production packs refuse unreviewed content_ and the build half of _content signing key_ in the [Phase 1 plan](2026-09-21-phase-1-plan.md#m2--content-pipeline-spec). Spec: [content pipeline](../../architecture/content-pipeline.md#build).
+Covers the M2 items _build script_ (minus publishing), _pack layout_, _production packs refuse unreviewed content_ and the build half of _content signing key_ in the [Phase 1 plan](../../plans/active/2026-09-21-phase-1-plan.md#m2--content-pipeline-spec). Spec: [content pipeline](../../architecture/content-pipeline.md#build).
 
 ## Scope
 
@@ -427,7 +427,7 @@ node scripts/content-sign.mjs verify --public-key <base64> --dir dist/content/<c
 - `sign` also refuses a key that isn't an encrypted PEM, and the check for `node_modules` walks the whole clone, since git doesn't list an empty folder.
 - `sign` and `verify` never follow a link in `packs/`: they list it without following links and compare that list with the manifest, which also catches `..` and paths outside `packs/`.
 - Windows allows file links only in Developer Mode, so the four tests that make one skip there; CI runs them on Linux. The terminal prompt was checked by hand through a pseudo-terminal.
-- [ ] **Owner, after merge:** run `keygen` twice (current and next) to a folder outside the repo, save both passphrases in the password manager, and send the two public keys and key ids. They go into the app with M3.
+- [ ] **Owner, after merge:** run `keygen` twice (current and next) to a folder outside the repo, save both passphrases in the password manager, and send the two public keys and key ids. They go into the app with M3. Tracked in the [Phase 1 plan](../../plans/active/2026-09-21-phase-1-plan.md#m2--content-pipeline-spec).
 
 ## Risks and open questions
 
