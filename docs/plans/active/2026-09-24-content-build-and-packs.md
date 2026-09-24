@@ -6,7 +6,7 @@ created: 2026-09-24
 
 # Content build — packs, manifest and signing
 
-> **For agentic workers:** use superpowers:subagent-driven-development or superpowers:executing-plans to carry this out task by task. No code until the owner has approved the [decisions](#decisions-for-the-owner). The interfaces and test cases below are binding; the implementation is left to the task.
+> **For agentic workers:** use superpowers:subagent-driven-development or superpowers:executing-plans to carry this out task by task. The owner accepted every [decision](#decisions) on 2026-09-24. The interfaces and test cases below are binding; the implementation is left to the task.
 
 ## Goal
 
@@ -27,22 +27,22 @@ Covers the M2 items _build script_ (minus publishing), _pack layout_, _productio
   - **Publishing** and **media checksums**: both need the hosting choice ([open question](../../product/open-questions.md#content-hosting)), which gets its own decision doc
   - Anything in the app: bundling `core`, verifying signatures, installing packs (M3)
   - Per-script conventions (nasals, ॐ, Tamil marks): these need a reader of each script to sign them off
-  - Generating the production keys: the owner does this, following the steps in Task 9
+  - Generating the production keys: the owner does this, following the steps in Task 10
 
-## Decisions for the owner
+## Decisions
 
-Each has a recommendation. Those marked **spec change** amend [content-pipeline.md](../../architecture/content-pipeline.md), and the amendment lands in the same PR as the code.
+All accepted by the owner on 2026-09-24, as recommended, with an addition to 8. Those marked **spec change** amend [content-pipeline.md](../../architecture/content-pipeline.md), and the amendment lands in the same PR as the code.
 
-1. **`core` includes every launch deity's script and language add-ons in P1** (spec change). The spec puts only base packs in `core`, so a devotee reading Tamil would have to download `deity/shiva/script/tamil`, and that request names the deity. P1 promises that nothing is fetched to use the library. The spec's own estimate is about 2 MB of text for every script and several languages. _Recommend: yes._
-2. **Launch deities are every deity in `content/`**, with no flag, until the library outgrows the bundle. _Recommend: yes; add a flag when we first need one._
-3. **Replace per-pack versions with a manifest `release` number** (spec change). The app fetches a pack when its SHA-256 differs from what it has, so a per-pack version adds nothing, and keeping one monotonic would need the previous manifest. What does need a number is protection against rollback: the app remembers the highest `release` it has accepted and rejects a signed manifest with a lower one, so an old but validly signed manifest can't be replayed. The bundled `core` ships with its manifest, so the app knows its starting release. _Recommend: yes._
-4. **Packs are plain JSON, hashed uncompressed** (spec change: the spec says "compressed JSON"). The SHA-256 then covers exactly the bytes the app parses; compression happens in transit (HTTP `Content-Encoding`, which React Native's `fetch` decodes) and inside the app bundle. So the app needs no decompression library. Revisit with hosting if the host can't compress. _Recommend: yes._
-5. **Content-addressed pack paths:** `packs/<id>.<first 16 hex of sha256>.json`. A CDN cache serving an old pack under an unchanged name would fail the hash check; a new name for new content can't go stale. The manifest lists each path, so this can change later. _Recommend: yes._
-6. **The reviewed snapshot lives in `content-snapshot/`**, beside `content/` and mirroring its paths (`content-snapshot/practices/hindu/shiva/om-namah-shivaya.yaml`). Each file is the practice as packs carry it, with every generated script, so the advisor reviews generated text as a diff and a library upgrade shows up as one. `content/` stays source only, which its layout check already requires. `npm test` fails when the snapshot is out of date. _Recommend: yes._
-7. **The snapshot is the baseline for the version rules.** A practice whose steps differ from its snapshot (any script, or the number of steps) must have a higher `version`, and no version may go down. Checking against the committed snapshot needs no git and no published manifest, but it means a practice changed twice before one release bumps twice, so versions can skip numbers. That does no harm: devices only ever see a higher number. Publishing will later check against the live manifest as well. _Recommend: yes._
-8. **A production build refuses to run if any practice is unreviewed**, and lists every one of them. It doesn't quietly leave them out, because leaving one out can break a deity's `featured_practice_id`. Development builds include them; the index marks each `reviewed: false` so the app can flag them. _Recommend: refuse._
-9. **Base packs are English.** The spec says base packs carry "English"; every other language comes as an add-on. So a practice's `title` and `repetition_word`, and a deity's `names`, must have `en`, which the validator checks. The index keeps every language for titles and names, since search needs them and they are small. _Recommend: yes._
-10. **Keys:** the production private key is an encrypted PKCS#8 PEM file kept outside the repo, with its passphrase in the owner's password manager, entered at a prompt, never taken from an env var or argument. The owner generates two key pairs, _current_ and _next_, and the app ships both public keys. Development builds are signed with a key each developer generates for themselves, which production apps never trust. Hardware keys can come later: Node's crypto can't sign with a hardware key directly. _Recommend: yes._
+1. **`core` includes every launch deity's script and language add-ons in P1** (spec change). The spec puts only base packs in `core`, so a devotee reading Tamil would have to download `deity/shiva/script/tamil`, and that request names the deity. P1 promises that nothing is fetched to use the library. The spec's own estimate is about 2 MB of text for every script and several languages. _Accepted._
+2. **Launch deities are every deity in `content/`**, with no flag, until the library outgrows the bundle. _Accepted; add a flag when we first need one._
+3. **Replace per-pack versions with a manifest `release` number** (spec change). The app fetches a pack when its SHA-256 differs from what it has, so a per-pack version adds nothing, and keeping one monotonic would need the previous manifest. What does need a number is protection against rollback: the app remembers the highest `release` it has accepted and rejects a signed manifest with a lower one, so an old but validly signed manifest can't be replayed. The bundled `core` ships with its manifest, so the app knows its starting release. _Accepted._
+4. **Packs are plain JSON, hashed uncompressed** (spec change: the spec says "compressed JSON"). The SHA-256 then covers exactly the bytes the app parses; compression happens in transit (HTTP `Content-Encoding`, which React Native's `fetch` decodes) and inside the app bundle. So the app needs no decompression library. Revisit with hosting if the host can't compress. _Accepted._
+5. **Content-addressed pack paths:** `packs/<id>.<first 16 hex of sha256>.json`. A CDN cache serving an old pack under an unchanged name would fail the hash check; a new name for new content can't go stale. The manifest lists each path, so this can change later. _Accepted._
+6. **The reviewed snapshot lives in `content-snapshot/`**, beside `content/` and mirroring its paths (`content-snapshot/practices/hindu/shiva/om-namah-shivaya.yaml`). Each file is the practice as packs carry it, with every generated script, so the advisor reviews generated text as a diff and a library upgrade shows up as one. `content/` stays source only, which its layout check already requires. `npm test` fails when the snapshot is out of date. _Accepted._
+7. **The snapshot is the baseline for the version rules.** A practice whose steps differ from its snapshot (any script, or the number of steps) must have a higher `version`, and no version may go down. Checking against the committed snapshot needs no git and no published manifest, but it means a practice changed twice before one release bumps twice, so versions can skip numbers. That does no harm: devices only ever see a higher number. Publishing will later check against the live manifest as well. _Accepted._
+8. **A production build refuses to run if any practice is unreviewed**, and lists every one of them. It doesn't quietly leave them out, because leaving one out can break a deity's `featured_practice_id`. Development builds include them; the index marks each `reviewed: false` so the app can flag them. _Accepted._ **Added:** `review` records the `version` it covers (`review: { advisor, reviewed_on, version }`), and a practice counts as reviewed only while `review.version` equals its `version`. Decision 7 forces a bump whenever the text or a generated script changes, so any change a devotee would see goes back to the advisor. The owner is the Hindu advisor and reviews the five development mantras once PR 2 has built their snapshot.
+9. **Base packs are English.** The spec says base packs carry "English"; every other language comes as an add-on. So a practice's `title` and `repetition_word`, and a deity's `names`, must have `en`, which the validator checks. The index keeps every language for titles and names, since search needs them and they are small. _Accepted._
+10. **Keys:** the production private key is an encrypted PKCS#8 PEM file kept outside the repo, with its passphrase in the owner's password manager, entered at a prompt, never taken from an env var or argument. The owner generates two key pairs, _current_ and _next_, and the app ships both public keys. Development builds are signed with a key each developer generates for themselves, which production apps never trust. Hardware keys can come later: Node's crypto can't sign with a hardware key directly. _Accepted._
 
 ## Design
 
@@ -230,15 +230,27 @@ Three PRs, each a draft against `master` and each passing `npm run check` locall
 - [ ] Run the tests. They pass. Then `npm run check`.
 - [ ] Commit: `feat(shared): pack, manifest and signature schemas`.
 
-#### Task 2: docs for PR 1
+#### Task 2: a review records the version it covers
 
-- [ ] In [content-pipeline.md](../../architecture/content-pipeline.md): the pack shapes in brief, decisions 1, 3, 4 and 5 (the spec changes), and "the app installs `core` by installing each pack in it".
-- [ ] Add this plan to [INDEX.md](../../INDEX.md). Run `npm run format` then `npm run lint:md`.
+**Files:** `packages/shared/src/types/catalog.ts`, `packages/shared/src/schemas/catalog.ts`, `catalog.test.ts`, the `mantra` fixture in `tools/content-build/src/validate.test.ts`.
+
+- [ ] Failing tests in `catalog.test.ts`:
+  - `a review needs the version it covers: a positive integer`
+  - `a review of a version after the practice's own is an issue` — you can't have reviewed text that doesn't exist yet
+  - `a review of an earlier version parses` — the practice is simply unreviewed again, which is the build's call (decision 8)
+- [ ] Add `version: number` to `ContentReview`, and to the schema's `review` object for both forms. Export `isReviewed(practice): boolean` from `packages/shared` (`review !== null && review.version === version`), with its own tests, so the build and the app use one rule.
+- [ ] Run `npm test --workspace=packages/shared`, then `npm test --workspace=tools/content-build`. The five practices in `content/` have `review: null`, so they need no change.
+- [ ] Commit: `feat(shared): a review records the version it covers`.
+
+#### Task 3: docs for PR 1
+
+- [ ] In [content-pipeline.md](../../architecture/content-pipeline.md): the pack shapes in brief, decisions 1, 3, 4 and 5 (the spec changes), and "the app installs `core` by installing each pack in it". In its review bullet, [data-model.md](../../architecture/data-model.md#practice) and [content/README.md](../../../content/README.md): `review` now records `version`, and a changed practice goes back to the advisor.
+- [ ] Run `npm run format` then `npm run lint:md`.
 - [ ] Commit: `docs: pack formats and release numbers`. Push, open the draft PR, request Copilot.
 
 ### PR 2 — the build
 
-#### Task 3: canonical JSON
+#### Task 4: canonical JSON
 
 **Files:** `tools/content-build/src/canonical.ts`, `canonical.test.ts`.
 
@@ -249,14 +261,14 @@ Three PRs, each a draft against `master` and each passing `npm run check` locall
   - `undefined fields are an error, not dropped` — a build bug should show, not vanish
 - [ ] Implement `canonicalJson(value: unknown): Uint8Array`. Run the tests, commit: `feat(content-build): canonical JSON`.
 
-#### Task 4: the English rule
+#### Task 5: the English rule
 
 **Files:** `tools/content-build/src/validate.ts`, `validate.test.ts`, `content/` if any file fails.
 
 - [ ] Failing tests: `a practice title without en is an issue at its line`, the same for `repetition_word` and deity `names`, and `other languages beside en are fine`.
 - [ ] Implement in `validateContent`, with the message ``Needs `en`: base packs are English``. Run `npm test --workspace=tools/content-build`; `content/ is valid` must still pass. Commit: `feat(content-build): base packs need English`.
 
-#### Task 5: packs
+#### Task 6: packs
 
 **Files:** `tools/content-build/src/packs.ts`, `packs.test.ts`.
 
@@ -281,7 +293,7 @@ export function buildPacks(built: BuiltCatalog): Pack[]; // core last
   - `every pack parses with its export schema` — over the repo's own `content/`
 - [ ] Implement. Run the tests, commit: `feat(content-build): build packs`.
 
-#### Task 6: snapshot and version rules
+#### Task 7: snapshot and version rules
 
 **Files:** `tools/content-build/src/snapshot.ts`, `snapshot.test.ts`, `content-snapshot/` (generated).
 
@@ -305,7 +317,7 @@ export function versionIssues(
   - `snapshotYaml is stable: the same practice gives the same bytes`
 - [ ] Implement. Run the tests, commit: `feat(content-build): reviewed snapshot and version rules`.
 
-#### Task 7: manifest and the build entry point
+#### Task 8: manifest and the build entry point
 
 **Files:** `tools/content-build/src/manifest.ts`, `manifest.test.ts`, `src/build.ts`, `build.test.ts`.
 
@@ -333,6 +345,7 @@ export function build(options: BuildOptions): { issues: readonly ContentIssue[] 
   - `building twice writes identical files` — in a temp folder
   - `a production build with an unreviewed practice writes nothing and lists every one`
   - `a development build includes unreviewed practices, marked reviewed: false`
+  - `a practice reviewed at an earlier version counts as unreviewed` — in both channels, through `isReviewed`
   - `a build with content or version issues writes no snapshot and no packs`
   - `the build removes the snapshot of a practice no longer in content/`
   - `the output folder is emptied first, so no stale pack survives`
@@ -340,7 +353,7 @@ export function build(options: BuildOptions): { issues: readonly ContentIssue[] 
 - [ ] Implement. `cli.ts` stays the validator; `build.ts` has its own `main` that reads `--channel` and `--release`.
 - [ ] Run the tests, commit: `feat(content-build): manifest and build`.
 
-#### Task 8: run under the permission model
+#### Task 9: run under the permission model
 
 **Files:** `tools/content-build/run.mjs`, `run.test.mjs`, `tools/content-build/package.json`, root `package.json`, `TECH-VERSIONS.md`.
 
@@ -358,7 +371,7 @@ export function build(options: BuildOptions): { issues: readonly ContentIssue[] 
 
 ### PR 3 — signing
 
-#### Task 9: `scripts/content-sign.mjs`
+#### Task 10: `scripts/content-sign.mjs`
 
 Plain Node, built-ins only (`node:crypto`, `node:fs`, `node:path`, `node:readline`), nothing imported from the build.
 
