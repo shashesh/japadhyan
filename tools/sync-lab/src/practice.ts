@@ -97,7 +97,15 @@ async function recordEvent(
 }
 
 /** Repetitions of a mantra; a negative count is a correction to today's session. */
-export function chant(ctx: WriteContext, practiceId: string, count: number): Promise<CountEvent> {
+export async function chant(
+  ctx: WriteContext,
+  practiceId: string,
+  count: number,
+): Promise<CountEvent> {
+  // The server refuses any other count, so the lab never writes one.
+  if (!Number.isInteger(count) || count === 0) {
+    throw new RangeError(`A count is a whole number other than 0, got ${count}`);
+  }
   return recordEvent(ctx, practiceId, count, 1);
 }
 

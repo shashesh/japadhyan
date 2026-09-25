@@ -30,7 +30,6 @@ import {
 } from './harness';
 import { requireDeviceState } from './client';
 import * as practice from './practice';
-import { insert } from './practice';
 
 const MANTRA = 'om-namah-shivaya';
 const NAMAVALI = 'vishnu-ashtottara';
@@ -144,7 +143,7 @@ describe('counts', () => {
     const user = await createUser();
     const a = await signedInDevice(user, 'a');
     const orphan = orphanEvent(user);
-    await insert(a.db, 'count_events', { ...countEventToRow(orphan) });
+    await practice.insert(a.db, 'count_events', { ...countEventToRow(orphan) });
     await a.chant(MANTRA, 108);
 
     await a.goOnline();
@@ -170,7 +169,7 @@ describe('counts', () => {
     await a.db.writeTransaction(async (tx) => {
       const ctx = { tx, state: await requireDeviceState(tx), nowMs: Date.now() };
       sent = (await practice.chant(ctx, MANTRA, 108)).id; // the session and an event: sent
-      await insert(tx, 'count_events', { ...countEventToRow(orphan) }); // refused
+      await practice.insert(tx, 'count_events', { ...countEventToRow(orphan) }); // refused
       await tx.execute('UPDATE count_events SET count = 1 WHERE id = ?', [sent]); // never happens
       after = (await practice.chant(ctx, MANTRA, 9)).id; // not sent, after the refusal
     });
