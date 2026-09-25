@@ -178,6 +178,24 @@ describe('fromRow rejects what the database should never hold', () => {
     expect(countEventFromRow(countEventToRow(leap))).toEqual(leap);
   });
 
+  test('fields longer than the server allows', () => {
+    // The server drops or refuses these, so the device must never write them.
+    expect(() =>
+      countEventFromRow({ ...countEventToRow(event), practice_id: 'p'.repeat(129) }),
+    ).toThrow();
+    expect(() =>
+      countEventFromRow({ ...countEventToRow(event), device_id: 'd'.repeat(65) }),
+    ).toThrow();
+    expect(() => sessionFromRow({ ...sessionToRow(session), device_id: 'd'.repeat(65) })).toThrow();
+    expect(() =>
+      positionFromRow({ ...positionToRow(position), chanted_steps: 'ff'.repeat(513) }),
+    ).toThrow();
+    expect(
+      positionFromRow({ ...positionToRow(position), chanted_steps: '00'.repeat(512) })
+        .chanted_steps,
+    ).toHaveLength(512);
+  });
+
   test('malformed marks or clocks', () => {
     const row = positionToRow(position);
 

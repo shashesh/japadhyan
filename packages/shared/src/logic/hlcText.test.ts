@@ -75,13 +75,20 @@ describe('hlcToText', () => {
   });
 
   test('rejects a device_id outside lowercase letters, digits and hyphens', () => {
-    for (const device_id of ['', 'Device', 'a:b', 'a b', 'é']) {
+    for (const device_id of ['', 'Device', 'a:b', 'a b', 'é', 'd'.repeat(65)]) {
       expect(() => hlcToText(clock(0, 0, device_id))).toThrow(RangeError);
     }
   });
 });
 
 describe('hlcFromText', () => {
+  test('accepts a device_id of up to 64 characters, as the server does', () => {
+    const hlc = clock(1, 0, 'd'.repeat(64));
+
+    expect(hlcFromText(hlcToText(hlc))).toEqual(hlc);
+    expect(() => hlcFromText(`000000000000001:0000000000:${'d'.repeat(65)}`)).toThrow(RangeError);
+  });
+
   test('rejects malformed text', () => {
     for (const text of [
       '',

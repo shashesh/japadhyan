@@ -15,8 +15,9 @@ import type { Hlc } from '../types';
 
 const MILLIS_DIGITS = 15;
 const COUNTER_DIGITS = 10;
-const DEVICE_ID = /^[a-z0-9-]+$/;
-const HLC_TEXT = new RegExp(`^(\\d{${MILLIS_DIGITS}}):(\\d{${COUNTER_DIGITS}}):([a-z0-9-]+)$`);
+/** At most 64 characters, as the server allows (supabase/migrations). */
+const DEVICE_ID = /^[a-z0-9-]{1,64}$/;
+const HLC_TEXT = new RegExp(`^(\\d{${MILLIS_DIGITS}}):(\\d{${COUNTER_DIGITS}}):([a-z0-9-]{1,64})$`);
 
 function assertDigits(value: number, digits: number, field: string): void {
   if (!Number.isInteger(value) || value < 0 || value >= 10 ** digits) {
@@ -31,7 +32,7 @@ export function hlcToText(hlc: Hlc): string {
   assertDigits(hlc.counter, COUNTER_DIGITS, 'counter');
   if (!DEVICE_ID.test(hlc.device_id)) {
     throw new RangeError(
-      `device_id must be lowercase letters, digits and hyphens, got "${hlc.device_id}"`,
+      `device_id must be 1 to 64 lowercase letters, digits and hyphens, got "${hlc.device_id}"`,
     );
   }
   const millis = String(hlc.millis).padStart(MILLIS_DIGITS, '0');

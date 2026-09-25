@@ -114,7 +114,10 @@ function toIso(stored: string, ctx: z.RefinementCtx): string {
 }
 
 const uuid = z.string().regex(UUID, 'Not a lowercase UUID');
-const text = z.string().min(1);
+// The server's limits (supabase/migrations): a row it would refuse or drop is
+// never written on the device either.
+const practiceId = z.string().min(1).max(128);
+const deviceId = z.string().min(1).max(64);
 const int = z.number().int();
 const nonNegativeInt = int.nonnegative();
 const positiveInt = int.positive();
@@ -131,14 +134,15 @@ const hlcText = z.string().transform((value, ctx) => {
 });
 const marksHex = z
   .string()
+  .max(1024, 'More than 512 bytes of marks')
   .regex(/^(?:[0-9a-f]{2})*$/, 'Not lowercase hex bytes')
   .transform(marksFromHex);
 
 const sessionRow = z.object({
   id: uuid,
   user_id: uuid,
-  practice_id: text,
-  device_id: text,
+  practice_id: practiceId,
+  device_id: deviceId,
   started_at: timestamp,
   ended_at: timestamp.nullable(),
   local_day: localDay,
@@ -150,12 +154,12 @@ const sessionRow = z.object({
 const countEventRow = z.object({
   id: uuid,
   user_id: uuid,
-  practice_id: text,
+  practice_id: practiceId,
   session_id: uuid,
   mode: z.enum(CHANT_MODES),
   count: int,
   estimated: z.union([z.literal(0), z.literal(1)]).transform((flag) => flag === 1),
-  device_id: text,
+  device_id: deviceId,
   created_at: timestamp,
   local_day: localDay,
   tz_offset_min: int,
@@ -165,7 +169,7 @@ const countEventRow = z.object({
 const positionRow = z.object({
   id: uuid,
   user_id: uuid,
-  practice_id: text,
+  practice_id: practiceId,
   practice_version: positiveInt,
   step_index: nonNegativeInt,
   chanted_steps: marksHex,
