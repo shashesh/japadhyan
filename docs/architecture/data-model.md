@@ -415,7 +415,10 @@ Chosen: PowerSync ([decision](../decisions/2026-09-22-sync-engine-powersync.md))
 - `consents`: user, policy version, date agreed.
 - `delete-account` Edge Function: deletes the user, which removes their data and revokes their sessions. The app checks the account each time it comes online; a deleted account fails that check and starts the [clear-device flow](../product/features/accounts-and-sync.md#deleting-an-account-p1).
 - Content packs are files on a CDN, not database tables.
-- Migrations live in `supabase/`.
+- Migrations live in `supabase/migrations/`, with pgTAP tests in `supabase/tests/` (`npm run sync:test`).
+- **Grants are explicit.** Nothing for `anon`. `authenticated` may read its own rows; insert sessions and count events; update a session's `ended_at` only, once (a column grant, and a trigger that raises `23514` if it changes again); and never write positions directly.
+- **Positions are written only through `merge_practice_position(row jsonb)`**, which runs the [position merge](#practiceposition) (`merge_position_rows`) under `security definer` with an empty `search_path`. It raises `42501` unless the caller owns the row. It drops a malformed row, a non-canonical `practice_id`, an id not derived from the owner and practice, or a clock more than 5 minutes ahead, and answers success, so the upload queue moves on.
+- **The `powersync` publication lists the synced tables by name**, never `for all tables`. PowerSync Cloud connects as `powersync_role` (replication, `bypassrls`, `select` on those tables); its password is set on the hosted database only.
 
 ## Changes to existing code
 

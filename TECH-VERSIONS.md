@@ -64,6 +64,17 @@ Runs locally, never ships in the app.
 | @testing-library/react-native | ^14.0.1                       | `render` and `fireEvent` are async — always `await` them                               |
 | yaml                          | ^2.9.1                        | Root dev dependency; `scripts/ci/draft-triggers.test.mjs` parses the workflows with it |
 
+## Sync stack (local)
+
+Runs on the developer's machine for the sync prototype and its tests; never ships in the app.
+
+| Tool                          | Version         | Notes                                                                                                                                                                                       |
+| ----------------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| supabase (CLI)                | 2.117.0 (exact) | Root dev dependency. `supabase start` runs Postgres 17 (`public.ecr.aws/supabase/postgres:17.6.1.167`), Auth and PostgREST                                                                  |
+| journeyapps/powersync-service | 1.26.1          | Open Edition, self-hosted in `powersync/docker-compose.yaml`                                                                                                                                |
+| postgres (image)              | 18              | PowerSync's bucket storage                                                                                                                                                                  |
+| PowerSync CLI                 | not installed   | Its table output needs an older React than the root `overrides` allow, so it runs from outside the repo when needed (PR 5 of the [plan](docs/plans/active/2026-09-24-s4-sync-prototype.md)) |
+
 ## Planned (not installed yet)
 
 | Area           | Choice                                                                                                                    | When |
