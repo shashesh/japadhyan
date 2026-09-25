@@ -196,6 +196,14 @@ const positionRow = z
     path: ['deleted_at'],
   });
 
+/**
+ * One timestamp as a database hands it back, such as `server_now()`'s reply,
+ * as `YYYY-MM-DDTHH:MM:SS.sssZ`. Throws if it isn't a real time.
+ */
+export function timestampFromDb(stored: string): string {
+  return timestamp.parse(stored);
+}
+
 export function sessionToRow(session: Session): SessionRow {
   return { ...session };
 }
