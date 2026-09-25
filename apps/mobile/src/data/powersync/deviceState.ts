@@ -5,7 +5,9 @@
  * travels with the data it describes.
  */
 
-import type { Sql, SyncMode } from './schema';
+import type { CommonPowerSyncDatabase } from '@powersync/common';
+
+import { makeSchema, type Sql, type SyncMode } from './schema';
 
 export interface DeviceState {
   /** The local owner id while a guest; the account's user id once signed in. */
@@ -47,6 +49,27 @@ export async function createDeviceState(db: Sql, state: DeviceState): Promise<vo
     'INSERT INTO device_state (id, owner_id, device_id, mode, clock_offset_ms) VALUES (?, ?, ?, ?, ?)',
     [ROW_ID, state.owner_id, state.device_id, state.mode, state.clock_offset_ms],
   );
+}
+
+/**
+ * Readies a freshly opened database: a first launch becomes a guest, with a
+ * new local owner id and device id; afterwards the device is as it was left.
+ *
+ * The mode is stored inside the database, so it always opens with the guest
+ * schema. A signed-in device then points its tables back at the synced
+ * views, before anything reads them and before it connects.
+ */
+export async function prepareDevice(
+  db: CommonPowerSyncDatabase,
+  newId: () => string,
+): Promise<DeviceState> {
+  let state = await readDeviceState(db);
+  if (state === null) {
+    state = { owner_id: newId(), device_id: newId(), mode: 'guest', clock_offset_ms: 0 };
+    await createDeviceState(db, state);
+  }
+  if (state.mode !== 'guest') await db.updateSchema(makeSchema(state.mode));
+  return state;
 }
 
 export async function setOwner(db: Sql, ownerId: string, mode: SyncMode): Promise<void> {
