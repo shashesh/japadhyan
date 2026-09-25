@@ -102,6 +102,20 @@ describe('before sign-in', () => {
 });
 
 describe('signing in', () => {
+  test('a second sign-in while one runs is refused, and the first completes', async () => {
+    const { user, a } = await accountWithPractice();
+    const g = await guestWithPractice();
+
+    const [first, second] = await Promise.allSettled([g.signIn(user), g.signIn(user)]);
+
+    expect(first.status).toBe('fulfilled');
+    expect(second).toMatchObject({ status: 'rejected', reason: { name: 'SignInInProgress' } });
+    await syncAll(g, a);
+    expect(await serverTotal(user, MANTRA)).toBe(108 + 27);
+    expect(await serverRowCount(user, 'sessions')).toBe(2);
+    await expect(g.signIn(user)).rejects.toThrow(/already signed in/);
+  });
+
   test("a guest's counts arrive in the account on sign-in", async () => {
     const { user, a } = await accountWithPractice();
     const g = await guestWithPractice();
