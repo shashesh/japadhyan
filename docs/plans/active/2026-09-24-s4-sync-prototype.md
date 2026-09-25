@@ -94,13 +94,19 @@ Grants go to `authenticated` explicitly: from 2026-10-30, Supabase stops exposin
 
 ### The merge function
 
-`merge_practice_position(row jsonb) returns void` applies the [position rule](../../architecture/data-model.md#practiceposition), without the step-count checks, since the server has no catalog:
+`public.merge_practice_position(row jsonb) returns void` applies the [position rule](../../architecture/data-model.md#practiceposition), without the step-count checks, since the server has no catalog. It is `security definer`, so it bypasses RLS and must guard itself:
 
-1. **Drop with success** (return; no error, so the upload queue isn't blocked) when:
-   - the row is malformed: a missing field, the wrong type, `hlc` or `deleted_hlc` not in the text form, `chanted_steps` not lowercase hex, or a negative `step_index`, `pass_ordinal` or `practice_version`;
-   - `id` isn't `uuid_generate_v5('49841fbe-b559-4c62-ae52-0d0611052939', 'v1:practice_positions:' || user_id || ':' || practice_id)`;
+- **`set search_path = ''`, and every name is schema-qualified**: `public.practice_positions`, `public.merge_position_rows`, `auth.uid()`, and `extensions.uuid_generate_v5`. The migration runs `create extension if not exists "uuid-ossp" with schema extensions`.
+- **Only signed-in users can call it**: `revoke execute … from public, anon`, `grant execute … to authenticated`.
+
+The steps:
+
+1. **`auth.uid()` is null, or differs from `user_id`: raise** `42501`. This comes first, because `null <> x` is null, not true, so a plain comparison would let a caller with no user through. The connector treats `42501` as a permanent failure. It can only be a bug or an attack, never a stale write.
+2. **Drop with success** (return; no error, so the upload queue isn't blocked) when:
+   - the row is malformed: a missing field, the wrong type, `hlc` or `deleted_hlc` not in the text form, `chanted_steps` not lowercase hex, or a negative `step_index`, `pass_ordinal` or `practice_version`. No valid row has a negative `step_index`, deleted or not, and the device's row codec rejects one too. What only live rows are checked for is the **upper** bound, the step count, which the server can't know;
+   - `practice_id` isn't canonical: a catalog id (`^[a-z0-9-]+$`, not shaped like a UUID) or a lowercase hyphenated UUID. Otherwise `Custom-UUID` and `custom-uuid` would derive two ids for one practice;
+   - `id` isn't `extensions.uuid_generate_v5('49841fbe-b559-4c62-ae52-0d0611052939', 'v1:practice_positions:' || user_id || ':' || practice_id)`;
    - `hlc` or `deleted_hlc` is more than 5 minutes ahead of `now()`.
-2. **`user_id <> auth.uid()` raises** `42501`, checked first, since the function bypasses RLS. The connector treats that as fatal. It can only be a bug or an attack, never a stale write.
 3. `insert … on conflict (id) do nothing`, then `select … for update` the stored row, so two uploads for the same id at once serialise.
 4. Merge as `mergePositions` does: the higher generation (`practice_version`, then `pass_ordinal`) wins. Within one generation:
    - the marks are OR-ed byte by byte, but only when both have the same length (the server's stand-in for "fits the step count"; otherwise the later row's marks stand);
@@ -110,7 +116,7 @@ Grants go to `authenticated` explicitly: from 2026-10-30, Supabase stops exposin
 
 5. Update the row.
 
-A pure `merge_position_rows(a, b)` holds step 4, so the pgTAP tests call it directly.
+A pure `public.merge_position_rows(a, b)` holds step 4, so the pgTAP tests call it directly.
 
 ### The sync config
 
@@ -132,7 +138,8 @@ streams:
 
 ```text
 apps/mobile/src/data/powersync/
-  schema.ts       synced tables + localOnly twins + device_state; makeSchema(mode)
+  schema.ts       synced tables + localOnly twins + device_state + upload_failures;
+                  makeSchema(mode)
   database.ts     openDatabase(): native (op-sqlite) or web (WASQLite, OPFSCoopSyncVFS),
                   created lazily; never at module scope
   connector.ts    SupabaseConnector: fetchCredentials, uploadData (decision 6)
@@ -145,13 +152,13 @@ apps/mobile/src/app/dev/sync.tsx   route; redirects home unless __DEV__
 
 The upload rules (decision 6), per operation:
 
-| Table                | `PUT`                                                  | `PATCH`                                              | `DELETE`                           |
-| -------------------- | ------------------------------------------------------ | ---------------------------------------------------- | ---------------------------------- |
-| `count_events`       | `upsert(row, { onConflict: 'id', ignoreDuplicates })`  | Never happens; fatal                                 | Never happens; fatal               |
-| `sessions`           | Same                                                   | `update({ ended_at }).eq('id').is('ended_at', null)` | Never happens; fatal               |
-| `practice_positions` | `rpc('merge_practice_position', { row: <local row> })` | Same                                                 | Never happens (soft delete); fatal |
+| Table                | `PUT`                                                  | `PATCH`                                              | `DELETE`                               |
+| -------------------- | ------------------------------------------------------ | ---------------------------------------------------- | -------------------------------------- |
+| `count_events`       | `upsert(row, { onConflict: 'id', ignoreDuplicates })`  | Never happens; set aside                             | Never happens; set aside               |
+| `sessions`           | Same                                                   | `update({ ended_at }).eq('id').is('ended_at', null)` | Never happens; set aside               |
+| `practice_positions` | `rpc('merge_practice_position', { row: <local row> })` | Same                                                 | Never happens (soft delete); set aside |
 
-Errors with class `22`, `23` or code `42501` discard the transaction, as PowerSync's demo does, and are logged with the table and id. The row's data is never logged, because a practice id reveals religion. Anything else is thrown, so the upload retries.
+**A permanent failure is set aside, never discarded.** PowerSync's demo discards a transaction on any class `22` or `23` error, or on `42501`, but class 23 includes `23503`, a foreign key violation. A count event whose session never reached the server would then vanish from the lifetime count. Retrying forever is no better: the transaction would block every upload behind it. So on those codes the connector copies the transaction's operations (table, op, id and data) into a local-only `upload_failures` table, then completes it. The data stays on the device, the dev screen shows it, and a later fix can replay it. Logs carry the table, id and code, never the data, because a practice id reveals religion. Any other error is thrown, so the upload retries.
 
 ## File structure
 
@@ -277,7 +284,8 @@ export function toServerRow(
 
 - [ ] Add dev dependencies at the root, exact pins: `supabase` 2.117.0 and `powersync` 0.10.1 (the CLIs).
 - [ ] `npx supabase init`; project id `japadhyan`. In `config.toml`, email confirmations stay off (the local default). Generate an ES256 signing key with `supabase gen signing-key --algorithm ES256 --append`, into a gitignored file, as the self-host demo does.
-- [ ] `npx powersync init self-hosted`, then `npx powersync docker configure --database external --storage postgres`. Point it at `supabase_db_japadhyan`, with `client_auth` using Supabase's JWKS through Kong and audience `authenticated`. Pin the image to `journeyapps/powersync-service:1.26.1`.
+- [ ] `npx powersync init self-hosted`, then `npx powersync docker configure --database external --storage postgres`. Point the **source** at `supabase_db_japadhyan`, with `client_auth` using Supabase's JWKS through Kong and audience `authenticated`. Pin the image to `journeyapps/powersync-service:1.26.1`.
+- [ ] Bucket storage is a **separate** Postgres container, as in the self-host demo, never the Supabase database: a `pg-storage` service in the compose file, `PS_STORAGE_SOURCE_URI` pointing at it, and the PowerSync service depending on it being healthy. Check that the generated compose file has all three, and add whatever is missing.
 - [ ] Root scripts: `sync:up` (`supabase start`, then `powersync docker start`, which waits until healthy), `sync:down`, `sync:reset` (`supabase db reset` then restart PowerSync, since each reset drops the replication slot).
 - [ ] Run `npm run sync:up` and confirm PowerSync reports replication running. Commit: `chore: local Supabase and PowerSync stack`.
 
@@ -306,6 +314,9 @@ export function toServerRow(
   - `a row more than 5 minutes ahead is dropped, and the call succeeds`
   - `a malformed row is dropped, and the call succeeds`: one case per rule in [the merge function](#the-merge-function)
   - `a row for another user raises 42501`
+  - `a caller with no user raises 42501`, and `anon can't execute the function at all`
+  - `a non-canonical practice_id is dropped`: an uppercase custom practice UUID, with an id derived from it, leaves no row
+  - `a deleted row with a step_index past the step count is kept`: the server doesn't police the upper bound on tombstones
   - `marks of different lengths in one generation: the later row's stand`
 - [ ] Implement `merge_position_rows` and `merge_practice_position`. Run the tests. Commit: `feat(supabase): merge positions on the server`.
 
@@ -348,7 +359,7 @@ export function serverTotal(user: TestUser, practiceId: string): Promise<number>
 
 - [ ] Failing test: `a device can write offline and the row reaches the server when it reconnects`.
 - [ ] Implement. For "caught up", wait until `getUploadQueueStats().count` is 0 and then for the next `currentStatus.lastSyncedAt` after it. If that proves flaky, use `requestCheckpoint()` with `checkpointMode: 'requests'` (alpha; service 1.24 or later). If `@powersync/node`'s worker threads fail under Vitest, use `openWorker` with `startPowerSyncWorker` as its README describes. Write down what was needed; the results doc reports it.
-- [ ] Root script `sync:test`: `supabase test db`, then `npm test --workspace=tools/sync-lab`. The workspace's own `test` script must **not** be picked up by `npm test --workspaces`: name it `test:stack`, and have `sync:test` call that.
+- [ ] Root script `sync:test`: first check the stack is up (Supabase status and PowerSync's health endpoint) and, if not, stop with "Run `npm run sync:up` first"; then `supabase test db`, then `npm run test:stack --workspace=tools/sync-lab`. The workspace has no `test` script, so `npm test --workspaces` never runs these.
 - [ ] Commit: `test(sync-lab): headless devices on the local stack`.
 
 #### Task 10: two devices converge (criterion 2)
@@ -363,6 +374,7 @@ export function serverTotal(user: TestUser, practiceId: string): Promise<number>
   - `three devices converge whatever order they reconnect in`: all six orders
   - `chanting after a deletion on another device brings the position back`
   - `a session's ended_at set on one device reaches the other`
+  - `a permanently rejected upload is set aside, not lost`: upload a count event whose session the server doesn't have (`23503`). It lands in `upload_failures` with its data, the queue moves on, and the next event uploads
 - [ ] Commit: `test(sync-lab): two devices converge`.
 
 #### Task 11: a guest signs in (criterion 1, headless)
@@ -412,7 +424,7 @@ export function serverTotal(user: TestUser, practiceId: string): Promise<number>
 Manual. Record each run in the results doc, with platform, OS and browser versions.
 
 - [ ] **Android emulator**, development build (`npx expo run:android`): chant as a guest; sign in; the counts reach the server. Then run two emulators against the same account, both offline, and repeat Task 10's first and third cases by hand.
-- [ ] **Web, Chrome**, from the static export: `npm run export:web --workspace=apps/mobile`, then serve `apps/mobile/dist` on `localhost`. The static build succeeds, and the page opens with no errors in the console. Chant as a guest and reload: the count is kept. Sign in, go offline in DevTools, chant, reload while still offline, go online: the counts reach the server.
+- [ ] **Web, Chrome**, from the static export: `npm run export:web --workspace=apps/mobile`, then serve `apps/mobile/dist` on `localhost`. The static build succeeds, and the page opens with no errors in the console. Chant as a guest and reload: the count is kept. Sign in, go offline in DevTools, chant, then close the tab while still offline. Reopen it online: the offline counts are still there, and they reach the server. (Reloading while offline needs the service worker, which is M10.)
 - [ ] **Web vs Android**: the same account on both, offline, then reconnect: totals agree.
 - [ ] Measure: time from `connect()` to the first complete sync with 10,000 count events in the account, on Android and Chrome.
 - [ ] Commit any fixes the runs needed. Push, draft PR, request Copilot.
@@ -449,10 +461,10 @@ Needs the owner: a PowerSync account (free plan), a Supabase project (free plan)
 
 ## Done when
 
-- [ ] `npm run sync:test` passes on a fresh clone with Docker running: pgTAP, convergence, guest sign-in and merge parity
+- [ ] On a fresh clone with Docker running, `npm run sync:up` then `npm run sync:test` passes: pgTAP, convergence, guest sign-in and merge parity
 - [ ] Criterion 1: a guest's counts and position reach the account on Android, with nothing uploaded before sign-in
 - [ ] Criterion 2: two devices offline on the same pass converge to exact totals and one position with every mark; a finished pass wins, headless and by hand on Android
-- [ ] Criterion 3: the static web export builds, keeps data across an offline reload in Chrome and Safari, and uploads it on reconnect
+- [ ] Criterion 3: the static web export builds; in Chrome and Safari, counts chanted offline survive closing the tab and upload when it reopens online
 - [ ] The Cloud instance runs the sync config deployed from the repo, and the headless tests pass against it
 - [ ] The results doc, data-model.md, the setup guide, TECH-VERSIONS and the Phase 1 plan match what was found
 
