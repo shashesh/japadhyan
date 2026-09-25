@@ -22,11 +22,12 @@ Closes the three open criteria of the [sync engine decision](../../decisions/202
   - The Sync Streams config, in the repo
   - Codecs in `packages/shared` between the domain types and table rows, and the derived ids ([data-model](../../architecture/data-model.md#ids-for-rows-that-are-unique-per-devotee)), which the position tests need
   - Headless tests where two or three PowerSync clients act as devices: offline, chanting, reconnecting
+  - Correcting a device's clock offset before positions upload ([clock offset](#clock-offset)), since positions carry an `hlc` and the server drops one that runs ahead
   - PowerSync in `apps/mobile` behind a dev-only screen, on Android, iOS if possible, Chrome and Safari, with a guest who signs in
   - A last pass against PowerSync Cloud (free plan) and a hosted Supabase project
   - A results write-up, and the docs that change because of it
 - Out:
-  - Tables where the latest edit wins (profiles, saved practices, deity defaults, custom practices, sankalpas), their `hlc` guard, and correcting the clock offset before upload. They are the documented pattern ([decision](../../decisions/2026-09-22-sync-engine-powersync.md#against-the-seven-criteria), criterion 7) and come with M10
+  - Tables where the latest edit wins (profiles, saved practices, deity defaults, custom practices, sankalpas), and their `hlc` guard. They reuse the clock offset correction that S4 builds for positions. They are the documented pattern ([decision](../../decisions/2026-09-22-sync-engine-powersync.md#against-the-seven-criteria), criterion 7) and come with M10
   - Real sign-in methods (Google, Apple, email codes), the consent screen and `consents`: the prototype signs in with email and password against test users, and consent is a flag
   - Repositories, the real chant screen on PowerSync, and the catalog tables (M3)
   - The PWA service worker, so the site opens offline after the first visit (M10). This prototype shows the **data** survives offline, not the app shell
@@ -106,7 +107,7 @@ The steps:
    - the row is malformed: a missing field, the wrong type, `hlc` or `deleted_hlc` not in the text form, `chanted_steps` not lowercase hex, or a negative `step_index`, `pass_ordinal` or `practice_version`. No valid row has a negative `step_index`, deleted or not, and the device's row codec rejects one too. What only live rows are checked for is the **upper** bound, the step count, which the server can't know;
    - `practice_id` isn't canonical: a catalog id (`^[a-z0-9-]+$`, not shaped like a UUID) or a lowercase hyphenated UUID. Otherwise `Custom-UUID` and `custom-uuid` would derive two ids for one practice;
    - `id` isn't `extensions.uuid_generate_v5('49841fbe-b559-4c62-ae52-0d0611052939', 'v1:practice_positions:' || user_id || ':' || practice_id)`;
-   - `hlc` or `deleted_hlc` is more than 5 minutes ahead of `now()`.
+   - `hlc` or `deleted_hlc` is more than 5 minutes ahead of `now()`. This is a backstop against a wildly wrong clock: the device corrects its offset and restamps before uploading ([clock offset](#clock-offset)), so an honest edit never reaches it.
 3. `insert … on conflict (id) do nothing`, then `select … for update` the stored row, so two uploads for the same id at once serialise.
 4. Merge as `mergePositions` does: the higher generation (`practice_version`, then `pass_ordinal`) wins. Within one generation:
    - the marks are OR-ed byte by byte, but only when both have the same length (the server's stand-in for "fits the step count"; otherwise the later row's marks stand);
@@ -117,6 +118,17 @@ The steps:
 5. Update the row.
 
 A pure `public.merge_position_rows(a, b)` holds step 4, so the pgTAP tests call it directly.
+
+`public.server_now() returns timestamptz` returns `now()`, so a device can learn the server's time. `authenticated` may execute it; `anon` may not.
+
+### Clock offset
+
+Positions are ordered within a generation by `hlc`, and the server drops one more than 5 minutes ahead of its time, answering success. On its own, that would lose edits: a phone whose clock runs fast would keep its marks locally, see the upload succeed, then have the row overwritten by the server's at the next checkpoint. So S4 builds the offset correction the [conflict rule](../../architecture/data-model.md#conflict-rule) describes, for positions. M10 reuses it for the tables where the latest edit wins.
+
+- **Learn the server's time on connect.** `fetchCredentials` calls `rpc('server_now')` and stores `clock_offset_ms`, the server's time minus the midpoint of the request, in `device_state`. If the call fails, `fetchCredentials` fails, so no upload ever runs without a known offset.
+- **New edits use the corrected time:** `issueHlc(last, Date.now() + clock_offset_ms, device_id)`. As the conflict rule says, the device's own `hlc`s that ran too far ahead stop counting towards `last`; every `hlc` it has received still counts. Otherwise one fast edit would keep every later edit fast too.
+- **Queued edits are restamped before they upload.** Before sending a position, the connector compares the local row's `hlc` and `deleted_hlc` with the corrected time. If either runs more than 60 seconds ahead, **both** (when both are set) get new clocks from the corrected time, issued in their original order, in one write transaction. Restamping only one could move it to the other side of the other, so a deleted position would come back or a live one would vanish. This way a deleted position stays deleted, and a live one stays live. The row is then sent as decision 6 says. Because the connector sends the row as it is at upload time, restamping the local row is enough; no queued payload has to be kept in step. The restamp queues one more `PATCH` for the row, which the idempotent merge absorbs.
+- The 60-second margin leaves room inside the server's 5 minutes for the round trip that measured the offset.
 
 ### The sync config
 
@@ -142,7 +154,8 @@ apps/mobile/src/data/powersync/
                   makeSchema(mode)
   database.ts     openDatabase(): native (op-sqlite) or web (WASQLite, OPFSCoopSyncVFS),
                   created lazily; never at module scope
-  connector.ts    SupabaseConnector: fetchCredentials, uploadData (decision 6)
+  connector.ts    SupabaseConnector: fetchCredentials (also learns the clock offset),
+                  uploadData (decision 6; restamps positions that run ahead)
   signIn.ts       signInAndCombine(db, supabase, credentials, { consented }): decision 8;
                   rejects before signing in unless consented is true
 apps/mobile/src/features/sync-lab/SyncLabScreen.tsx
@@ -159,25 +172,25 @@ The upload rules (decision 6), per operation:
 | `sessions`           | Same                                                   | `update({ ended_at }).eq('id').is('ended_at', null)` | Never happens; set aside               |
 | `practice_positions` | `rpc('merge_practice_position', { row: <local row> })` | Same                                                 | Never happens (soft delete); set aside |
 
-**A permanent failure is set aside, never discarded.** PowerSync's demo discards a transaction on any class `22` or `23` error, or on `42501`, but class 23 includes `23503`, a foreign key violation. A count event whose session never reached the server would then vanish from the lifetime count. Retrying forever is no better: the transaction would block every upload behind it. So on those codes the connector records each of the transaction's operations in a local-only `upload_failures` table (table, op, id, error code, and the **payload it sent**), then completes it. The payload is what the table above sends, so it can be sent again as it is: for a position, the whole local row read at upload time, never `opData`, which holds only the changed columns and would lose the generation and the full marks; for a count event, the whole row; for a session's `PATCH`, its `ended_at`. The data stays on the device, the dev screen shows it, and a later fix can replay it. Logs carry the table, id and code, never the data, because a practice id reveals religion. Any other error is thrown, so the upload retries.
+**A permanent failure is set aside, never discarded.** PowerSync's demo discards a transaction on any class `22` or `23` error, or on `42501`, but class 23 includes `23503`, a foreign key violation. A count event whose session never reached the server would then vanish from the lifetime count. Retrying forever is no better: the transaction would block every upload behind it. So on those codes the connector records each of the transaction's operations in a local-only `upload_failures` table (table, op, id, error code, and the **payload it sent**), then completes it. The payload is what the table above sends, so it can be sent again as it is: for a position, the whole local row read at upload time, never `opData`, which holds only the changed columns and would lose the generation and the full marks; for a count event, the whole row; for a session's `PATCH`, its `ended_at`. The data stays on the device, the dev screen shows it, and a later fix can replay it. A position the server drops for running ahead never reaches this path, since the server answers success; the [clock offset](#clock-offset) correction is what keeps those edits. Logs carry the table, id and code, never the data, because a practice id reveals religion. Any other error is thrown, so the upload retries.
 
 ## File structure
 
-| File                                                                                      | Responsibility                                                             |
-| ----------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| `packages/shared/src/logic/derivedId.ts` (+ test)                                         | `uuidv5`, `derivedId`, `DERIVED_ID_NAMESPACE`                              |
-| `packages/shared/src/logic/hlcText.ts` (+ test)                                           | `hlcToText`, `hlcFromText`                                                 |
-| `packages/shared/src/logic/marks.ts` (+ test)                                             | Gains `marksToHex`, `marksFromHex`                                         |
-| `packages/shared/src/logic/rows.ts` (+ test)                                              | Row types and codecs for the three tables; `toServerRow`                   |
-| `supabase/config.toml`, `supabase/migrations/*_sync_core.sql`                             | Local Supabase; the three tables, RLS, grants, publication, merge function |
-| `supabase/tests/*.test.sql`                                                               | pgTAP: RLS, sessions rule, merge, derived-id vectors, publication          |
-| `supabase/seed.sql`                                                                       | Nothing user-specific; test users are made by the tests                    |
-| `powersync/` (`service.yaml`, `sync-config.yaml`, `cli.yaml`, compose)                    | The self-hosted service and the sync config                                |
-| `tools/sync-lab/` (`package.json`, `vitest.config.ts`, `src/*.test.ts`, `src/harness.ts`) | Headless devices: harness, convergence, guest sign-in, merge parity        |
-| `apps/mobile/src/data/powersync/*`                                                        | As above                                                                   |
-| `apps/mobile/src/features/sync-lab/SyncLabScreen.tsx`, `src/app/dev/sync.tsx`             | The dev screen                                                             |
-| `apps/mobile/metro.config.js`                                                             | PowerSync's per-platform `resolveRequest`                                  |
-| `docs/research/2026-MM-DD-s4-sync-prototype.md`                                           | Results                                                                    |
+| File                                                                                      | Responsibility                                                                           |
+| ----------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `packages/shared/src/logic/derivedId.ts` (+ test)                                         | `uuidv5`, `derivedId`, `DERIVED_ID_NAMESPACE`                                            |
+| `packages/shared/src/logic/hlcText.ts` (+ test)                                           | `hlcToText`, `hlcFromText`                                                               |
+| `packages/shared/src/logic/marks.ts` (+ test)                                             | Gains `marksToHex`, `marksFromHex`                                                       |
+| `packages/shared/src/logic/rows.ts` (+ test)                                              | Row types and codecs for the three tables; `toServerRow`                                 |
+| `supabase/config.toml`, `supabase/migrations/*_sync_core.sql`                             | Local Supabase; the three tables, RLS, grants, publication, merge function, `server_now` |
+| `supabase/tests/*.test.sql`                                                               | pgTAP: RLS, sessions rule, merge, derived-id vectors, publication                        |
+| `supabase/seed.sql`                                                                       | Nothing user-specific; test users are made by the tests                                  |
+| `powersync/` (`service.yaml`, `sync-config.yaml`, `cli.yaml`, compose)                    | The self-hosted service and the sync config                                              |
+| `tools/sync-lab/` (`package.json`, `vitest.config.ts`, `src/*.test.ts`, `src/harness.ts`) | Headless devices: harness, convergence, guest sign-in, merge parity                      |
+| `apps/mobile/src/data/powersync/*`                                                        | As above                                                                                 |
+| `apps/mobile/src/features/sync-lab/SyncLabScreen.tsx`, `src/app/dev/sync.tsx`             | The dev screen                                                                           |
+| `apps/mobile/metro.config.js`                                                             | PowerSync's per-platform `resolveRequest`                                                |
+| `docs/research/2026-MM-DD-s4-sync-prototype.md`                                           | Results                                                                                  |
 
 ## Tasks
 
@@ -320,7 +333,8 @@ export function toServerRow(
   - `a non-canonical practice_id is dropped`: an uppercase custom practice UUID, with an id derived from it, leaves no row
   - `a deleted row with a step_index past the step count is kept`: the server doesn't police the upper bound on tombstones
   - `marks of different lengths in one generation: the later row's stand`
-- [ ] Implement `merge_position_rows` and `merge_practice_position`. Run the tests. Commit: `feat(supabase): merge positions on the server`.
+  - `server_now returns the database's time`, and `anon can't execute server_now`
+- [ ] Implement `merge_position_rows`, `merge_practice_position` and `server_now`. Run the tests. Commit: `feat(supabase): merge positions on the server`.
 
 #### Task 8: the sync config
 
@@ -351,9 +365,19 @@ export interface TestUser {
   password: string;
   user_id: string;
 }
+export interface DeviceOptions {
+  clockSkewMs?: number; // added to Date.now() for this device's wall clock; default 0
+}
 export function createUser(): Promise<TestUser>; // admin API
-export function signedInDevice(user: TestUser, name: string): Promise<Device>;
-export function guestDevice(name: string): Promise<
+export function signedInDevice(
+  user: TestUser,
+  name: string,
+  options?: DeviceOptions,
+): Promise<Device>;
+export function guestDevice(
+  name: string,
+  options?: DeviceOptions,
+): Promise<
   Device & {
     // calls signInAndCombine; consented defaults to true
     signIn(user: TestUser, options?: { consented?: boolean }): Promise<void>;
@@ -380,6 +404,9 @@ export function serverTotal(user: TestUser, practiceId: string): Promise<number>
   - `chanting after a deletion on another device brings the position back`
   - `a session's ended_at set on one device reaches the other`
   - `a permanently rejected upload is set aside, not lost`: upload a count event whose session the server doesn't have (`23503`). It lands in `upload_failures` with its data, the queue moves on, and the next event uploads
+  - `a device whose clock runs 10 minutes fast keeps its marks`: B's clock is 10 minutes fast. Offline, B marks 5–6 and A marks 0–2. Both reconnect. The server and both devices hold marks {0, 1, 2, 5, 6}, and the stored `hlc` is within 60 seconds of the server's time
+  - `restamping keeps a deletion's meaning`: B, 10 minutes fast and offline, deletes a position; after it reconnects, the position is deleted on the server. Then, again offline, B deletes another and chants on it again; after it reconnects, that position is live. And a row whose `hlc` is on time but whose `deleted_hlc` runs 10 minutes ahead is still deleted after the restamp
+  - `after reconnecting, a fast device's new edits use the corrected clock`: B, 10 minutes fast, reconnects, then marks a step. The upload's `hlc` is within 60 seconds of the server's time, not 10 minutes ahead, though B made edits that far ahead before
   - `a set-aside position keeps its whole row`: offline, change a synced position's `user_id` to another user's by hand, then mark a step, so the upload is a `PATCH` the server refuses (`42501`). Its `upload_failures` payload holds every column of the row, including `practice_version`, `pass_ordinal` and the full `chanted_steps`. Sending that payload to `merge_practice_position` as the right user, with `user_id` set back, stores the position
 - [ ] Commit: `test(sync-lab): two devices converge`.
 
@@ -462,6 +489,7 @@ Needs the owner: a PowerSync account (free plan), a Supabase project (free plan)
 - **Two devices in one Node process is undocumented.** If `@powersync/node` can't run two clients in one process, run each device as a child process driven by the test.
 - **Local-only to synced is shown only on React web.** If `updateSchema` misbehaves on React Native, the fallback is plain local tables that the app copies on sign-in, still inside PowerSync's database.
 - **op-sqlite is listed as Beta** on PowerSync's feature-status page, although SDK 2 makes it the only native driver. Worth asking PowerSync.
+- **The clock offset is an estimate.** It is only as good as the round trip to `server_now`. The 60-second restamp margin covers a slow network, well inside the server's 5 minutes. A clock that jumps while connected is corrected at the next connect or token refresh, when `fetchCredentials` runs again.
 - **`requestCheckpoint` is alpha.** It's only a fallback for knowing that a device has caught up.
 - **Supabase's local Postgres keeps at most 5 replication slots.** Each sync config deploy makes a new slot, and a crashed service can leave one behind. `sync:reset` drops inactive slots.
 - **Devices for the manual runs:** Android runs on the emulator on the owner's Windows machine; iOS and Safari on the owner's iPhone and Mac. If the Mac is to hand during PR 4, macOS Safari can be tried early: served from `localhost` on the Mac, the page is a secure context, so OPFS works against the local stack over the LAN.
@@ -470,7 +498,7 @@ Needs the owner: a PowerSync account (free plan), a Supabase project (free plan)
 
 - [ ] On a fresh clone with Docker running, `npm run sync:up` then `npm run sync:test` passes: pgTAP, convergence, guest sign-in and merge parity
 - [ ] Criterion 1: a guest's counts and position reach the account on Android, with nothing downloaded or uploaded before sign-in and consent
-- [ ] Criterion 2: two devices offline on the same pass converge to exact totals and one position with every mark; a finished pass wins, headless and by hand on Android
+- [ ] Criterion 2: two devices offline on the same pass converge to exact totals and one position with every mark, even when one device's clock runs 10 minutes fast; a finished pass wins, headless and by hand on Android
 - [ ] Criterion 3: the static web export builds; in Chrome and Safari, counts chanted offline survive closing the tab and upload when it reopens online
 - [ ] The Cloud instance runs the sync config deployed from the repo, and the headless tests pass against it
 - [ ] The results doc, data-model.md, the setup guide, TECH-VERSIONS and the Phase 1 plan match what was found
