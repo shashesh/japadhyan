@@ -15,10 +15,11 @@
  *   semilattice. Clocks that run ahead are restamped first.
  *
  * A refusal the server will always repeat is **set aside**, never discarded:
- * the transaction's operations go into `upload_failures` with the payload
- * each sent, and the queue moves on. Discarding would lose counts, and
- * retrying would block every upload behind it. Anything else is thrown, so
- * PowerSync retries.
+ * the refused operation and every one after it in its transaction go into
+ * `upload_failures` with the payload each would send, and the queue moves
+ * on. Discarding would lose counts, and retrying would block every upload
+ * behind it. Operations the upload rules say never happen are set aside the
+ * same way. Anything else is thrown, so PowerSync retries.
  *
  * See docs/plans/active/2026-09-24-s4-sync-prototype.md#the-client.
  */
@@ -52,13 +53,17 @@ export interface ConnectorOptions {
   now?: () => number;
 }
 
-/** A Postgres error that retrying can't fix, carrying its SQLSTATE. */
+/**
+ * Postgres answered with an error, carrying its SQLSTATE. The message names
+ * only the table and code: this error reaches PowerSync's logs, and the
+ * server's own wording can't be trusted to leave out a row's data.
+ */
 export class UploadRefused extends Error {
   constructor(
     readonly code: string,
-    message: string,
+    table: string,
   ) {
-    super(message);
+    super(`Upload to ${table} refused (${code})`);
     this.name = 'UploadRefused';
   }
 }
@@ -80,7 +85,15 @@ type Payload =
   /** An operation the upload rules say never happens. */
   | { kind: 'unexpected' };
 
+/** Why an operation was set aside, when the server never refused it. */
 const UNEXPECTED_OP = 'unexpected_op';
+const NOT_SENT = 'not_sent';
+
+interface SetAside {
+  op: CrudEntry;
+  body: Record<string, unknown>;
+  code: string;
+}
 
 export class SupabaseConnector implements PowerSyncBackendConnector {
   private readonly db: CommonPowerSyncDatabase;
@@ -125,29 +138,42 @@ export class SupabaseConnector implements PowerSyncBackendConnector {
   }
 
   /**
-   * Uploads one transaction's operations, in order. Returns once they are on
+   * Uploads one transaction's operations, in order. Returns once each is on
    * the server or set aside; throws when PowerSync should retry.
+   *
+   * Nothing is recorded until the whole transaction is settled, so a retry
+   * after a transient error never records an operation twice. Operations the
+   * server already took are not recorded at all.
    */
   async uploadTransaction(db: CommonPowerSyncDatabase, crud: readonly CrudEntry[]): Promise<void> {
     const payloads: Payload[] = [];
     for (const op of crud) payloads.push(await this.payloadFor(db, op));
 
-    try {
-      for (const [i, op] of crud.entries()) {
-        const payload = payloads[i]!;
-        if (payload.kind === 'unexpected') {
-          await setAside(db, [{ op, body: op.opData ?? {} }], UNEXPECTED_OP);
-        } else if (payload.kind === 'send') {
-          await this.send(op, payload.body);
-        }
+    const setAsides: SetAside[] = [];
+    let refusal: string | null = null;
+    for (const [i, op] of crud.entries()) {
+      const payload = payloads[i]!;
+      if (payload.kind === 'skip') continue;
+      if (payload.kind === 'unexpected') {
+        setAsides.push({ op, body: op.opData ?? {}, code: UNEXPECTED_OP });
+      } else if (refusal !== null) {
+        setAsides.push({ op, body: payload.body, code: NOT_SENT });
+      } else {
+        refusal = await this.sendOrRefuse(op, payload.body);
+        if (refusal !== null) setAsides.push({ op, body: payload.body, code: refusal });
       }
+    }
+    if (setAsides.length > 0) await setAside(db, setAsides);
+  }
+
+  /** The SQLSTATE of a permanent refusal, or `null` once the server has it. */
+  private async sendOrRefuse(op: CrudEntry, body: Record<string, unknown>): Promise<string | null> {
+    try {
+      await this.send(op, body);
+      return null;
     } catch (error) {
-      if (!(error instanceof UploadRefused) || !isPermanent(error.code)) throw error;
-      const refused = crud.flatMap((op, i) => {
-        const payload = payloads[i]!;
-        return payload.kind === 'send' ? [{ op, body: payload.body }] : [];
-      });
-      await setAside(db, refused, error.code);
+      if (error instanceof UploadRefused && isPermanent(error.code)) return error.code;
+      throw error;
     }
   }
 
@@ -226,8 +252,8 @@ export class SupabaseConnector implements PowerSyncBackendConnector {
               .upsert(body, { onConflict: 'id', ignoreDuplicates: true });
     if (error) {
       // A code means Postgres answered; without one the request itself failed, so retry.
-      if (error.code) throw new UploadRefused(error.code, error.message);
-      throw new Error(`Upload to ${op.table} failed: ${error.message}`);
+      if (error.code) throw new UploadRefused(error.code, op.table);
+      throw new Error(`Upload to ${op.table} failed`);
     }
   }
 }
@@ -239,26 +265,24 @@ function isEndingOnly(opData: Record<string, unknown> | undefined): opData is { 
 }
 
 /**
- * Keeps refused operations on the device with the payload each sent, so a
- * later fix can send it again. Logs name the table, id and code, never the
- * data: a practice id reveals religion.
+ * Keeps operations on the device with the payload each would send, so a
+ * later fix can send it again, in one write. `client_id` keeps the upload
+ * queue's order. Logs name the table, id and code, never the data: a
+ * practice id reveals religion.
  */
-async function setAside(
-  db: CommonPowerSyncDatabase,
-  refused: readonly { op: CrudEntry; body: Record<string, unknown> }[],
-  code: string,
-): Promise<void> {
+async function setAside(db: CommonPowerSyncDatabase, entries: readonly SetAside[]): Promise<void> {
   const failedAt = new Date().toISOString();
   await db.writeTransaction(async (tx) => {
-    for (const { op, body } of refused) {
+    for (const { op, body, code } of entries) {
       await tx.execute(
-        `INSERT INTO upload_failures (id, table_name, op, row_id, error_code, payload, failed_at)
-         VALUES (uuid(), ?, ?, ?, ?, ?, ?)`,
-        [op.table, op.op, op.id, code, JSON.stringify(body), failedAt],
+        `INSERT INTO upload_failures
+           (id, client_id, table_name, op, row_id, error_code, payload, failed_at)
+         VALUES (uuid(), ?, ?, ?, ?, ?, ?, ?)`,
+        [op.clientId, op.table, op.op, op.id, code, JSON.stringify(body), failedAt],
       );
     }
   });
-  for (const { op } of refused) {
+  for (const { op, code } of entries) {
     db.logger.log({
       level: LogLevels.warn,
       message: `Upload set aside: ${op.table} ${op.op} ${op.id} (${code})`,

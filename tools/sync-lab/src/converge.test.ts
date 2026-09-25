@@ -28,6 +28,8 @@ import {
   type Device,
   type TestUser,
 } from './harness';
+import { requireDeviceState } from './client';
+import * as practice from './practice';
 import { insert } from './practice';
 
 const MANTRA = 'om-namah-shivaya';
@@ -72,6 +74,24 @@ async function expectTotals(
 async function expectOnTime(user: TestUser, clock: Hlc | null): Promise<void> {
   expect(clock).not.toBeNull();
   expect(Math.abs(clock!.millis - (await serverNow(user)))).toBeLessThanOrEqual(RESTAMP_MARGIN_MS);
+}
+
+/** An event whose session the server never received: a foreign key violation. */
+function orphanEvent(user: TestUser): CountEvent {
+  return {
+    id: uuidv7(),
+    user_id: user.user_id,
+    practice_id: MANTRA,
+    session_id: uuidv7(),
+    mode: 'mala_tap',
+    count: 27,
+    estimated: false,
+    device_id: 'a',
+    created_at: new Date().toISOString(),
+    local_day: new Date().toISOString().slice(0, 10),
+    tz_offset_min: 0,
+    steps_per_repetition: 1,
+  };
 }
 
 describe('counts', () => {
@@ -123,21 +143,7 @@ describe('counts', () => {
   test('a permanently rejected upload is set aside, not lost', async () => {
     const user = await createUser();
     const a = await signedInDevice(user, 'a');
-    // An event whose session the server never received: a foreign key violation.
-    const orphan: CountEvent = {
-      id: uuidv7(),
-      user_id: user.user_id,
-      practice_id: MANTRA,
-      session_id: uuidv7(),
-      mode: 'mala_tap',
-      count: 27,
-      estimated: false,
-      device_id: 'a',
-      created_at: new Date().toISOString(),
-      local_day: new Date().toISOString().slice(0, 10),
-      tz_offset_min: 0,
-      steps_per_repetition: 1,
-    };
+    const orphan = orphanEvent(user);
     await insert(a.db, 'count_events', { ...countEventToRow(orphan) });
     await a.chant(MANTRA, 108);
 
@@ -153,6 +159,32 @@ describe('counts', () => {
       error_code: '23503',
     });
     expect(failures[0]!.payload).toMatchObject({ id: orphan.id, count: 27, estimated: false });
+  });
+
+  test('a refusal mid-transaction sets aside what follows it, and nothing already sent', async () => {
+    const user = await createUser();
+    const a = await signedInDevice(user, 'a');
+    const orphan = orphanEvent(user);
+    let sent = '';
+    let after = '';
+    await a.db.writeTransaction(async (tx) => {
+      const ctx = { tx, state: await requireDeviceState(tx), nowMs: Date.now() };
+      sent = (await practice.chant(ctx, MANTRA, 108)).id; // the session and an event: sent
+      await insert(tx, 'count_events', { ...countEventToRow(orphan) }); // refused
+      await tx.execute('UPDATE count_events SET count = 1 WHERE id = ?', [sent]); // never happens
+      after = (await practice.chant(ctx, MANTRA, 9)).id; // not sent, after the refusal
+    });
+
+    await a.goOnline();
+
+    expect(await serverTotal(user, MANTRA)).toBe(108);
+    const failures = await a.uploadFailures();
+    expect(failures.map(({ op, row_id, error_code }) => ({ op, row_id, error_code }))).toEqual([
+      { op: 'PUT', row_id: orphan.id, error_code: '23503' },
+      { op: 'PATCH', row_id: sent, error_code: 'unexpected_op' },
+      { op: 'PUT', row_id: after, error_code: 'not_sent' },
+    ]);
+    expect(failures[2]!.payload).toMatchObject({ id: after, count: 9 });
   });
 });
 

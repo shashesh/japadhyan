@@ -228,7 +228,7 @@ class LabDevice implements GuestDevice {
 
   async uploadFailures(): Promise<UploadFailure[]> {
     const rows = await this.db.getAll<Omit<UploadFailure, 'payload'> & { payload: string }>(
-      'SELECT table_name, op, row_id, error_code, payload FROM upload_failures ORDER BY failed_at',
+      'SELECT table_name, op, row_id, error_code, payload FROM upload_failures ORDER BY failed_at, client_id',
     );
     return rows.map((row) => ({ ...row, payload: JSON.parse(row.payload) }));
   }

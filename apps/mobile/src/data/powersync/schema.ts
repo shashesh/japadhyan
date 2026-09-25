@@ -114,6 +114,8 @@ const deviceState = new Table(
  */
 const uploadFailures = new Table(
   {
+    /** The operation's place in the upload queue. */
+    client_id: column.integer,
     table_name: column.text,
     op: column.text,
     row_id: column.text,

@@ -24,6 +24,7 @@ import {
   type CountEvent,
   type PracticePosition,
   type Session,
+  type SyncedTable,
 } from '@japadhyan/shared';
 
 import { correctedNow, type DeviceState, type Sql } from './client';
@@ -213,7 +214,11 @@ async function writePosition(tx: Sql, position: PracticePosition, exists: boolea
 }
 
 /** A plain insert, as the app's code makes one; tests use it to write rows by hand. */
-export async function insert(tx: Sql, table: string, row: Record<string, unknown>): Promise<void> {
+export async function insert(
+  tx: Sql,
+  table: SyncedTable,
+  row: Record<string, unknown>,
+): Promise<void> {
   const columns = Object.keys(row);
   await tx.execute(
     `INSERT INTO ${table} (${columns.map((c) => `"${c}"`).join(', ')})
