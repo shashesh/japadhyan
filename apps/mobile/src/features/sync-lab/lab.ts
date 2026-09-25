@@ -66,11 +66,26 @@ export async function openSyncLab(): Promise<SyncLab> {
   const write = <T>(action: (ctx: practice.WriteContext) => Promise<T>): Promise<T> =>
     practice.writePractice(db, { nowMs: Date.now(), randomBytes: getRandomBytes }, action);
 
-  async function goOnline(): Promise<void> {
+  /**
+   * Why this device can't sync now, or `null` when it can: it is signed in,
+   * and the session is its own account's. On the web the session lives in
+   * localStorage, apart from device_state, so it may be another account's.
+   */
+  async function cannotSync(): Promise<string | null> {
     const state = await requireDeviceState(db);
-    if (state.mode === 'guest') throw new Error('A guest never syncs: sign in first');
-    const { data } = await supabase.auth.getSession();
-    if (data.session === null) throw new Error('No session on this device: sign in again');
+    if (state.mode === 'guest') return 'A guest never syncs: sign in first';
+    const { data, error } = await supabase.auth.getSession();
+    if (error) throw error;
+    if (data.session === null) return 'No session on this device: sign in again';
+    if (data.session.user.id !== state.owner_id) {
+      return 'The session is for another account: sign in again';
+    }
+    return null;
+  }
+
+  async function goOnline(): Promise<void> {
+    const reason = await cannotSync();
+    if (reason !== null) throw new Error(reason);
     await db.connect(connector);
   }
 
@@ -115,8 +130,7 @@ export async function openSyncLab(): Promise<SyncLab> {
     },
   };
 
-  const state = await requireDeviceState(db);
-  const { data } = await supabase.auth.getSession();
-  if (state.mode === 'signed_in' && data.session !== null) await db.connect(connector);
+  // A signed-in device picks up where it left off, if its session is still there.
+  if ((await cannotSync()) === null) await db.connect(connector);
   return lab;
 }

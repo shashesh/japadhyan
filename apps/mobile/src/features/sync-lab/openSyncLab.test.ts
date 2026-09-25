@@ -36,7 +36,15 @@ jest.mock('@/data/powersync/deviceState', () => ({
 }));
 jest.mock('@/data/powersync/signIn', () => ({ signInAndCombine: jest.fn() }));
 
-function device(mode: DeviceState['mode'], { session }: { session: boolean }): void {
+/** A session for `ACCOUNT`, or for whoever `sessionUser` names. */
+function sessionOf(userId: string) {
+  return { access_token: 'token', user: { id: userId } };
+}
+
+function device(
+  mode: DeviceState['mode'],
+  { session, sessionUser = ACCOUNT }: { session: boolean; sessionUser?: string },
+): void {
   mockDevice.state = {
     owner_id: ACCOUNT,
     device_id: '0192a4b1-0000-7000-8000-000000000001',
@@ -44,7 +52,7 @@ function device(mode: DeviceState['mode'], { session }: { session: boolean }): v
     clock_offset_ms: 0,
   };
   mockDevice.supabase.auth.getSession.mockResolvedValue({
-    data: { session: session ? { access_token: 'token' } : null },
+    data: { session: session ? sessionOf(sessionUser) : null },
   });
 }
 
@@ -63,6 +71,16 @@ describe('openSyncLab', () => {
     device('signed_in', { session: true });
     await openSyncLab();
     expect(mockDevice.db.connect).toHaveBeenCalledTimes(1);
+  });
+
+  it("never connects with another account's session, on open or when told to", async () => {
+    // On the web the session lives in localStorage, apart from device_state.
+    device('signed_in', { session: true, sessionUser: OTHER_ACCOUNT });
+    const lab = await openSyncLab();
+
+    expect(mockDevice.db.connect).not.toHaveBeenCalled();
+    await expect(lab.goOnline()).rejects.toThrow(/another account/);
+    expect(mockDevice.db.connect).not.toHaveBeenCalled();
   });
 
   it('waits for sign-in on a signed-in device whose session is gone', async () => {
@@ -99,7 +117,7 @@ describe('openSyncLab', () => {
     });
     const lab = await openSyncLab();
     mockDevice.supabase.auth.getSession.mockResolvedValue({
-      data: { session: { access_token: 'token' } },
+      data: { session: sessionOf(ACCOUNT) },
     });
 
     await lab.signIn(CREDENTIALS, true);
