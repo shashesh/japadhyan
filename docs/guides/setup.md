@@ -1,6 +1,6 @@
 ---
 status: active
-updated: 2026-09-24
+updated: 2026-09-25
 ---
 
 # Setup and running
@@ -8,17 +8,18 @@ updated: 2026-09-24
 ## Prerequisites
 
 - **Node.js 24** (see `.nvmrc`; 22.13+ also works) and npm 10+
-- **Expo Go** on your phone for quick testing, or Android Studio / Xcode for emulators
+- **Android Studio** for the Android SDK and emulators; Xcode for iOS, macOS only. The app uses PowerSync's native SQLite, which Expo Go doesn't include, so it runs as a [development build](https://docs.expo.dev/develop/development-builds/introduction/)
 - Windows: iOS builds need EAS Build in the cloud (no local Xcode)
 
 ## First run
 
 ```bash
 npm install
-npm run mobile        # then press a (Android), i (iOS, macOS only) or w (web)
+npm run android --workspace=apps/mobile   # builds, installs and opens the development build
+npm run web                               # the web app, in the browser
 ```
 
-Scan the QR code with Expo Go to run on your phone.
+After the first build, `npm run mobile` starts the dev server on its own; the installed build loads from it. Build again after adding a package with native code. On Windows, set `JAVA_HOME` to Android Studio's bundled JDK (`C:\Program Files\Android\Android Studio\jbr`) and `ANDROID_HOME` to the SDK (`%LOCALAPPDATA%\Android\Sdk`). If the build fails with "Filename longer than 260 characters", the checkout's path is too deep for the `ninja` in the SDK's CMake, even with long paths enabled in Windows; build from a clone at a short path such as `C:\jd`. A `subst` drive doesn't work.
 
 ## Checks
 
@@ -103,14 +104,27 @@ SYNC_LAB_SEED=42 npm run test:stack --workspace=tools/sync-lab -- src/mergeParit
 - The files run one after another: they share the stack, and one test stops PowerSync to see a sign-in whose download fails, then starts it again.
 - The merge test prints its seed on failure; `SYNC_LAB_SEED` reruns that case.
 
+### The sync lab screen
+
+`/dev/sync` in the app is the S4 lab: chant, mark names, go offline and online, sign in, and watch the live total against the local stack. It exists in development builds only. To point the app at the stack:
+
+```bash
+npm run sync:up
+npm run sync:app-env   # writes apps/mobile/.env.local, and makes the lab's test user
+```
+
+Then restart the dev server and open `/dev/sync` (on web, `http://localhost:8081/dev/sync`). The email and password fields are filled in with the lab's user, and sign-in needs the consent switch on. The Android emulator reaches the stack through `10.0.2.2`, which the app swaps in for `127.0.0.1` on Android. On native, the session is kept in memory only, so after restarting the app, sign in again before going online.
+
 ## Web export
 
 Export the static web build:
 
 ```bash
-cd apps/mobile
-npx expo export --platform web   # output in apps/mobile/dist
+npm run export:web --workspace=apps/mobile   # output in apps/mobile/dist
+npx expo serve apps/mobile                   # serves it on http://localhost:8081
 ```
+
+`export:web` first copies PowerSync's worker and WASM into `apps/mobile/public/@powersync/` (`web:assets`, gitignored), which the export includes. To try the sync lab in the export, a production build, add `EXPO_PUBLIC_SYNC_LAB=true` to the export command.
 
 ## Adding packages
 

@@ -446,29 +446,29 @@ export function serverTotal(user: TestUser, practiceId: string): Promise<number>
 
 **Files:** `apps/mobile/package.json`, `metro.config.js`, `app.json`, `src/data/powersync/*`, `.gitignore`.
 
-- [ ] From `apps/mobile`: `npx expo install @powersync/react-native @op-engineering/op-sqlite @powersync/web @powersync/react @powersync/common @supabase/supabase-js expo-build-properties`. Don't install `@powersync/op-sqlite` or `react-native-quick-sqlite`: SDK 2 dropped both. Check the resolved versions against PowerSync's [Expo 57 demo](https://github.com/powersync-ja/powersync-js/tree/main/demos/react-native-web-supabase-todolist) and record them in TECH-VERSIONS.
-- [ ] `metro.config.js` with the demo's `resolveRequest`, `unstable_enablePackageExports` and the `react-native-web` condition. `expo-build-properties` with the demo's Android and iOS minimums.
-- [ ] Scripts: `web:assets` runs `powersync-web copy-assets --output public`; `web` and `export:web` run it first. Gitignore `public/@powersync/`.
-- [ ] `database.ts`: native uses the default op-sqlite factory. Web uses `WASQLiteOpenFactory` with `OPFSCoopSyncVFS`, opened inside a client-only effect. Web sets **both** workers to the file `copy-assets` writes, as the Expo demo's `system.ts` does: the database's (`worker: '/@powersync/worker.js'` on the open factory) and the sync's (`sync: { worker: '/@powersync/worker.js' }` on the database). Setting only the first leaves the sync worker to the SDK's default path, which `copy-assets` doesn't promise to serve.
-- [ ] Jest: add a test that importing `database.ts` opens nothing, and that the dev route renders a placeholder under jest-expo. `npm run check`.
-- [ ] Commit: `feat(mobile): PowerSync client`.
+- [x] From `apps/mobile`: `npx expo install @powersync/react-native @op-engineering/op-sqlite @powersync/web @powersync/react @powersync/common @supabase/supabase-js expo-build-properties`. Don't install `@powersync/op-sqlite` or `react-native-quick-sqlite`: SDK 2 dropped both. Check the resolved versions against PowerSync's [Expo 57 demo](https://github.com/powersync-ja/powersync-js/tree/main/demos/react-native-web-supabase-todolist) and record them in TECH-VERSIONS.
+- [x] `metro.config.js` with the demo's `resolveRequest`, `unstable_enablePackageExports` and the `react-native-web` condition. `expo-build-properties` with the demo's Android and iOS minimums.
+- [x] Scripts: `web:assets` runs `powersync-web copy-assets --output public`; `web` and `export:web` run it first. Gitignore `public/@powersync/`.
+- [x] `database.ts`: native uses the default op-sqlite factory. Web uses `WASQLiteOpenFactory` with `OPFSCoopSyncVFS`, opened inside a client-only effect. Web sets **both** workers to the file `copy-assets` writes, as the Expo demo's `system.ts` does: the database's (`worker: '/@powersync/worker.js'` on the open factory) and the sync's (`sync: { worker: '/@powersync/worker.js' }` on the database). Setting only the first leaves the sync worker to the SDK's default path, which `copy-assets` doesn't promise to serve.
+- [x] Jest: add a test that importing `database.ts` opens nothing, and that the dev route renders a placeholder under jest-expo. `npm run check`.
+- [x] Commit: `feat(mobile): PowerSync client`.
 
 #### Task 14: the dev screen
 
 **Files:** `src/features/sync-lab/SyncLabScreen.tsx` (+ test), `src/app/dev/sync.tsx`.
 
-- [ ] The screen shows: mode (guest or signed in), local owner id, device id, the live total for the fixture mantra (`useQuery`; this is criterion 4), the fixture namavali's marks, upload queue size and sync status. Buttons: +1 japa, +108, mark next name, finish pass, go offline, go online, a consent switch (off by default), sign in as a test user (refused while consent is off), `disconnectAndClear({ clearLocal: false })`.
-- [ ] Test with jest-expo against a mocked database: the buttons call the harness-equivalent functions, and the total re-renders on a new row.
-- [ ] Commit: `feat(mobile): sync lab screen`.
+- [x] The screen shows: mode (guest or signed in), local owner id, device id, the live total for the fixture mantra (`useQuery`; this is criterion 4), the fixture namavali's marks, upload queue size and sync status. Buttons: +1 japa, +108, mark next name, finish pass, go offline, go online, a consent switch (off by default), sign in as a test user (refused while consent is off), `disconnectAndClear({ clearLocal: false })`.
+- [x] Test with jest-expo against a mocked database: the buttons call the harness-equivalent functions, and the total re-renders on a new row.
+- [x] Commit: `feat(mobile): sync lab screen`.
 
 #### Task 15: run it (criteria 1–3 on real platforms)
 
 Manual. Record each run in the results doc, with platform, OS and browser versions.
 
-- [ ] **Android emulator**, development build (`npx expo run:android`): chant as a guest; sign in; the counts reach the server. Then run two emulators against the same account, both offline, and repeat Task 10's first and third cases by hand.
-- [ ] **Web, Chrome**, from the static export: `npm run export:web --workspace=apps/mobile`, then serve `apps/mobile/dist` on `localhost`. The static build succeeds, and the page opens with no errors in the console. In DevTools, both the database worker and the sync worker load from `/@powersync/worker.js`, with no 404s. Chant as a guest and reload: the count is kept. Sign in, go offline in DevTools, chant, then close the tab while still offline. Reopen it online: the offline counts are still there, and they reach the server. (Reloading while offline needs the service worker, which is M10.)
-- [ ] **Web vs Android**: the same account on both, offline, then reconnect: totals agree.
-- [ ] Measure: time from `connect()` to the first complete sync with 10,000 count events in the account, on Android and Chrome.
+- [x] **Android emulator**, development build (`npx expo run:android`): chant as a guest; sign in; the counts reach the server. Then run two emulators against the same account, both offline, and repeat Task 10's first and third cases by hand.
+- [x] **Web, Chrome**, from the static export: `npm run export:web --workspace=apps/mobile`, then serve `apps/mobile/dist` on `localhost`. The static build succeeds, and the page opens with no errors in the console. In DevTools, both the database worker and the sync worker load from `/@powersync/worker.js`, with no 404s. Chant as a guest and reload: the count is kept. Sign in, go offline in DevTools, chant, then close the tab while still offline. Reopen it online: the offline counts are still there, and they reach the server. (Reloading while offline needs the service worker, which is M10.)
+- [x] **Web vs Android**: the same account on both, offline, then reconnect: totals agree.
+- [x] Measure: time from `connect()` to the first complete sync with 10,000 count events in the account, on Android and Chrome.
 - [ ] Commit any fixes the runs needed. Push, draft PR, request Copilot.
 
 ### PR 5 — PowerSync Cloud, iOS and Safari
@@ -522,7 +522,31 @@ What changed from the plan:
 - **Setting aside is per operation, not per transaction.** The first version set aside every operation that sends in a failed transaction, including those already on the server, and skipped an operation the table says never happens if it came after the refusal: it was neither sent nor recorded, and the transaction completed. Code review caught it; a test with a refusal mid-transaction now guards it.
 - `signInAndCombine` takes more options than `{ consented }`: the connector, a step-count lookup for merging positions, a download timeout and sync options.
 - A signed-in lab device starts never connected, so a fast clock's first edits come before any offset is known. `setClockSkew` makes the clock jump while offline, for the restamp cases.
-- The lab's practice writes (`tools/sync-lab/src/practice.ts`) aren't in the app. The dev screen (PR 4) may move them there.
+- The lab's practice writes (`tools/sync-lab/src/practice.ts`) aren't in the app. The dev screen (PR 4) may move them there. It did: see PR 4 below.
+
+From PR 4, on the local stack. Chrome 154 (Playwright's Chromium 154.0.8037) and an Android 16 emulator (Pixel 9 Pro, API 36), driven by Playwright and Maestro:
+
+- **Criterion 1 on Android passes.** A guest chanted 110 and marked two names on the dev build. Sign-in without consent was refused. With consent, the guest's practice combined with an account that already held 217 and marks {0–3}: device and server both showed 327 and {0–3}.
+- **Criterion 3 in Chrome passes, from the static export.** The export builds, and every route, `/dev/sync` included, renders in Node with PowerSync imported. Opening the database lazily after mount was enough; no `output: 'single'`. The database worker, the OPFS VFS and the WASM loaded from `/@powersync/` with no 404s and no console errors. A guest's 109 and three marks survived a reload. Signed in, the network off, 108 more and a mark survived closing the tab; the reopened tab uploaded them in 1.7 s.
+- **Web and Android converge.** Both offline on the same account and pass: Chrome chanted 109 and marked two names, Android 216 and one. After both reconnected, both devices and the server showed 652 and one position with marks {0–5}.
+- **Local-only to synced works on React Native too**, and `useQuery` follows `updateSchema`: the live total switched to the account's rows at sign-in with no remount, on web and Android.
+- **10,000 count events** in an account: from tapping _Go online_ on a cleared device to the total on screen took 4.4–5.4 s in Chrome (4.4 s for a guest's whole sign-in) and 3.6–4.1 s on the emulator. Both include decoding every row for the total in JavaScript, so sync alone is faster.
+- **`disconnectAndClear({ clearLocal: false })`** cleared the synced rows and kept `device_state` and `upload_failures`; going online downloaded everything again.
+- **Chrome offline looks online for a while.** With the network off, the status still said connected, with an upload error, until the stream timed out. The lab shows both; the real UI should trust the upload error.
+- **PowerSync web 2.x differs from its docs.** `WASQLiteOpenFactory` is now internal: `vfs` and `worker` go in the `database` options. Metro's web build refuses to start without custom worker URLs for both workers. No async-iterator polyfill or Babel plugin is needed: only the iterator form of `watch()` and `getCrudTransactions()` use them, and we use neither.
+- **The web entry bundle is 2.2 MB**, since the dev route imports PowerSync statically and every route lands in the entry. The production chant screen should load the database code lazily (M3).
+- **Windows can't build the Android app from a deep path.** The SDK's CMake 3.22.1 ships a `ninja` that fails on paths over 260 characters, even with long paths enabled in Windows, compiling `react-native-gesture-handler` (an `expo-router` dependency). A `subst` drive doesn't help: Node resolves it back to the real path, and codegen then sees two roots. Building from a copy at `C:\jd` worked.
+- **Two concurrent sign-ins both went through.** A test found it; `signInAndCombine` now refuses a second one while the first runs (`SignInInProgress`).
+- One headless run, made while `npm install` and a Gradle build loaded the machine, had one failure; the output was lost, and the next three runs passed. If it comes back, it is a timing assumption in the harness.
+
+What changed from the plan in PR 4:
+
+- The web database uses the `database` options, not `WASQLiteOpenFactory` (above). The platform split is `platformDatabase.ts` and `platformDatabase.web.ts`; `database.ts` opens once, lazily, then `prepareDevice` makes a first launch a guest or restores the mode, switching to the synced views when signed in.
+- The lab's writes moved into `apps/mobile/src/data/powersync/practice.ts`, with an injectable random source: `uuidv7`'s default is Web Crypto, which native lacks.
+- The dev route also opens when `EXPO_PUBLIC_SYNC_LAB=true`, since the Chrome run uses the static export, a production build. `npm run sync:app-env` writes the app's `.env.local` for the local stack and makes the lab's test user.
+- On native the Supabase session is kept in memory only, so a restarted app signs in again before syncing. The lab's _Sign in_ does that for a signed-in device, refusing another account.
+- `expo run:android` rewrote the `android` and `ios` scripts to `expo run:*`: development builds replace Expo Go (decision 9).
+- Two emulators on one account weren't run separately: the Chrome and Android run above is the same case with two devices, and the headless tests cover three.
 
 ## Done when
 
