@@ -69,7 +69,7 @@ The sync prototype runs against a local Supabase and a self-hosted PowerSync ser
 
 ```bash
 npm run sync:up       # Supabase and PowerSync; returns once PowerSync is replicating
-npm run sync:test     # pgTAP tests of the server; fails with a hint if the stack isn't up
+npm run sync:test     # pgTAP tests of the server, then the headless devices; fails with a hint if the stack isn't up
 npm run sync:reset    # empty the database and PowerSync's storage, re-apply migrations, wait for replication
 npm run sync:down     # stop both; the database is kept until the next reset
 ```
@@ -88,6 +88,20 @@ npm run sync:down     # stop both; the database is kept until the next reset
 - Locally PowerSync connects as `postgres`. The migration's `powersync_role` (replication, `bypassrls`, `select` on the synced tables) is for PowerSync Cloud, and gets a login and password only on the hosted database.
 - PowerSync is on port 54340, not its usual 8080, which other local servers often hold.
 - From an Android emulator, the host's `127.0.0.1` is `10.0.2.2`.
+
+### Headless devices
+
+`tools/sync-lab` runs several PowerSync clients in one Node process, each with its own database file and clock, against the local stack: two or three devices going offline, chanting and reconnecting, a guest signing in, and the server's merge checked against the device's. They use the app's own schema, connector and sign-in from `apps/mobile/src/data/powersync/`, not copies. `npm run sync:test` runs them after pgTAP; they take about a minute. They are not part of `npm test` or CI, since they need Docker.
+
+```bash
+npm run test:stack --workspace=tools/sync-lab                         # all of them
+npm run test:stack --workspace=tools/sync-lab -- src/guest.test.ts   # one file
+SYNC_LAB_SEED=42 npm run test:stack --workspace=tools/sync-lab -- src/mergeParity.test.ts
+```
+
+- Each test makes its own users through the admin API and deletes them afterwards. Keys come from `supabase status`; `SYNC_LAB_SUPABASE_URL`, `SYNC_LAB_PUBLISHABLE_KEY`, `SYNC_LAB_SECRET_KEY` and `SYNC_LAB_POWERSYNC_URL` point them at another stack instead.
+- The files run one after another: they share the stack, and one test stops PowerSync to see a sign-in whose download fails, then starts it again.
+- The merge test prints its seed on failure; `SYNC_LAB_SEED` reruns that case.
 
 ## Web export
 
