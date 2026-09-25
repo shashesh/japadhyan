@@ -10,3 +10,4 @@ export * from './wordSequence';
 export * from './review';
 export * from './derivedId';
 export * from './hlcText';
+export * from './rows';
