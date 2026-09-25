@@ -55,7 +55,30 @@ function compareWithinGeneration(a: PracticePosition, b: PracticePosition): numb
   return a.step_index - b.step_index;
 }
 
-/** The later of two deletions; empty when neither was ever deleted. */
+/**
+ * One total order on deletion times, so the merge stays associative: null,
+ * then times that don't parse (by text), then real times by instant and, for
+ * equal instants, by text. Mixing instant and text comparisons pair by pair
+ * would let three times form a cycle.
+ */
+function compareDeletedAt(a: string | null, b: string | null): number {
+  if (a === b) return 0;
+  if (a === null) return -1;
+  if (b === null) return 1;
+  const aMs = Date.parse(a);
+  const bMs = Date.parse(b);
+  const aParses = !Number.isNaN(aMs);
+  const bParses = !Number.isNaN(bMs);
+  if (aParses !== bParses) return aParses ? 1 : -1;
+  if (aParses && aMs !== bMs) return aMs - bMs;
+  return a < b ? -1 : 1;
+}
+
+/**
+ * The later of two deletions; empty when neither was ever deleted. A tie on
+ * the clock goes to the later `deleted_at`, as the server's merge does, so a
+ * corrupt pair can't make the result depend on argument order.
+ */
 function laterDeletion(
   a: PracticePosition,
   b: PracticePosition,
@@ -63,7 +86,9 @@ function laterDeletion(
   if (a.deleted_hlc === null && b.deleted_hlc === null) return null;
   if (a.deleted_hlc === null) return { hlc: b.deleted_hlc!, at: b.deleted_at };
   if (b.deleted_hlc === null) return { hlc: a.deleted_hlc, at: a.deleted_at };
-  return compareHlc(a.deleted_hlc, b.deleted_hlc) >= 0
+  const byHlc = compareHlc(a.deleted_hlc, b.deleted_hlc);
+  const aIsLater = byHlc !== 0 ? byHlc > 0 : compareDeletedAt(a.deleted_at, b.deleted_at) >= 0;
+  return aIsLater
     ? { hlc: a.deleted_hlc, at: a.deleted_at }
     : { hlc: b.deleted_hlc, at: b.deleted_at };
 }

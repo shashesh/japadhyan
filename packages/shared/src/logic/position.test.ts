@@ -162,6 +162,35 @@ describe('mergePositions: deletions', () => {
     );
   });
 
+  test('a tie on deleted_hlc settles on the later deleted_at, whichever device merges', () => {
+    // Only a corrupt row pairs one clock with two times, but the merge must
+    // still not depend on which side it arrives on.
+    const earlier = position({
+      deleted_at: '2026-09-22T12:00:00.000Z',
+      deleted_hlc: hlc(9000),
+      hlc: hlc(0),
+    });
+    const later = position({
+      deleted_at: '2026-09-22T12:05:00.000Z',
+      deleted_hlc: hlc(9000),
+      hlc: hlc(0),
+    });
+
+    expect(mergePositions(earlier, later, STEPS).deleted_at).toBe('2026-09-22T12:05:00.000Z');
+    expect(mergePositions(later, earlier, STEPS).deleted_at).toBe('2026-09-22T12:05:00.000Z');
+  });
+
+  test('a tie on deleted_hlc with an unparsable deleted_at still settles one way', () => {
+    const garbled = position({ deleted_at: 'not a time', deleted_hlc: hlc(9000), hlc: hlc(0) });
+    const valid = position({
+      deleted_at: '2026-09-22T12:00:00.000Z',
+      deleted_hlc: hlc(9000),
+      hlc: hlc(0),
+    });
+
+    expect(mergePositions(garbled, valid, STEPS)).toEqual(mergePositions(valid, garbled, STEPS));
+  });
+
   test('a tombstone is accepted even when its bitset is a stale size', () => {
     // A deleted bookmark's marks mean nothing, so they are not worth rejecting.
     const deleted = position({

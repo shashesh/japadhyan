@@ -66,6 +66,24 @@ const POOL: readonly PracticePosition[] = [
     step_index: 8,
     hlc: hlc(0, 'a'),
   }),
+  // Three deletions on one clock, as only a corrupt row gives: two times, and
+  // one that doesn't parse, whose text sorts between theirs. The tie must
+  // still settle as one order, or grouping would change the answer.
+  position('p9', {
+    deleted_at: '2026-09-22T12:00:09Z',
+    deleted_hlc: hlc(5, 'd'),
+    hlc: hlc(0, 'd'),
+  }),
+  position('p10', {
+    deleted_at: '2026-09-22T12:00:09.500Z',
+    deleted_hlc: hlc(5, 'd'),
+    hlc: hlc(0, 'd'),
+  }),
+  position('p11', {
+    deleted_at: '2026-09-22T12:00:09.QQQQ',
+    deleted_hlc: hlc(5, 'd'),
+    hlc: hlc(0, 'd'),
+  }),
 ];
 
 /** The fields that must agree for two devices to have converged. */

@@ -1,0 +1,67 @@
+# The self-hosted PowerSync service (Open Edition) for local development and
+# the sync tests, beside the Supabase stack that `supabase start` runs.
+# Follows https://github.com/powersync-ja/self-host-demo (demos/supabase),
+# with Postgres bucket storage instead of MongoDB.
+#
+# Local only: every password here is a throwaway development default.
+name: japadhyan-powersync
+
+services:
+  powersync:
+    image: journeyapps/powersync-service:1.26.1
+    restart: unless-stopped
+    command: ['start', '-r', 'unified']
+    environment:
+      POWERSYNC_CONFIG_PATH: /config/service.yaml
+      NODE_OPTIONS: --max-old-space-size=1000
+      # The Supabase database, on Supabase's Docker network.
+      PS_DATA_SOURCE_URI: postgres://postgres:postgres@supabase_db_japadhyan:5432/postgres
+      PS_STORAGE_SOURCE_URI: postgres://powersync:powersync@pg-storage:5432/powersync_storage
+      PS_PORT: 8080
+    volumes:
+      - ./:/config:ro
+    ports:
+      # 54340 on the host, beside Supabase's 543xx ports; 8080 is often taken.
+      - '127.0.0.1:54340:8080'
+    depends_on:
+      pg-storage:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://localhost:8080/probes/liveness').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 2s
+      retries: 30
+    networks:
+      - default
+      - supabase
+
+  # Bucket storage: PowerSync's own Postgres, never the Supabase database.
+  pg-storage:
+    image: postgres:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: powersync
+      POSTGRES_PASSWORD: powersync
+      POSTGRES_DB: powersync_storage
+    volumes:
+      - pg_storage_data:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U powersync -d powersync_storage']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  pg_storage_data:
+
+networks:
+  # `supabase_network_<project_id>`, created by `supabase start`.
+  supabase:
+    name: supabase_network_japadhyan
+    external: true

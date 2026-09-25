@@ -1,0 +1,19 @@
+# yaml-language-server: $schema=https://unpkg.com/@powersync/service-sync-rules@latest/schema/sync_rules.json
+#
+# What each device downloads. SECURITY: PowerSync reads the database with
+# BYPASSRLS, so these queries, not row-level security, keep one devotee's
+# practice off another's device. Every query must filter on the signed-in
+# user. Review changes here as security code.
+#
+# The service reads this at start: restart it after a change.
+
+config:
+  edition: 3
+
+streams:
+  my_practice:
+    auto_subscribe: true
+    queries:
+      - SELECT * FROM sessions WHERE user_id = auth.user_id()
+      - SELECT * FROM count_events WHERE user_id = auth.user_id()
+      - SELECT * FROM practice_positions WHERE user_id = auth.user_id()

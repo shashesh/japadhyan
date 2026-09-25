@@ -63,6 +63,32 @@ node scripts/content-sign.mjs verify --public-key <printed by keygen> --dir ../j
 
 `keygen` asks for a passphrase of at least 20 characters; generate it in your password manager. Run `git pull` in the signing clone before signing; `sign` prints the commit it runs from. A development key is yours alone; production apps trust only the owner's keys.
 
+## Sync stack
+
+The sync prototype runs against a local Supabase and a self-hosted PowerSync service, both in Docker ([plan](../plans/active/2026-09-24-s4-sync-prototype.md)). You need **Docker Desktop** (or another Docker runtime) running; nothing else, and no cloud accounts.
+
+```bash
+npm run sync:up       # Supabase and PowerSync; returns once PowerSync is replicating
+npm run sync:test     # pgTAP tests of the server; fails with a hint if the stack isn't up
+npm run sync:reset    # empty the database and PowerSync's storage, re-apply migrations, wait for replication
+npm run sync:down     # stop both; the database is kept until the next reset
+```
+
+| Service         | Address                                                   |
+| --------------- | --------------------------------------------------------- |
+| Supabase API    | `http://127.0.0.1:54321`                                  |
+| Postgres        | `postgresql://postgres:postgres@127.0.0.1:54322/postgres` |
+| Supabase Studio | `http://127.0.0.1:54323`                                  |
+| PowerSync       | `http://127.0.0.1:54340`                                  |
+
+- The first `sync:up` pulls the images, which takes a few minutes. It also makes `supabase/signing_keys.json`, the ES256 key local Supabase signs tokens with, so PowerSync can check them against its JWKS. The file is gitignored, and every password in this stack is a throwaway local default.
+- Migrations are in `supabase/migrations/`, tests in `supabase/tests/`. After adding a migration, run `npm run sync:reset`.
+- PowerSync reads `powersync/sync-config.yaml` when it starts. After changing it, run `docker compose -f powersync/docker-compose.yaml restart powersync`. That file decides what each device downloads, and PowerSync bypasses row-level security, so review changes to it as security code.
+- The stack counts as up only when PowerSync is **replicating**: Postgres has an active replication slot for it. Its health probe alone answers even when replication has failed. If `sync:test` says there is no active slot, read `docker compose -f powersync/docker-compose.yaml logs powersync`; after a dropped connection, PowerSync retries on its own within about half a minute.
+- Locally PowerSync connects as `postgres`. The migration's `powersync_role` (replication, `bypassrls`, `select` on the synced tables) is for PowerSync Cloud, and gets a login and password only on the hosted database.
+- PowerSync is on port 54340, not its usual 8080, which other local servers often hold.
+- From an Android emulator, the host's `127.0.0.1` is `10.0.2.2`.
+
 ## Web export
 
 Export the static web build:
