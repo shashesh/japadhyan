@@ -50,7 +50,7 @@ All accepted by the owner on 2026-09-24, as proposed. Those marked **spec change
 7. **A guest keeps their practice in local-only tables.** This is PowerSync's documented recipe: each synced table has a `localOnly` twin, and `viewName` points the app's queries at one or the other. On sign-in, `updateSchema` switches the views while disconnected, then the rows are copied across. The recipe is shown only for React web, so running it on React Native is part of what we're testing. A local-only `device_state` table keeps the local owner id, the device id and the current mode, so no extra storage package is needed. **Rejected: Supabase anonymous sign-in** at first launch. It would avoid the copy, but it creates a server account before the devotee has asked for one or consented, and it needs the network on first launch. Guest data never leaves the device ([accounts-and-sync](../../product/features/accounts-and-sync.md#guest-first-p1)).
 8. **Sign-in follows the documented order**, as far as the prototype can ([order of steps](../../product/features/accounts-and-sync.md#signing-in-on-a-device-that-already-has-data)):
    1. seal the open event;
-   2. consent (a flag here);
+   2. consent (a flag here). Without it, stop before anything else: no `updateSchema`, no `connect`, nothing downloaded or uploaded, and the device stays a guest ([consent before the first sync](../../product/features/accounts-and-sync.md#consent-before-the-first-sync-p1)). `signInAndCombine` checks the flag itself, so a caller that skips the consent screen can't sync;
    3. `updateSchema` to the synced views, while still disconnected;
    4. `connect`, then wait until the account has downloaded completely. The guest's rows are still under the inactive local views, so nothing uploads yet;
    5. in one write transaction: re-key the guest's rows to the account, recompute derived ids, and merge any position that collides with one the account already has, using `mergePositions`. Then clear the local tables.
@@ -143,7 +143,8 @@ apps/mobile/src/data/powersync/
   database.ts     openDatabase(): native (op-sqlite) or web (WASQLite, OPFSCoopSyncVFS),
                   created lazily; never at module scope
   connector.ts    SupabaseConnector: fetchCredentials, uploadData (decision 6)
-  signIn.ts       signInAndCombine(db, supabase, credentials): decision 8
+  signIn.ts       signInAndCombine(db, supabase, credentials, { consented }): decision 8;
+                  rejects before signing in unless consented is true
 apps/mobile/src/features/sync-lab/SyncLabScreen.tsx
 apps/mobile/src/app/dev/sync.tsx   route; redirects home unless __DEV__
 ```
@@ -158,7 +159,7 @@ The upload rules (decision 6), per operation:
 | `sessions`           | Same                                                   | `update({ ended_at }).eq('id').is('ended_at', null)` | Never happens; set aside               |
 | `practice_positions` | `rpc('merge_practice_position', { row: <local row> })` | Same                                                 | Never happens (soft delete); set aside |
 
-**A permanent failure is set aside, never discarded.** PowerSync's demo discards a transaction on any class `22` or `23` error, or on `42501`, but class 23 includes `23503`, a foreign key violation. A count event whose session never reached the server would then vanish from the lifetime count. Retrying forever is no better: the transaction would block every upload behind it. So on those codes the connector copies the transaction's operations (table, op, id and data) into a local-only `upload_failures` table, then completes it. The data stays on the device, the dev screen shows it, and a later fix can replay it. Logs carry the table, id and code, never the data, because a practice id reveals religion. Any other error is thrown, so the upload retries.
+**A permanent failure is set aside, never discarded.** PowerSync's demo discards a transaction on any class `22` or `23` error, or on `42501`, but class 23 includes `23503`, a foreign key violation. A count event whose session never reached the server would then vanish from the lifetime count. Retrying forever is no better: the transaction would block every upload behind it. So on those codes the connector records each of the transaction's operations in a local-only `upload_failures` table (table, op, id, error code, and the **payload it sent**), then completes it. The payload is what the table above sends, so it can be sent again as it is: for a position, the whole local row read at upload time, never `opData`, which holds only the changed columns and would lose the generation and the full marks; for a count event, the whole row; for a session's `PATCH`, its `ended_at`. The data stays on the device, the dev screen shows it, and a later fix can replay it. Logs carry the table, id and code, never the data, because a practice id reveals religion. Any other error is thrown, so the upload retries.
 
 ## File structure
 
@@ -294,7 +295,8 @@ export function toServerRow(
 **Files:** `supabase/migrations/<ts>_sync_core.sql`, `supabase/tests/sync_core.test.sql`.
 
 - [ ] Failing pgTAP tests (`npx supabase test db`), each run as a user through `set local role authenticated` and `request.jwt.claims`:
-  - `a user reads and inserts only their own rows`, on every table
+  - `a user reads only their own rows`, on every table
+  - `a user inserts only their own rows`, into `sessions` and `count_events`. `practice_positions` has no insert grant; the next case and Task 7 cover it
   - `count_events can't be updated or deleted, even by their owner`
   - `a count event can't point at another user's session`
   - `a session's ended_at can be filled once, then never changes; no other column changes`
@@ -351,9 +353,12 @@ export interface TestUser {
 }
 export function createUser(): Promise<TestUser>; // admin API
 export function signedInDevice(user: TestUser, name: string): Promise<Device>;
-export function guestDevice(
-  name: string,
-): Promise<Device & { signIn(user: TestUser): Promise<void> }>;
+export function guestDevice(name: string): Promise<
+  Device & {
+    // calls signInAndCombine; consented defaults to true
+    signIn(user: TestUser, options?: { consented?: boolean }): Promise<void>;
+  }
+>;
 export function serverTotal(user: TestUser, practiceId: string): Promise<number>; // as the user, through PostgREST
 ```
 
@@ -375,6 +380,7 @@ export function serverTotal(user: TestUser, practiceId: string): Promise<number>
   - `chanting after a deletion on another device brings the position back`
   - `a session's ended_at set on one device reaches the other`
   - `a permanently rejected upload is set aside, not lost`: upload a count event whose session the server doesn't have (`23503`). It lands in `upload_failures` with its data, the queue moves on, and the next event uploads
+  - `a set-aside position keeps its whole row`: offline, change a synced position's `user_id` to another user's by hand, then mark a step, so the upload is a `PATCH` the server refuses (`42501`). Its `upload_failures` payload holds every column of the row, including `practice_version`, `pass_ordinal` and the full `chanted_steps`. Sending that payload to `merge_practice_position` as the right user, with `user_id` set back, stores the position
 - [ ] Commit: `test(sync-lab): two devices converge`.
 
 #### Task 11: a guest signs in (criterion 1, headless)
@@ -383,6 +389,7 @@ export function serverTotal(user: TestUser, practiceId: string): Promise<number>
 
 - [ ] Failing tests:
   - `nothing leaves a guest device`: a guest chants and marks steps; the upload queue stays empty and the server has no rows
+  - `without consent, nothing is downloaded or uploaded`: the account already has counts from device A. G signs in with `consented: false`. The call rejects; G's synced tables stay empty, the server has none of G's rows, G's guest rows are untouched, and `device_state` still says guest
   - `a guest's counts arrive in the account on sign-in`: the account already has counts from device A; after G signs in, the server, A and G all show A's + G's total
   - `a guest's position merges with the account's for the same practice`: same version and pass. One row survives, its id is `derivedId` for the account, and it has both devices' marks
   - `a guest's position on an older pass gives way to the account's`
@@ -407,7 +414,7 @@ export function serverTotal(user: TestUser, practiceId: string): Promise<number>
 - [ ] From `apps/mobile`: `npx expo install @powersync/react-native @op-engineering/op-sqlite @powersync/web @powersync/react @powersync/common @supabase/supabase-js expo-build-properties`. Don't install `@powersync/op-sqlite` or `react-native-quick-sqlite`: SDK 2 dropped both. Check the resolved versions against PowerSync's [Expo 57 demo](https://github.com/powersync-ja/powersync-js/tree/main/demos/react-native-web-supabase-todolist) and record them in TECH-VERSIONS.
 - [ ] `metro.config.js` with the demo's `resolveRequest`, `unstable_enablePackageExports` and the `react-native-web` condition. `expo-build-properties` with the demo's Android and iOS minimums.
 - [ ] Scripts: `web:assets` runs `powersync-web copy-assets --output public`; `web` and `export:web` run it first. Gitignore `public/@powersync/`.
-- [ ] `database.ts`: native uses the default op-sqlite factory. Web uses `WASQLiteOpenFactory` with `OPFSCoopSyncVFS` and `worker: '/@powersync/worker.js'`, opened inside a client-only effect.
+- [ ] `database.ts`: native uses the default op-sqlite factory. Web uses `WASQLiteOpenFactory` with `OPFSCoopSyncVFS`, opened inside a client-only effect. Web sets **both** workers to the file `copy-assets` writes, as the Expo demo's `system.ts` does: the database's (`worker: '/@powersync/worker.js'` on the open factory) and the sync's (`sync: { worker: '/@powersync/worker.js' }` on the database). Setting only the first leaves the sync worker to the SDK's default path, which `copy-assets` doesn't promise to serve.
 - [ ] Jest: add a test that importing `database.ts` opens nothing, and that the dev route renders a placeholder under jest-expo. `npm run check`.
 - [ ] Commit: `feat(mobile): PowerSync client`.
 
@@ -415,7 +422,7 @@ export function serverTotal(user: TestUser, practiceId: string): Promise<number>
 
 **Files:** `src/features/sync-lab/SyncLabScreen.tsx` (+ test), `src/app/dev/sync.tsx`.
 
-- [ ] The screen shows: mode (guest or signed in), local owner id, device id, the live total for the fixture mantra (`useQuery`; this is criterion 4), the fixture namavali's marks, upload queue size and sync status. Buttons: +1 japa, +108, mark next name, finish pass, go offline, go online, sign in as a test user, `disconnectAndClear({ clearLocal: false })`.
+- [ ] The screen shows: mode (guest or signed in), local owner id, device id, the live total for the fixture mantra (`useQuery`; this is criterion 4), the fixture namavali's marks, upload queue size and sync status. Buttons: +1 japa, +108, mark next name, finish pass, go offline, go online, a consent switch (off by default), sign in as a test user (refused while consent is off), `disconnectAndClear({ clearLocal: false })`.
 - [ ] Test with jest-expo against a mocked database: the buttons call the harness-equivalent functions, and the total re-renders on a new row.
 - [ ] Commit: `feat(mobile): sync lab screen`.
 
@@ -424,7 +431,7 @@ export function serverTotal(user: TestUser, practiceId: string): Promise<number>
 Manual. Record each run in the results doc, with platform, OS and browser versions.
 
 - [ ] **Android emulator**, development build (`npx expo run:android`): chant as a guest; sign in; the counts reach the server. Then run two emulators against the same account, both offline, and repeat Task 10's first and third cases by hand.
-- [ ] **Web, Chrome**, from the static export: `npm run export:web --workspace=apps/mobile`, then serve `apps/mobile/dist` on `localhost`. The static build succeeds, and the page opens with no errors in the console. Chant as a guest and reload: the count is kept. Sign in, go offline in DevTools, chant, then close the tab while still offline. Reopen it online: the offline counts are still there, and they reach the server. (Reloading while offline needs the service worker, which is M10.)
+- [ ] **Web, Chrome**, from the static export: `npm run export:web --workspace=apps/mobile`, then serve `apps/mobile/dist` on `localhost`. The static build succeeds, and the page opens with no errors in the console. In DevTools, both the database worker and the sync worker load from `/@powersync/worker.js`, with no 404s. Chant as a guest and reload: the count is kept. Sign in, go offline in DevTools, chant, then close the tab while still offline. Reopen it online: the offline counts are still there, and they reach the server. (Reloading while offline needs the service worker, which is M10.)
 - [ ] **Web vs Android**: the same account on both, offline, then reconnect: totals agree.
 - [ ] Measure: time from `connect()` to the first complete sync with 10,000 count events in the account, on Android and Chrome.
 - [ ] Commit any fixes the runs needed. Push, draft PR, request Copilot.
@@ -462,7 +469,7 @@ Needs the owner: a PowerSync account (free plan), a Supabase project (free plan)
 ## Done when
 
 - [ ] On a fresh clone with Docker running, `npm run sync:up` then `npm run sync:test` passes: pgTAP, convergence, guest sign-in and merge parity
-- [ ] Criterion 1: a guest's counts and position reach the account on Android, with nothing uploaded before sign-in
+- [ ] Criterion 1: a guest's counts and position reach the account on Android, with nothing downloaded or uploaded before sign-in and consent
 - [ ] Criterion 2: two devices offline on the same pass converge to exact totals and one position with every mark; a finished pass wins, headless and by hand on Android
 - [ ] Criterion 3: the static web export builds; in Chrome and Safari, counts chanted offline survive closing the tab and upload when it reopens online
 - [ ] The Cloud instance runs the sync config deployed from the repo, and the headless tests pass against it
