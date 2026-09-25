@@ -49,9 +49,7 @@ describe('derivedId', () => {
   });
 
   test("rejects a user_id that isn't a lowercase hyphenated UUID", () => {
-    expect(() => derivedId({ table: 'profiles', user_id: USER.toUpperCase() })).toThrow(
-      RangeError,
-    );
+    expect(() => derivedId({ table: 'profiles', user_id: USER.toUpperCase() })).toThrow(RangeError);
     expect(() => derivedId({ table: 'profiles', user_id: USER.replaceAll('-', '') })).toThrow(
       RangeError,
     );

@@ -9,3 +9,4 @@ export * from './streak';
 export * from './wordSequence';
 export * from './review';
 export * from './derivedId';
+export * from './hlcText';
