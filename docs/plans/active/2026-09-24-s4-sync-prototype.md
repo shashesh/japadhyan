@@ -465,7 +465,8 @@ export function serverTotal(user: TestUser, practiceId: string): Promise<number>
 
 Manual. Record each run in the results doc, with platform, OS and browser versions.
 
-- [x] **Android emulator**, development build (`npx expo run:android`): chant as a guest; sign in; the counts reach the server. Then run two emulators against the same account, both offline, and repeat Task 10's first and third cases by hand.
+- [x] **Android emulator**, development build (`npx expo run:android`): chant as a guest; sign in; the counts reach the server.
+- [ ] **Two Android emulators** against the same account, both offline: repeat Task 10's first and third cases by hand. Not run in PR 4; the web and Android run below covers the same case with two devices. The owner decides whether it's still needed.
 - [x] **Web, Chrome**, from the static export: `npm run export:web --workspace=apps/mobile`, then serve `apps/mobile/dist` on `localhost`. The static build succeeds, and the page opens with no errors in the console. In DevTools, both the database worker and the sync worker load from `/@powersync/worker.js`, with no 404s. Chant as a guest and reload: the count is kept. Sign in, go offline in DevTools, chant, then close the tab while still offline. Reopen it online: the offline counts are still there, and they reach the server. (Reloading while offline needs the service worker, which is M10.)
 - [x] **Web vs Android**: the same account on both, offline, then reconnect: totals agree.
 - [x] Measure: time from `connect()` to the first complete sync with 10,000 count events in the account, on Android and Chrome.
