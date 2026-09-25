@@ -280,6 +280,11 @@ begin
   where id = incoming.id;
 end $$;
 
+-- The server's time, so a device can correct its clock offset before its
+-- positions upload, instead of having them dropped for running ahead.
+create function public.server_now() returns timestamptz
+language sql stable set search_path = '' as $$ select now() $$;
+
 -- Supabase grants execute on new functions to everyone by default.
 revoke all on function public.sessions_end_once() from public, anon, authenticated;
 revoke all on function public.union_marks(text, text) from public, anon, authenticated;
@@ -287,6 +292,8 @@ revoke all on function public.merge_position_rows(public.practice_positions, pub
   from public, anon, authenticated;
 revoke all on function public.merge_practice_position(jsonb) from public, anon, authenticated;
 grant execute on function public.merge_practice_position(jsonb) to authenticated;
+revoke all on function public.server_now() from public, anon, authenticated;
+grant execute on function public.server_now() to authenticated;
 
 -- Replication. PowerSync reads with BYPASSRLS, so the sync config's queries,
 -- not RLS, decide what each device downloads (powersync/sync-config.yaml).

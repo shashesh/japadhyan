@@ -11,7 +11,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(72);
+select plan(74);
 
 -- 108 names: 14 bytes, bit i of byte i / 8, lowest bit first (as in marks.ts).
 create function pg_temp.marks(idx int[] default '{}', steps int default 108) returns text
@@ -349,6 +349,11 @@ select throws_ok($$ select pg_temp.upload(pg_temp.pos(p_hlc => pg_temp.now_ms())
 select set_config('role', 'anon', true);
 select throws_ok($$ select public.merge_practice_position('{}') $$, '42501', null,
                  'anon cannot execute the function at all');
+
+-- server_now: how a device learns the server's time, to correct its clock offset.
+select throws_ok($$ select public.server_now() $$, '42501', null, 'anon cannot execute server_now');
+select set_config('role', 'authenticated', true);
+select is(public.server_now(), now(), 'server_now returns the database''s time');
 
 select * from finish();
 rollback;
