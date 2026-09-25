@@ -109,8 +109,8 @@ The steps:
    - `id` isn't `extensions.uuid_generate_v5('49841fbe-b559-4c62-ae52-0d0611052939', 'v1:practice_positions:' || user_id || ':' || practice_id)`;
    - `hlc` or `deleted_hlc` is more than 5 minutes ahead of `now()`. This is a backstop against a wildly wrong clock: the device corrects its offset and restamps before uploading ([clock offset](#clock-offset)), so an honest edit never reaches it.
 3. `insert … on conflict (id) do nothing`, then `select … for update` the stored row, so two uploads for the same id at once serialise.
-4. Merge as `mergePositions` does: the higher generation (`practice_version`, then `pass_ordinal`) wins. Within one generation:
-   - the marks are OR-ed byte by byte, the shorter padded with zeros. Honest rows in one generation share a step count and so a length. The server can't check the step count, and choosing between two lengths pair by pair would make the result depend on arrival order;
+4. Merge as `mergePositions` does for rows that fit the step count: the higher generation (`practice_version`, then `pass_ordinal`) wins. Within one generation:
+   - the marks are OR-ed byte by byte, the shorter padded with zeros. Honest rows in one generation share a step count and so a length, and then this is exactly `mergePositions`'s union. Only a corrupt row gives two lengths in one generation, and there the two merges differ on purpose: `mergePositions` knows the step count, so it keeps the winner's marks and refuses a winner of the wrong size. The server can't know the step count, and choosing between two lengths pair by pair would make the result depend on arrival order, so padding is its only rule that still converges. The parity test (Task 12) therefore covers rows that fit, and the mixed-length cases are pgTAP's alone (Task 7);
    - `step_index` comes from the higher `hlc`, ties broken by `step_index`.
 
    Deletion is settled separately, by the later `deleted_hlc`, carried with its `deleted_at`.
