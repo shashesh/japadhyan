@@ -6,6 +6,8 @@ import {
   isPassComplete,
   isStepChanted,
   markStep,
+  marksFromHex,
+  marksToHex,
   unionMarks,
 } from './marks';
 
@@ -185,5 +187,28 @@ describe('isPassComplete', () => {
     for (let i = 0; i < NAMES; i += 1) marks = markStep(marks, i, NAMES);
 
     expect(isPassComplete(marks, NAMES)).toBe(true);
+  });
+});
+
+describe('marksToHex and marksFromHex', () => {
+  test('round-trip; 108 names is 28 characters', () => {
+    const marks = markStep(markStep(createMarks(NAMES), 0, NAMES), 107, NAMES);
+
+    const hex = marksToHex(marks);
+
+    expect(hex).toHaveLength(28);
+    expect(hex).toBe('0100000000000000000000000008');
+    expect(marksFromHex(hex)).toEqual(marks);
+  });
+
+  test('an empty bitset is an empty string', () => {
+    expect(marksToHex(new Uint8Array(0))).toBe('');
+    expect(marksFromHex('')).toEqual(new Uint8Array(0));
+  });
+
+  test('marksFromHex rejects odd length, uppercase and non-hex', () => {
+    for (const hex of ['0', 'AB', 'zz', '0x01', ' 01']) {
+      expect(() => marksFromHex(hex), hex).toThrow(RangeError);
+    }
   });
 });
