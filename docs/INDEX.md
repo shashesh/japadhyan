@@ -53,6 +53,7 @@
 
 - [plans/_template.md](plans/_template.md) — template for new plans
 - [plans/active/2026-09-21-phase-1-plan.md](plans/active/2026-09-21-phase-1-plan.md) — Phase 1 build plan: milestones M0–M11 and early spikes
+- [plans/active/2026-09-24-s4-sync-prototype.md](plans/active/2026-09-24-s4-sync-prototype.md) — S4: prove PowerSync on a local stack, then Cloud — guest sign-in, two devices offline, the web
 
 ### Archived plans
 

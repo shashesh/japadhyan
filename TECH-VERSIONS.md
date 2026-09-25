@@ -1,6 +1,6 @@
 # Technology Versions
 
-**Last updated:** 2026-09-23
+**Last updated:** 2026-09-24
 
 Single source of truth for versions used in this repo. Update in the same PR as any dependency change.
 
@@ -28,10 +28,11 @@ Single source of truth for versions used in this repo. Update in the same PR as 
 
 ## Shared (`packages/shared`)
 
-| Package           | Version | Notes                                                                                                  |
-| ----------------- | ------- | ------------------------------------------------------------------------------------------------------ |
-| TypeScript source | —       | Consumed directly by Metro; no build step                                                              |
-| zod               | ^4.6.5  | Catalog schemas for `content/` and packs ([decision](docs/decisions/2026-09-23-schema-library-zod.md)) |
+| Package           | Version       | Notes                                                                                                                                                                   |
+| ----------------- | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| TypeScript source | —             | Consumed directly by Metro; no build step                                                                                                                               |
+| zod               | ^4.6.5        | Catalog schemas for `content/` and packs ([decision](docs/decisions/2026-09-23-schema-library-zod.md))                                                                  |
+| @noble/hashes     | 2.4.0 (exact) | SHA-1 for the derived ids (UUIDv5): pure JavaScript, since React Native has no `crypto.subtle`. ES modules only, so `apps/mobile/jest.config.mjs` has Jest transform it |
 
 ## Content build (`tools/content-build`)
 

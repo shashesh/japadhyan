@@ -116,3 +116,25 @@ export function countMarks(marks: Uint8Array, stepCount: number): number {
 export function isPassComplete(marks: Uint8Array, stepCount: number): boolean {
   return countMarks(marks, stepCount) === stepCount;
 }
+
+const HEX_BYTES = /^(?:[0-9a-f]{2})*$/;
+
+/**
+ * The bitset as lowercase hex, two characters a byte, as SQLite and Postgres
+ * store it: synced columns are text. 108 names take 28 characters.
+ */
+export function marksToHex(marks: Uint8Array): string {
+  let hex = '';
+  for (const byte of marks) hex += byte.toString(16).padStart(2, '0');
+  return hex;
+}
+
+/** The reverse of {@link marksToHex}. Checks the text, not the step count. */
+export function marksFromHex(hex: string): Uint8Array {
+  if (!HEX_BYTES.test(hex)) {
+    throw new RangeError(`Not lowercase hex bytes: "${hex}"`);
+  }
+  const marks = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < marks.length; i++) marks[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+  return marks;
+}
