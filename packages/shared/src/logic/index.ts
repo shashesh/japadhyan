@@ -8,3 +8,4 @@ export * from './position';
 export * from './streak';
 export * from './wordSequence';
 export * from './review';
+export * from './derivedId';
