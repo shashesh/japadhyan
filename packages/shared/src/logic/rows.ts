@@ -118,6 +118,10 @@ const uuid = z.string().regex(UUID, 'Not a lowercase UUID');
 // The server's limits (supabase/migrations): a row it would refuse or drop is
 // never written on the device either.
 const practiceId = z.string().min(1).max(128);
+/** A position's practice id is canonical, so one practice derives one position id. */
+const canonicalPracticeId = z
+  .string()
+  .regex(/^[a-z0-9-]{1,128}$/, 'Not a catalog slug or a lowercase UUID');
 const deviceId = z.string().min(1).max(64);
 const int = z.number().int();
 const nonNegativeInt = int.nonnegative();
@@ -152,35 +156,45 @@ const sessionRow = z.object({
   steps_per_repetition: positiveInt,
 });
 
-const countEventRow = z.object({
-  id: uuid,
-  user_id: uuid,
-  practice_id: practiceId,
-  session_id: uuid,
-  mode: z.enum(CHANT_MODES),
-  count: int,
-  estimated: z
-    .union([z.literal(0), z.literal(1), z.boolean()])
-    .transform((flag) => flag === 1 || flag === true),
-  device_id: deviceId,
-  created_at: timestamp,
-  local_day: localDay,
-  tz_offset_min: int,
-  steps_per_repetition: positiveInt,
-});
+const countEventRow = z
+  .object({
+    id: uuid,
+    user_id: uuid,
+    practice_id: practiceId,
+    session_id: uuid,
+    mode: z.enum(CHANT_MODES),
+    count: int,
+    estimated: z
+      .union([z.literal(0), z.literal(1), z.boolean()])
+      .transform((flag) => flag === 1 || flag === true),
+    device_id: deviceId,
+    created_at: timestamp,
+    local_day: localDay,
+    tz_offset_min: int,
+    steps_per_repetition: positiveInt,
+  })
+  .refine((row) => (row.mode === 'correction' ? row.count !== 0 : row.count > 0), {
+    message: 'A count is positive, except a correction, which is never 0',
+    path: ['count'],
+  });
 
-const positionRow = z.object({
-  id: uuid,
-  user_id: uuid,
-  practice_id: practiceId,
-  practice_version: positiveInt,
-  step_index: nonNegativeInt,
-  chanted_steps: marksHex,
-  pass_ordinal: nonNegativeInt,
-  hlc: hlcText,
-  deleted_hlc: hlcText.nullable(),
-  deleted_at: timestamp.nullable(),
-});
+const positionRow = z
+  .object({
+    id: uuid,
+    user_id: uuid,
+    practice_id: canonicalPracticeId,
+    practice_version: positiveInt,
+    step_index: nonNegativeInt,
+    chanted_steps: marksHex,
+    pass_ordinal: nonNegativeInt,
+    hlc: hlcText,
+    deleted_hlc: hlcText.nullable(),
+    deleted_at: timestamp.nullable(),
+  })
+  .refine((row) => (row.deleted_hlc === null) === (row.deleted_at === null), {
+    message: 'deleted_hlc and deleted_at are set together or not at all',
+    path: ['deleted_at'],
+  });
 
 export function sessionToRow(session: Session): SessionRow {
   return { ...session };

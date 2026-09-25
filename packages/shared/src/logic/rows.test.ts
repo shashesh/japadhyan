@@ -215,6 +215,54 @@ describe('fromRow rejects what the database should never hold', () => {
     ).toHaveLength(512);
   });
 
+  test('a count that is not completed repetitions', () => {
+    // Positive, except a correction, which may be negative but never 0.
+    for (const count of [0, -1, -108]) {
+      expect(() => countEventFromRow({ ...countEventToRow(event), count }), `${count}`).toThrow();
+    }
+    expect(() =>
+      countEventFromRow({ ...countEventToRow(event), mode: 'correction', count: 0 }),
+    ).toThrow();
+  });
+
+  test('a correction may be negative or positive', () => {
+    for (const count of [-5, 3]) {
+      const correction = { ...event, mode: 'correction' as const, count };
+
+      expect(countEventFromRow(countEventToRow(correction))).toEqual(correction);
+    }
+  });
+
+  test('a deletion clock without its time, or the reverse', () => {
+    const row = positionToRow(position);
+
+    expect(() =>
+      positionFromRow({ ...row, deleted_hlc: '001727190000001:0000000000:device-a' }),
+    ).toThrow();
+    expect(() => positionFromRow({ ...row, deleted_at: '2026-09-24T06:00:00.000Z' })).toThrow();
+  });
+
+  test('a position practice_id that is not a catalog slug or a lowercase UUID', () => {
+    // The server drops a position whose practice_id isn't canonical: one
+    // practice must derive one id.
+    for (const practice_id of [
+      'Vishnu-Ashtottara',
+      '0192A4B1-0000-7000-8000-000000000001',
+      'om namah',
+    ]) {
+      expect(
+        () => positionFromRow({ ...positionToRow(position), practice_id }),
+        practice_id,
+      ).toThrow();
+    }
+    expect(
+      positionFromRow({
+        ...positionToRow(position),
+        practice_id: '0192a4b1-0000-7000-8000-000000000001',
+      }).practice_id,
+    ).toBe('0192a4b1-0000-7000-8000-000000000001');
+  });
+
   test('malformed marks or clocks', () => {
     const row = positionToRow(position);
 
