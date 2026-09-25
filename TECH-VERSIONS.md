@@ -13,20 +13,25 @@ Single source of truth for versions used in this repo. Update in the same PR as 
 
 ## App (`apps/mobile`) — iOS, Android, web
 
-| Package                        | Version         | Notes                                                                                                                         |
-| ------------------------------ | --------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| expo                           | ~57.0.24        | SDK 57                                                                                                                        |
-| react-native                   | 0.86.3          | Ships with SDK 57                                                                                                             |
-| react / react-dom              | 19.2.3          | Pinned via root `overrides`                                                                                                   |
-| expo-router                    | ~57.0.22        | File-based routes in `src/app/`; web `output: static`                                                                         |
-| react-native-web               | ~0.21.2         | Web target                                                                                                                    |
-| expo-haptics                   | ~57.0.3         | Bead and meru feedback                                                                                                        |
-| expo-keep-awake                | ~57.0.2         | Screen stays on while chanting                                                                                                |
-| expo-crypto                    | ~57.0.3         | Native RNG for UUIDv7; injected in `src/lib/id.ts`                                                                            |
-| @powersync/common              | 2.3.0 (exact)   | Schema, connector and sign-in in `src/data/powersync/`; plain JavaScript, so Expo Go still works until the native SDK arrives |
-| @supabase/supabase-js          | 2.117.2 (exact) | Sign-in and uploads from the connector                                                                                        |
-| react-native-safe-area-context | ~5.7.0          |                                                                                                                               |
-| react-native-screens           | ~4.26.0         |                                                                                                                               |
+| Package                        | Version         | Notes                                                                                                                                     |
+| ------------------------------ | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| expo                           | ~57.0.24        | SDK 57                                                                                                                                    |
+| react-native                   | 0.86.3          | Ships with SDK 57                                                                                                                         |
+| react / react-dom              | 19.2.3          | Pinned via root `overrides`                                                                                                               |
+| expo-router                    | ~57.0.22        | File-based routes in `src/app/`; web `output: static`                                                                                     |
+| react-native-web               | ~0.21.2         | Web target                                                                                                                                |
+| expo-haptics                   | ~57.0.3         | Bead and meru feedback                                                                                                                    |
+| expo-keep-awake                | ~57.0.2         | Screen stays on while chanting                                                                                                            |
+| expo-crypto                    | ~57.0.3         | Native RNG for UUIDv7; injected in `src/lib/id.ts`                                                                                        |
+| @powersync/common              | 2.3.0 (exact)   | Schema, connector and sign-in in `src/data/powersync/`                                                                                    |
+| @powersync/react-native        | 2.3.0 (exact)   | The native database (SDK 2). Needs a development build: Expo Go no longer runs the app                                                    |
+| @op-engineering/op-sqlite      | 18.2.5 (exact)  | SDK 2's only native SQLite driver, and its default. PowerSync lists it as beta                                                            |
+| @powersync/web                 | 2.4.1 (exact)   | The web database: wa-sqlite in OPFS (`OPFSCoopSyncVFS`). `web:assets` copies its worker and WASM into `public/@powersync/`                |
+| @powersync/react               | 2.0.1 (exact)   | `useQuery`, `useStatus` and `PowerSyncContext`, imported directly so the web bundle, which leaves out `@powersync/react-native`, has them |
+| @supabase/supabase-js          | 2.117.2 (exact) | Sign-in and uploads from the connector                                                                                                    |
+| expo-build-properties          | ~57.0.22        | Android min SDK 24, compile and target SDK 36; iOS 16.4, as PowerSync's Expo demo                                                         |
+| react-native-safe-area-context | ~5.7.0          |                                                                                                                                           |
+| react-native-screens           | ~4.26.0         |                                                                                                                                           |
 
 ## Shared (`packages/shared`)
 

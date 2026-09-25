@@ -14,6 +14,7 @@ export default tseslint.config(
       '**/android/**',
       '**/expo-env.d.ts',
       '**/coverage/**',
+      'apps/mobile/public/@powersync/**',
     ],
   },
   js.configs.recommended,
@@ -55,6 +56,12 @@ export default tseslint.config(
   {
     files: ['**/*.{js,mjs,cjs}'],
     languageOptions: { globals: { ...globals.node } },
+  },
+  {
+    // Metro loads its config with require(), so it stays CommonJS.
+    files: ['apps/mobile/metro.config.js'],
+    languageOptions: { sourceType: 'commonjs' },
+    rules: { '@typescript-eslint/no-require-imports': 'off' },
   },
   {
     files: ['**/*.test.{ts,tsx}'],

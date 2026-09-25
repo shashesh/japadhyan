@@ -192,10 +192,8 @@ class LabDevice implements GuestDevice {
     return this.db.currentStatus.uploadError?.message ?? 'no upload error';
   }
 
-  private async write<T>(action: (ctx: practice.WriteContext) => Promise<T>): Promise<T> {
-    return this.db.writeTransaction(async (tx) =>
-      action({ tx, state: await requireDeviceState(tx), nowMs: this.now() }),
-    );
+  private write<T>(action: (ctx: practice.WriteContext) => Promise<T>): Promise<T> {
+    return practice.writePractice(this.db, { nowMs: this.now() }, action);
   }
 
   chant(practiceId: string, count: number): Promise<CountEvent> {

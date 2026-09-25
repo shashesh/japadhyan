@@ -42,5 +42,5 @@ jobs:
       - run: npm run type-check
       - run: npm test
       - name: Export web build
-        run: npx expo export --platform web
-        working-directory: apps/mobile
+        # The app's script copies PowerSync's worker and WASM into public/ first.
+        run: npm run export:web --workspace=apps/mobile

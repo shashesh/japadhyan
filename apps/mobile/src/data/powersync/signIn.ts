@@ -71,7 +71,17 @@ export class DownloadFailed extends Error {
   }
 }
 
+export class SignInInProgress extends Error {
+  constructor() {
+    super('A sign-in is already running on this device');
+    this.name = 'SignInInProgress';
+  }
+}
+
 const DEFAULT_DOWNLOAD_TIMEOUT_MS = 60_000;
+
+/** Databases with a sign-in running. A second one would combine the guest's rows twice. */
+const signingIn = new WeakSet<CommonPowerSyncDatabase>();
 
 export async function signInAndCombine(
   db: CommonPowerSyncDatabase,
@@ -80,6 +90,22 @@ export async function signInAndCombine(
   options: SignInOptions,
 ): Promise<void> {
   if (options.consented !== true) throw new ConsentRequired();
+  // Claimed before the first await, so a call made meanwhile sees it.
+  if (signingIn.has(db)) throw new SignInInProgress();
+  signingIn.add(db);
+  try {
+    await signIn(db, supabase, credentials, options);
+  } finally {
+    signingIn.delete(db);
+  }
+}
+
+async function signIn(
+  db: CommonPowerSyncDatabase,
+  supabase: SupabaseClient,
+  credentials: SignInCredentials,
+  options: SignInOptions,
+): Promise<void> {
   const guest = await requireDeviceState(db);
   if (guest.mode !== 'guest') throw new Error('This device is already signed in');
 
