@@ -17,6 +17,12 @@ const projectRoot = join(import.meta.dirname, '..', '..', '..');
 const SUPABASE_CLI = join(projectRoot, 'node_modules', 'supabase', 'dist', 'supabase.js');
 const COMPOSE = ['compose', '-f', join(projectRoot, 'powersync', 'docker-compose.yaml')];
 
+/**
+ * The hosted stack (PowerSync Cloud and a Supabase project) instead of the
+ * local one: `npm run sync:test:cloud`, with tools/sync-lab/.env.cloud.local.
+ */
+export const ON_CLOUD = process.env.SYNC_LAB_TARGET === 'cloud';
+
 /** Where powersync/docker-compose.yaml publishes the service. */
 export const POWERSYNC_URL = process.env.SYNC_LAB_POWERSYNC_URL ?? 'http://127.0.0.1:54340';
 
