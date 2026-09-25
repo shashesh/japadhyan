@@ -302,7 +302,7 @@ export function toServerRow(
 - [ ] `npx powersync init self-hosted`, then `npx powersync docker configure --database external --storage postgres`. Point the **source** at `supabase_db_japadhyan`, with `client_auth` using Supabase's JWKS through Kong and audience `authenticated`. Pin the image to `journeyapps/powersync-service:1.26.1`.
 - [ ] Bucket storage is a **separate** Postgres container, as in the self-host demo, never the Supabase database: a `pg-storage` service in the compose file, `PS_STORAGE_SOURCE_URI` pointing at it, and the PowerSync service depending on it being healthy. Check that the generated compose file has all three, and add whatever is missing.
 - [ ] Root scripts: `sync:up` (`supabase start`, then `powersync docker start`, which waits until healthy), `sync:down`, `sync:reset` (`supabase db reset` then restart PowerSync, since each reset drops the replication slot).
-- [ ] `sync:up` and `check` count the stack as up only once replication works: PowerSync's liveness probe answers, **and** Postgres has an active logical replication slot for PowerSync (`pg_replication_slots`, `active`). A liveness probe alone passes even when the service can't replicate. `check` names which part is missing.
+- [ ] A stack check, shared by `sync:up` and `sync:test`, counts the stack as up only once replication works: PowerSync's liveness probe answers, **and** Postgres has an active logical replication slot for PowerSync (`pg_replication_slots`, `active`). A liveness probe alone passes even when the service can't replicate. The stack check names which part is missing. The root `npm run check` never calls it: `check` stays the lint, type-check and test gate that runs without Docker.
 - [ ] Run `npm run sync:up` and confirm it reports replication running. Commit: `chore: local Supabase and PowerSync stack`.
 
 #### Task 6: the three tables
@@ -396,7 +396,7 @@ export function serverTotal(user: TestUser, practiceId: string): Promise<number>
 
 - [ ] Failing test: `a device can write offline and the row reaches the server when it reconnects`.
 - [ ] Implement. For "caught up", wait until `getUploadQueueStats().count` is 0 and then for the next `currentStatus.lastSyncedAt` after it. If that proves flaky, use `requestCheckpoint()` with `checkpointMode: 'requests'` (alpha; service 1.24 or later). If `@powersync/node`'s worker threads fail under Vitest, use `openWorker` with `startPowerSyncWorker` as its README describes. Write down what was needed; the results doc reports it.
-- [ ] Root script `sync:test`: first check the stack is up (Supabase status, PowerSync's liveness probe and an active replication slot, as `check` does) and, if not, stop with "Run `npm run sync:up` first"; then `supabase test db`, then `npm run test:stack --workspace=tools/sync-lab`. The workspace has no `test` script, so `npm test --workspaces` never runs these.
+- [ ] Root script `sync:test`: first check the stack is up (Supabase status, PowerSync's liveness probe and an active replication slot: Task 5's stack check) and, if not, stop with "Run `npm run sync:up` first"; then `supabase test db`, then `npm run test:stack --workspace=tools/sync-lab`. The workspace has no `test` script, so `npm test --workspaces` never runs these.
 - [ ] Commit: `test(sync-lab): headless devices on the local stack`.
 
 #### Task 10: two devices converge (criterion 2)
@@ -475,10 +475,11 @@ Manual. Record each run in the results doc, with platform, OS and browser versio
 
 Needs the owner: a PowerSync account (free plan), a Supabase project (free plan), and their iPhone and Mac.
 
-- [ ] **Owner:** create the Supabase project and the PowerSync Cloud instance. In the Supabase SQL editor, give the migration's role a login: `alter role powersync_role with login password '<generated>'`, with a password from the password manager, never committed. Connect PowerSync Cloud to Supabase's **direct connection** string as `powersync_role`, as the PowerSync guide says. Share the project ref and instance id, not the passwords.
-- [ ] Check that Cloud replicates: its dashboard shows replication running, and the hosted database has an active slot for it.
-- [ ] Apply the migrations with `supabase db push`. Set `max_wal_size` and `max_slot_wal_keep_size` to 1 GB (`supabase --experimental postgres-config update`).
+- [ ] **Owner:** create the Supabase project and the PowerSync Cloud instance. Share the project ref and instance id.
+- [ ] Apply the migrations with `supabase db push`. This creates `powersync_role` and the publication, so it comes before anything that uses them. Set `max_wal_size` and `max_slot_wal_keep_size` to 1 GB (`supabase --experimental postgres-config update`).
+- [ ] **Owner:** in the Supabase SQL editor, give the migration's role a login: `alter role powersync_role with login password '<generated>'`, with a password from the password manager, never committed. Connect PowerSync Cloud to Supabase's **direct connection** string as `powersync_role`, as the PowerSync guide says. Don't share the password.
 - [ ] `powersync link cloud`, then `powersync deploy sync-config` from the repo, so the config in git is the config running.
+- [ ] Check that Cloud replicates: its dashboard shows replication running, and the hosted database has an active slot for it.
 - [ ] Point `tools/sync-lab` at Cloud through environment variables and run Tasks 10–11 against it. The merge parity test can stay local.
 - [ ] **Safari**: OPFS needs a secure context. Serve the static export over HTTPS (EAS Hosting preview, or a Cloudflare quick tunnel) against Cloud. Repeat the Chrome run on iPhone Safari and on macOS Safari. Compare `OPFSCoopSyncVFS` with IndexedDB, and try a private window.
 - [ ] **iOS**: a development build on the owner's iPhone, built on their Mac with Xcode (`npx expo run:ios --device`), or with EAS if that's easier. Then the Android run.
