@@ -1,0 +1,34 @@
+# yaml-language-server: $schema=https://unpkg.com/@powersync/cli-schemas@latest/json-schema/service-config.json
+#
+# The PowerSync Cloud instance for S4's hosted run (PR 5 of
+# docs/plans/active/2026-09-24-s4-sync-prototype.md). The sync config is the
+# one the local stack runs, ../sync-config.yaml; `npm run sync:cloud:deploy`
+# passes it, so there is no second copy to drift.
+#
+# The database password is never in this file: deploys read it from
+# POWERSYNC_DATABASE_PASSWORD, which the deploy script takes from the
+# gitignored .env.local beside this file.
+
+_type: cloud
+name: Development
+# Fixed at the first deploy. The Supabase project is in ca-central-1.
+region: us
+
+replication:
+  connections:
+    # Supabase's direct connection, not its pooler: logical replication needs
+    # a real session. powersync_role is created by the sync_core migration.
+    - type: postgresql
+      hostname: db.rjyddnubeqwrjbaystow.supabase.co
+      port: 5432
+      database: postgres
+      username: powersync_role
+      password:
+        secret: !env POWERSYNC_DATABASE_PASSWORD
+      sslmode: verify-full
+
+client_auth:
+  # Supabase Auth: tokens are checked against the project's JWKS.
+  supabase: true
+  jwks_uri: https://rjyddnubeqwrjbaystow.supabase.co/auth/v1/.well-known/jwks.json
+  additional_audiences: ['authenticated']
