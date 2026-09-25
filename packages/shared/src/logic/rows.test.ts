@@ -10,6 +10,7 @@ import {
   positionToRow,
   sessionFromRow,
   sessionToRow,
+  timestampFromDb,
   toServerRow,
 } from './rows';
 import type { CountEventRow } from './rows';
@@ -131,6 +132,11 @@ describe('timestamps from the database', () => {
     '2026-13-01 00:00:00Z',
   ])('rejects %s', (stored) => {
     expect(() => sessionFromRow({ ...sessionToRow(session), started_at: stored })).toThrow();
+  });
+
+  test('timestampFromDb reads a lone timestamp the same way, such as server_now()', () => {
+    expect(timestampFromDb('2026-09-24T11:00:00.123456+05:30')).toBe('2026-09-24T05:30:00.123Z');
+    expect(() => timestampFromDb('2026-02-30 00:00:00Z')).toThrow();
   });
 });
 

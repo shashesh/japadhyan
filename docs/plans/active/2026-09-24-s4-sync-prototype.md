@@ -1,6 +1,6 @@
 ---
 title: S4 — sync prototype on PowerSync
-status: planned
+status: in progress
 created: 2026-09-24
 ---
 
@@ -172,7 +172,7 @@ The upload rules (decision 6), per operation:
 | `sessions`           | Same                                                   | `update({ ended_at }).eq('id').is('ended_at', null)` | Never happens; set aside               |
 | `practice_positions` | `rpc('merge_practice_position', { row: <local row> })` | Same                                                 | Never happens (soft delete); set aside |
 
-**A permanent failure is set aside, never discarded.** PowerSync's demo discards a transaction on any class `22` or `23` error, or on `42501`, but class 23 includes `23503`, a foreign key violation. A count event whose session never reached the server would then vanish from the lifetime count. Retrying forever is no better: the transaction would block every upload behind it. So on those codes the connector records each of the transaction's operations in a local-only `upload_failures` table (table, op, id, error code, and the **payload it sent**), then completes it. The payload is what the table above sends, so it can be sent again as it is: for a position, the whole local row read at upload time, never `opData`, which holds only the changed columns and would lose the generation and the full marks; for a count event, the whole row; for a session's `PATCH`, its `ended_at`. The data stays on the device, the dev screen shows it, and a later fix can replay it. A position the server drops for running ahead never reaches this path, since the server answers success; the [clock offset](#clock-offset) correction is what keeps those edits. Logs carry the table, id and code, never the data, because a practice id reveals religion. Any other error is thrown, so the upload retries.
+**A permanent failure is set aside, never discarded.** PowerSync's demo discards a transaction on any class `22` or `23` error, or on `42501`, but class 23 includes `23503`, a foreign key violation. A count event whose session never reached the server would then vanish from the lifetime count. Retrying forever is no better: the transaction would block every upload behind it. So on those codes the connector records the refused operation, and every one after it in the transaction, in a local-only `upload_failures` table (table, op, id, error code, and the **payload it sent** or would send), then completes it. Operations before it are already on the server and aren't recorded; those after it are recorded as `not_sent`, and an operation the table above says never happens as `unexpected_op`. It records nothing until the transaction is settled, so a retry never records an operation twice. The payload is what the table above sends, so it can be sent again as it is: for a position, the whole local row read at upload time, never `opData`, which holds only the changed columns and would lose the generation and the full marks; for a count event, the whole row; for a session's `PATCH`, its `ended_at`. The data stays on the device, the dev screen shows it, and a later fix can replay it. A position the server drops for running ahead never reaches this path, since the server answers success; the [clock offset](#clock-offset) correction is what keeps those edits. Logs carry the table, id and code, never the data, because a practice id reveals religion. Any other error is thrown, so the upload retries.
 
 ## File structure
 
@@ -394,16 +394,16 @@ export function guestDevice(
 export function serverTotal(user: TestUser, practiceId: string): Promise<number>; // as the user, through PostgREST
 ```
 
-- [ ] Failing test: `a device can write offline and the row reaches the server when it reconnects`.
-- [ ] Implement. For "caught up", wait until `getUploadQueueStats().count` is 0 and then for the next `currentStatus.lastSyncedAt` after it. If that proves flaky, use `requestCheckpoint()` with `checkpointMode: 'requests'` (alpha; service 1.24 or later). If `@powersync/node`'s worker threads fail under Vitest, use `openWorker` with `startPowerSyncWorker` as its README describes. Write down what was needed; the results doc reports it.
-- [ ] Root script `sync:test`: first check the stack is up (Supabase status, PowerSync's liveness probe and an active replication slot: Task 5's stack check) and, if not, stop with "Run `npm run sync:up` first"; then `supabase test db`, then `npm run test:stack --workspace=tools/sync-lab`. The workspace has no `test` script, so `npm test --workspaces` never runs these.
-- [ ] Commit: `test(sync-lab): headless devices on the local stack`.
+- [x] Failing test: `a device can write offline and the row reaches the server when it reconnects`.
+- [x] Implement. For "caught up", wait until `getUploadQueueStats().count` is 0 and then for the next `currentStatus.lastSyncedAt` after it. If that proves flaky, use `requestCheckpoint()` with `checkpointMode: 'requests'` (alpha; service 1.24 or later). If `@powersync/node`'s worker threads fail under Vitest, use `openWorker` with `startPowerSyncWorker` as its README describes. Write down what was needed; the results doc reports it.
+- [x] Root script `sync:test`: first check the stack is up (Supabase status, PowerSync's liveness probe and an active replication slot: Task 5's stack check) and, if not, stop with "Run `npm run sync:up` first"; then `supabase test db`, then `npm run test:stack --workspace=tools/sync-lab`. The workspace has no `test` script, so `npm test --workspaces` never runs these.
+- [x] Commit: `test(sync-lab): headless devices on the local stack`.
 
 #### Task 10: two devices converge (criterion 2)
 
 **Files:** `tools/sync-lab/src/converge.test.ts`. Each test makes a fresh user. Positions use a fixture namavali of 12 steps, version 1.
 
-- [ ] Failing tests, then make them pass. Failures here are findings about PowerSync or our design, not test bugs to paper over: write each one down before changing anything.
+- [x] Failing tests, then make them pass. Failures here are findings about PowerSync or our design, not test bugs to paper over: write each one down before changing anything.
   - `counts chanted offline on two devices add up exactly`: A chants 3 × 108 and a correction of −5, B chants 2 × 108; both reconnect. Both devices and the server agree on the total
   - `an upload repeated after the server stored it is not counted twice`: replay A's upload transaction by hand
   - `two devices on the same pass end with one position and every mark`: same version, pass 0. A marks 0–2, B marks 5–6. Run once with A reconnecting first and once with B first. Both devices and the server hold one row with marks {0, 1, 2, 5, 6}, and `step_index` from the later `hlc`
@@ -416,13 +416,13 @@ export function serverTotal(user: TestUser, practiceId: string): Promise<number>
   - `restamping keeps a deletion's meaning`: B, 10 minutes fast and offline, deletes a position; after it reconnects, the position is deleted on the server. Then, again offline, B deletes another and chants on it again; after it reconnects, that position is live. And a row whose `hlc` is on time but whose `deleted_hlc` runs 10 minutes ahead is still deleted after the restamp
   - `after reconnecting, a fast device's new edits use the corrected clock`: B, 10 minutes fast, reconnects, then marks a step. The upload's `hlc` is within 60 seconds of the server's time, not 10 minutes ahead, though B made edits that far ahead before
   - `a set-aside position keeps its whole row`: offline, change a synced position's `user_id` to another user's by hand, then mark a step, so the upload is a `PATCH` the server refuses (`42501`). Its `upload_failures` payload holds every column of the row, including `practice_version`, `pass_ordinal` and the full `chanted_steps`. Sending that payload to `merge_practice_position` as the right user, with `user_id` set back, stores the position
-- [ ] Commit: `test(sync-lab): two devices converge`.
+- [x] Commit: `test(sync-lab): two devices converge`.
 
 #### Task 11: a guest signs in (criterion 1, headless)
 
 **Files:** `tools/sync-lab/src/guest.test.ts`, `apps/mobile/src/data/powersync/signIn.ts`.
 
-- [ ] Failing tests:
+- [x] Failing tests:
   - `nothing leaves a guest device`: a guest chants and marks steps; the upload queue stays empty and the server has no rows
   - `without consent, nothing is downloaded or uploaded`: the account already has counts from device A. G signs in with `consented: false`. The call rejects; G's synced tables stay empty, the server has none of G's rows, G's guest rows are untouched, and `device_state` still says guest
   - `a guest's counts arrive in the account on sign-in`: the account already has counts from device A; after G signs in, the server, A and G all show A's + G's total
@@ -430,15 +430,15 @@ export function serverTotal(user: TestUser, practiceId: string): Promise<number>
   - `a guest's position on an older pass gives way to the account's`
   - `the guest tables are empty after sign-in, and device_state records the account`
   - `if the download fails, nothing changes and the guest can try again`: stop the PowerSync container during step 4
-- [ ] Implement `signInAndCombine` (decision 8). Run the tests. Commit: `feat(mobile): combine a guest's practice with the account on sign-in`.
+- [x] Implement `signInAndCombine` (decision 8). Run the tests. Commit: `feat(mobile): combine a guest's practice with the account on sign-in`.
 
 #### Task 12: the server merge agrees with the shared one
 
 **Files:** `tools/sync-lab/src/mergeParity.test.ts`.
 
-- [ ] `the server's merge agrees with mergePositions`: a property test over random pairs and triples of positions for one user and one 12-step practice: random versions, passes, marks, `hlc`s and deletions, within the step count. For each case, upload the rows in turn through `merge_practice_position` under a fresh practice id, read back the row, and compare it with folding `mergePositions`. At least 200 cases. Use a fixed seed that the failure message prints.
-- [ ] Commit: `test(sync-lab): server and device merge agree`.
-- [ ] Docs: setup guide (running `sync:test`). `npm run format`, `npm run lint:md`, `npm run check`, `npm run sync:test`. Push, draft PR, request Copilot.
+- [x] `the server's merge agrees with mergePositions`: a property test over random pairs and triples of positions for one user and one 12-step practice: random versions, passes, marks, `hlc`s and deletions, within the step count. For each case, upload the rows in turn through `merge_practice_position` under a fresh practice id, read back the row, and compare it with folding `mergePositions`. At least 200 cases. Use a fixed seed that the failure message prints.
+- [x] Commit: `test(sync-lab): server and device merge agree`.
+- [x] Docs: setup guide (running `sync:test`). `npm run format`, `npm run lint:md`, `npm run check`, `npm run sync:test`. Push, draft PR, request Copilot.
 
 ### PR 4 — on phones and in the browser
 
@@ -503,6 +503,26 @@ Needs the owner: a PowerSync account (free plan), a Supabase project (free plan)
 - **`requestCheckpoint` is alpha.** It's only a fallback for knowing that a device has caught up.
 - **Supabase's local Postgres keeps at most 5 replication slots.** Each sync config deploy makes a new slot, and a crashed service can leave one behind. `sync:reset` drops inactive slots.
 - **Devices for the manual runs:** Android runs on the emulator on the owner's Windows machine; iOS and Safari on the owner's iPhone and Mac. If the Mac is to hand during PR 4, macOS Safari can be tried early: served from `localhost` on the Mac, the page is a secure context, so OPFS works against the local stack over the LAN.
+
+## Findings so far
+
+For the results doc (PR 6). From PR 3, on the local stack:
+
+- **Several `@powersync/node` clients in one process work**, each with its own database file, under Vitest as they are: no custom worker, no child processes. A device's first sync took about 0.5 s, and a write reached another device in about 1 s.
+- **"Caught up" needs no alpha API.** A device counts as caught up once its upload queue is empty, no upload is running, and a checkpoint has been applied since both the connect and the last upload. `requestCheckpoint()` wasn't needed, and repeated runs were stable.
+- **Local-only to synced works headlessly**: `updateSchema` switches the views while disconnected, and one write transaction moves the rows. React Native is still to see (PR 4).
+- **The server's merge hides a device that skips its own.** A guest's position overwritten rather than merged on sign-in still ends right, once the upload round-trips. So the tests read the device's position straight after sign-in, before the server's comes back.
+- **Every test was checked against a deliberate mistake**: turning off the restamp, stamping edits with the raw clock, discarding refused uploads, sending `opData` for positions, skipping consent, not undoing a failed sign-in, and flipping a tie-break in `mergePositions` each fail the tests that guard them.
+- **Local Supabase's legacy `anon` and `service_role` keys stop verifying** once the ES256 signing key is in place (`bad_jwt`, unrecognised `kid`). The harness uses the new `sb_publishable_…` and `sb_secret_…` keys.
+- **Local Auth didn't enforce its sign-in rate limit** (30 per 5 minutes): 40 password sign-ins in a row succeeded. A hosted project may, and the tests sign in several dozen times a run, which matters in PR 5.
+
+What changed from the plan:
+
+- The clock offset logic (`clockOffsetMs`, `restampPosition`, `clockForEdit`) is pure, so it went into `packages/shared/src/logic/clockOffset.ts` with unit tests, not into the connector. A device edits a position by restamping its clocks first if they run ahead, then issuing a clock later than both. That is how its own too-far-ahead clocks stop counting.
+- **Setting aside is per operation, not per transaction.** The first version set aside every operation that sends in a failed transaction, including those already on the server, and skipped an operation the table says never happens if it came after the refusal: it was neither sent nor recorded, and the transaction completed. Code review caught it; a test with a refusal mid-transaction now guards it.
+- `signInAndCombine` takes more options than `{ consented }`: the connector, a step-count lookup for merging positions, a download timeout and sync options.
+- A signed-in lab device starts never connected, so a fast clock's first edits come before any offset is known. `setClockSkew` makes the clock jump while offline, for the restamp cases.
+- The lab's practice writes (`tools/sync-lab/src/practice.ts`) aren't in the app. The dev screen (PR 4) may move them there.
 
 ## Done when
 

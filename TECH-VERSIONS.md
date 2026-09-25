@@ -13,18 +13,20 @@ Single source of truth for versions used in this repo. Update in the same PR as 
 
 ## App (`apps/mobile`) — iOS, Android, web
 
-| Package                        | Version  | Notes                                                 |
-| ------------------------------ | -------- | ----------------------------------------------------- |
-| expo                           | ~57.0.24 | SDK 57                                                |
-| react-native                   | 0.86.3   | Ships with SDK 57                                     |
-| react / react-dom              | 19.2.3   | Pinned via root `overrides`                           |
-| expo-router                    | ~57.0.22 | File-based routes in `src/app/`; web `output: static` |
-| react-native-web               | ~0.21.2  | Web target                                            |
-| expo-haptics                   | ~57.0.3  | Bead and meru feedback                                |
-| expo-keep-awake                | ~57.0.2  | Screen stays on while chanting                        |
-| expo-crypto                    | ~57.0.3  | Native RNG for UUIDv7; injected in `src/lib/id.ts`    |
-| react-native-safe-area-context | ~5.7.0   |                                                       |
-| react-native-screens           | ~4.26.0  |                                                       |
+| Package                        | Version         | Notes                                                                                                                         |
+| ------------------------------ | --------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| expo                           | ~57.0.24        | SDK 57                                                                                                                        |
+| react-native                   | 0.86.3          | Ships with SDK 57                                                                                                             |
+| react / react-dom              | 19.2.3          | Pinned via root `overrides`                                                                                                   |
+| expo-router                    | ~57.0.22        | File-based routes in `src/app/`; web `output: static`                                                                         |
+| react-native-web               | ~0.21.2         | Web target                                                                                                                    |
+| expo-haptics                   | ~57.0.3         | Bead and meru feedback                                                                                                        |
+| expo-keep-awake                | ~57.0.2         | Screen stays on while chanting                                                                                                |
+| expo-crypto                    | ~57.0.3         | Native RNG for UUIDv7; injected in `src/lib/id.ts`                                                                            |
+| @powersync/common              | 2.3.0 (exact)   | Schema, connector and sign-in in `src/data/powersync/`; plain JavaScript, so Expo Go still works until the native SDK arrives |
+| @supabase/supabase-js          | 2.117.2 (exact) | Sign-in and uploads from the connector                                                                                        |
+| react-native-safe-area-context | ~5.7.0          |                                                                                                                               |
+| react-native-screens           | ~4.26.0         |                                                                                                                               |
 
 ## Shared (`packages/shared`)
 
@@ -75,6 +77,17 @@ Runs on the developer's machine for the sync prototype and its tests; never ship
 | journeyapps/powersync-service | 1.26.1          | Open Edition, self-hosted in `powersync/docker-compose.yaml`                                                                                                                                |
 | postgres (image)              | 18              | PowerSync's bucket storage                                                                                                                                                                  |
 | PowerSync CLI                 | not installed   | Its table output needs an older React than the root `overrides` allow, so it runs from outside the repo when needed (PR 5 of the [plan](docs/plans/active/2026-09-24-s4-sync-prototype.md)) |
+
+## Sync lab (`tools/sync-lab`)
+
+Headless devices for the sync tests (`npm run sync:test`); never ships in the app.
+
+| Package               | Version         | Notes                                                                                            |
+| --------------------- | --------------- | ------------------------------------------------------------------------------------------------ |
+| @powersync/node       | 1.1.0 (exact)   | One database per device, several in one process. Its worker threads run under Vitest as they are |
+| better-sqlite3        | 13.0.3 (exact)  | The SQLite driver `@powersync/node` loads                                                        |
+| @powersync/common     | 2.3.0 (exact)   | The version `@powersync/node` 1.1.0 pins; the app uses the same, so there is one copy            |
+| @supabase/supabase-js | 2.117.2 (exact) | As in the app. The plan named 2.117.1; 2.117.2 was the current patch                             |
 
 ## Planned (not installed yet)
 

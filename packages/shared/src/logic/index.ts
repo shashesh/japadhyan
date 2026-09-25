@@ -11,3 +11,4 @@ export * from './review';
 export * from './derivedId';
 export * from './hlcText';
 export * from './rows';
+export * from './clockOffset';
