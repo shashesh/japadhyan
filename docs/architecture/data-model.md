@@ -360,6 +360,16 @@ Records where the latest edit wins are ordered by a **hybrid logical clock** (`h
 - **Namavali positions** compare `practice_version`, then `pass_ordinal`, then `hlc`, and marks within the same pass are combined ([merging positions](#practiceposition)), so neither an old version nor a finished pass can come back. On the server this is a Postgres function that runs the same merge, including deletion, but without the step-count checks, since the server has no catalog; and the device uploads the whole position row so the function sees version, pass and marks together.
 - Count events and sessions don't use this rule: they are inserted by id, and an id the server already has is ignored.
 
+### How values are stored
+
+Synced columns are text, integer or real on the device, so the richer values are written down the same way on the device and in Postgres. The codecs live in `packages/shared` (`rows.ts`), so the app, the tests and the upload path share one:
+
+- **`hlc`** is one fixed-width text value: `<millis, 15 digits>:<counter, 10 digits>:<device_id>`, e.g. `001727190000000:0000000003:device-a`. Its byte order is exactly the [conflict rule](#conflict-rule)'s order, so SQLite and Postgres compare it with a plain `>`. `device_id` is limited to lowercase letters, digits and hyphens, and Postgres declares the column `collate "C"`: other collations skip punctuation and would order it wrongly. `deleted_hlc` is stored the same way.
+- **`chanted_steps`** is lowercase hex, two characters a byte: 28 characters for 108 names.
+- **Booleans** are `0` or `1` on the device, which is how PowerSync syncs a Postgres `boolean`, and `boolean` in Postgres.
+- **Timestamps** are ISO strings on the device and `timestamptz` in Postgres. Reading a row accepts the forms the databases hand back (PowerSync's `2026-09-24 05:30:00.000Z`, PostgREST's `+00:00`) and normalises them to `2026-09-24T05:30:00.000Z`.
+- Reading a row validates it: a row comes from storage or the network and is never trusted.
+
 ### Ids for rows that are unique per devotee
 
 Four kinds of row are unique per devotee: the profile, one saved practice per practice, one default per deity, one position per practice. Their ids are **derived from what makes them unique**, not generated — `profiles` from the devotee alone, `saved_practices` and `practice_positions` from the devotee and the practice, `deity_defaults` from the devotee and the deity.
@@ -373,7 +383,7 @@ Four kinds of row are unique per devotee: the profile, one saved practice per pr
   - `v1:practice_positions:<user_id>:<practice_id>`
   - `v1:deity_defaults:<user_id>:<deity_id>`
 - **Canonical fields:** `user_id` and a custom practice's UUID in lowercase hyphenated form; a catalog slug exactly as published. None can contain `:`, so the name is unambiguous.
-- **One implementation:** a single function in `packages/shared`, pinned by fixed test vectors, so every client derives the same id. Before sign-in `user_id` is the local owner id, so the profile's id is derived from that and is never an input to itself; re-keying recomputes every derived id from the new `user_id`.
+- **One implementation:** `derivedId` in `packages/shared`, pinned by fixed test vectors computed with Python's `uuid.uuid5`, so every client derives the same id. Before sign-in `user_id` is the local owner id, so the profile's id is derived from that and is never an input to itself; re-keying recomputes every derived id from the new `user_id`.
 - **`v1` never changes once rows have synced.** A different scheme would mint different ids for existing rows, so it would be a migration, not an edit.
 
 The profile needs this too. The account's profile wins on sign-in, but a brand-new account has none yet, so two guest devices signing in to it at about the same time would each upload their own.
