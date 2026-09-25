@@ -11,7 +11,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(74);
+select plan(78);
 
 -- 108 names: 14 bytes, bit i of byte i / 8, lowest bit first (as in marks.ts).
 create function pg_temp.marks(idx int[] default '{}', steps int default 108) returns text
@@ -40,13 +40,14 @@ create function pg_temp.pos(
   p_id uuid default '7f64746d-3241-5ed7-a7b0-cfa9400cad6f',
   p_marks_hex text default null,
   p_user uuid default '0192a4b0-8c3e-7d4a-9b1f-2e3d4c5b6a79',
-  p_practice text default 'vishnu-ashtottara'
+  p_practice text default 'vishnu-ashtottara',
+  p_deleted_at timestamptz default '2026-09-22T12:00:00Z'
 ) returns public.practice_positions
 language sql as $$
   select p_id, p_user, p_practice, p_version, p_step, coalesce(p_marks_hex, pg_temp.marks(p_marks)),
          p_pass, pg_temp.h(p_hlc, p_device),
          case when p_deleted is null then null else pg_temp.h(p_deleted, p_device) end,
-         case when p_deleted is null then null else '2026-09-22T12:00:00Z'::timestamptz end
+         case when p_deleted is null then null else p_deleted_at end
 $$;
 
 create function pg_temp.merge(a public.practice_positions, b public.practice_positions)
@@ -109,6 +110,14 @@ select is(pg_temp.is_deleted(pg_temp.merge(pg_temp.pos(p_deleted => 9000, p_hlc 
           pg_temp.is_deleted(pg_temp.merge(pg_temp.pos('{0}', p_pass => 99, p_hlc => 1000),
                                            pg_temp.pos(p_deleted => 9000, p_hlc => 0))),
           'settles the same way whichever device merges');
+select is((pg_temp.merge(pg_temp.pos(p_deleted => 9000, p_hlc => 0),
+                         pg_temp.pos(p_deleted => 9000, p_hlc => 0, p_deleted_at => '2026-09-22T12:05:00Z'))).deleted_at,
+          '2026-09-22T12:05:00Z'::timestamptz,
+          'a tie on deleted_hlc settles on the later deleted_at, whichever device merges');
+select is((pg_temp.merge(pg_temp.pos(p_deleted => 9000, p_hlc => 0, p_deleted_at => '2026-09-22T12:05:00Z'),
+                         pg_temp.pos(p_deleted => 9000, p_hlc => 0))).deleted_at,
+          '2026-09-22T12:05:00Z'::timestamptz,
+          'and the same the other way round');
 select ok(pg_temp.is_deleted(pg_temp.merge(pg_temp.pos(p_marks_hex => '00', p_deleted => 9000, p_hlc => 0),
                                            pg_temp.pos('{0}', p_hlc => 1000))),
           'a tombstone is accepted even when its bitset is a stale size');
@@ -135,7 +144,8 @@ select is(pg_temp.shape(pg_temp.merge(pg_temp.merge(pg_temp.pos('{0}', p_version
           'a newer version among three does not depend on grouping');
 
 -- Random rows, crowded so they tie often: two versions, two passes, four
--- clocks, two devices, marks of 1 to 3 bytes, and some deletions.
+-- clocks, two devices, marks of 1 to 3 bytes, and some deletions at one of
+-- two times, so a deleted_hlc can come with either.
 create function pg_temp.rand_marks() returns text language sql volatile as $$
   select string_agg(lpad(to_hex(floor(random() * 256)::int), 2, '0'), '')
   from generate_series(1, 1 + floor(random() * 3)::int)
@@ -147,7 +157,8 @@ create function pg_temp.rand_pos() returns public.practice_positions language sq
                      p_step => floor(random() * 5)::int,
                      p_hlc => floor(random() * 4)::bigint,
                      p_device => (array['a', 'b'])[1 + floor(random() * 2)::int],
-                     p_deleted => case when random() < 0.3 then floor(random() * 4)::bigint end)
+                     p_deleted => case when random() < 0.3 then floor(random() * 4)::bigint end,
+                     p_deleted_at => '2026-09-22T12:00:00Z'::timestamptz + floor(random() * 2) * interval '5 minutes')
 $$;
 select setseed(0.4);
 create temp table triples as
@@ -328,6 +339,14 @@ select lives_ok($$ select pg_temp.upload(pg_temp.pos(p_hlc => pg_temp.now_ms(), 
                 'marks longer than 512 bytes (4,096 names) are answered with success');
 select lives_ok($$ select pg_temp.upload(pg_temp.pos(p_hlc => pg_temp.now_ms(), p_device => repeat('d', 65))) $$,
                 'a device id longer than 64 characters is answered with success');
+-- Stored first, so the jsonb arrives compressed: its stored size is small, but
+-- the row is 100 KB once read.
+create temp table compressible as
+  select to_jsonb(pg_temp.pos('{7}', p_hlc => pg_temp.now_ms())) || jsonb_build_object('padding', repeat('a', 100000)) as "row";
+select ok((select pg_column_size("row") < 4096 from compressible),
+          'a compressible oversized row is stored smaller than the limit');
+select lives_ok($$ select public.merge_practice_position((select "row" from compressible)) $$,
+                'and is answered with success');
 select is((select chanted_steps from pg_temp.stored()), pg_temp.marks('{0,1,2,5,6}'),
           'and oversized rows leave the stored row as it was');
 select lives_ok($$ select pg_temp.upload(pg_temp.pos(p_hlc => pg_temp.now_ms() - 2500, p_marks_hex => repeat('00', 512))) $$,

@@ -5,14 +5,14 @@
 create extension if not exists "uuid-ossp" with schema extensions;
 
 -- Closed by default. Supabase's defaults grant every new table and function in
--- `public` to anon and authenticated, so a migration that forgot to revoke
--- would expose it. From here on, each object is granted explicitly.
+-- `public` to anon, authenticated and service_role, so a migration that forgot
+-- to revoke would expose it. From here on, each object is granted explicitly.
 alter default privileges for role postgres in schema public
-  revoke all on tables from anon, authenticated;
+  revoke all on tables from anon, authenticated, service_role;
 alter default privileges for role postgres in schema public
-  revoke all on sequences from anon, authenticated;
+  revoke all on sequences from anon, authenticated, service_role;
 alter default privileges for role postgres in schema public
-  revoke all on functions from anon, authenticated;
+  revoke all on functions from anon, authenticated, service_role;
 -- Execute for PUBLIC is a global default, which a per-schema command can't revoke.
 alter default privileges for role postgres revoke execute on functions from public;
 
@@ -83,12 +83,13 @@ create table public.practice_positions (
   unique (user_id, practice_id)
 );
 
--- Access. Explicit grants only: nothing for anon, and only what each table allows.
+-- Access. Explicit grants only: nothing for anon or service_role, and only what each table allows.
 alter table public.sessions enable row level security;
 alter table public.count_events enable row level security;
 alter table public.practice_positions enable row level security;
 
-revoke all on public.sessions, public.count_events, public.practice_positions from public, anon, authenticated;
+revoke all on public.sessions, public.count_events, public.practice_positions
+  from public, anon, authenticated, service_role;
 
 grant select, insert on public.sessions to authenticated;
 grant update (ended_at) on public.sessions to authenticated;
@@ -187,10 +188,13 @@ begin
   end if;
 
   -- Deletion, settled on its own: the later deleted_hlc, with its deleted_at.
+  -- A tie on the clock goes to the later deleted_at, so a corrupt pair can't
+  -- make the result depend on argument order.
   if a.deleted_hlc is null and b.deleted_hlc is null then
     merged.deleted_hlc := null;
     merged.deleted_at := null;
-  elsif b.deleted_hlc is null or (a.deleted_hlc is not null and a.deleted_hlc >= b.deleted_hlc) then
+  elsif b.deleted_hlc is null
+        or (a.deleted_hlc is not null and (a.deleted_hlc, a.deleted_at) >= (b.deleted_hlc, b.deleted_at)) then
     merged.deleted_hlc := a.deleted_hlc;
     merged.deleted_at := a.deleted_at;
   else
@@ -213,7 +217,8 @@ declare
   stored public.practice_positions;
   merged public.practice_positions;
   hlc_pattern constant text := '^[0-9]{15}:[0-9]{10}:[a-z0-9-]{1,64}$';
-  -- A real row is a few hundred bytes; checked before any other work.
+  -- A real row is a few hundred bytes; checked before any other work, on the
+  -- text, because pg_column_size would count a compressed value's stored size.
   max_row_bytes constant integer := 4096;
   max_drift_ms constant bigint := 5 * 60 * 1000;
   now_ms constant bigint := (extract(epoch from now()) * 1000)::bigint;
@@ -223,7 +228,7 @@ begin
     raise exception 'Not your position' using errcode = '42501';
   end if;
 
-  if pg_column_size("row") > max_row_bytes then
+  if octet_length("row"::text) > max_row_bytes then
     return;
   end if;
 
@@ -286,13 +291,13 @@ create function public.server_now() returns timestamptz
 language sql stable set search_path = '' as $$ select now() $$;
 
 -- Supabase grants execute on new functions to everyone by default.
-revoke all on function public.sessions_end_once() from public, anon, authenticated;
-revoke all on function public.union_marks(text, text) from public, anon, authenticated;
+revoke all on function public.sessions_end_once() from public, anon, authenticated, service_role;
+revoke all on function public.union_marks(text, text) from public, anon, authenticated, service_role;
 revoke all on function public.merge_position_rows(public.practice_positions, public.practice_positions)
-  from public, anon, authenticated;
-revoke all on function public.merge_practice_position(jsonb) from public, anon, authenticated;
+  from public, anon, authenticated, service_role;
+revoke all on function public.merge_practice_position(jsonb) from public, anon, authenticated, service_role;
 grant execute on function public.merge_practice_position(jsonb) to authenticated;
-revoke all on function public.server_now() from public, anon, authenticated;
+revoke all on function public.server_now() from public, anon, authenticated, service_role;
 grant execute on function public.server_now() to authenticated;
 
 -- Replication. PowerSync reads with BYPASSRLS, so the sync config's queries,
@@ -300,8 +305,11 @@ grant execute on function public.server_now() to authenticated;
 -- Listing the tables keeps PowerSync from reading every other change.
 create publication powersync for table public.sessions, public.count_events, public.practice_positions;
 
--- The role PowerSync Cloud connects as. No login here: a password is set on
--- the hosted database only, never in the repo. Locally it connects as postgres.
+-- The role PowerSync Cloud connects as. NOLOGIN here, because a password never
+-- goes in the repo: after this migration is pushed, the owner runs
+-- `alter role powersync_role with login password '…'` on the hosted database
+-- (docs/plans/active/2026-09-24-s4-sync-prototype.md, PR 5). Locally PowerSync
+-- connects as postgres.
 do $$
 begin
   if not exists (select from pg_roles where rolname = 'powersync_role') then

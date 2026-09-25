@@ -113,7 +113,7 @@ The steps:
    - the marks are OR-ed byte by byte, the shorter padded with zeros. Honest rows in one generation share a step count and so a length, and then this is exactly `mergePositions`'s union. Only a corrupt row gives two lengths in one generation, and there the two merges differ on purpose: `mergePositions` knows the step count, so it keeps the winner's marks and refuses a winner of the wrong size. The server can't know the step count, and choosing between two lengths pair by pair would make the result depend on arrival order, so padding is its only rule that still converges. The parity test (Task 12) therefore covers rows that fit, and the mixed-length cases are pgTAP's alone (Task 7);
    - `step_index` comes from the higher `hlc`, ties broken by `step_index`.
 
-   Deletion is settled separately, by the later `deleted_hlc`, carried with its `deleted_at`.
+   Deletion is settled separately, by the later `deleted_hlc`, carried with its `deleted_at`; a tie on the clock goes to the later `deleted_at`, as `mergePositions` does.
 
 5. Update the row.
 

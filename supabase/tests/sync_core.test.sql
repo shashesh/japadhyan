@@ -3,7 +3,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(36);
+select plan(38);
 
 -- Two devotees.
 insert into auth.users (id, email, aud, role) values
@@ -163,6 +163,20 @@ create function public.added_later_fn() returns int language sql as $$ select 1 
 select ok(not has_function_privilege('authenticated', 'public.added_later_fn()', 'execute')
           and not has_function_privilege('anon', 'public.added_later_fn()', 'execute'),
           'nor is a function');
+select ok(not has_table_privilege('service_role', 'public.added_later', 'select')
+          and not has_function_privilege('service_role', 'public.added_later_fn()', 'execute'),
+          'nor does the service role get either');
+select is_empty(
+  $$ select table_name from information_schema.role_table_grants
+     where grantee = 'service_role' and table_schema = 'public'
+       and table_name in ('sessions', 'count_events', 'practice_positions')
+     union all
+     select routine_name from information_schema.role_routine_grants
+     where grantee = 'service_role' and routine_schema = 'public'
+       and routine_name in ('sessions_end_once', 'union_marks', 'merge_position_rows',
+                            'merge_practice_position', 'server_now') $$,
+  'the service role has no grant on the synced tables or their functions'
+);
 
 select throws_ok($$
   insert into public.practice_positions (id, user_id, practice_id, practice_version, step_index,
