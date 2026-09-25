@@ -91,7 +91,7 @@ The PowerSync container joins the `supabase_network_japadhyan` Docker network an
 | `count_events`       | `practice_id`, `session_id uuid`, `mode text` (a `ChantMode`), `count int` (positive; a correction's is non-zero), `estimated boolean`, `device_id`, `created_at timestamptz`, `local_day date`, `tz_offset_min`, `steps_per_repetition`; FK `(user_id, session_id, practice_id, local_day, steps_per_repetition)` → `sessions`, so an event is in its owner's session and copies its practice, day and step count | Insert only                                                                                                                                                                                                             |
 | `practice_positions` | `practice_id`, `practice_version int`, `step_index int`, `chanted_steps text`, `pass_ordinal int`, `hlc text collate "C"`, `deleted_hlc text collate "C" null`, `deleted_at timestamptz null`, both set or both null; unique `(user_id, practice_id)`                                                                                                                                                              | Select only. Writes go through `merge_practice_position(row jsonb)`, which is `security definer` with an empty `search_path` and checks `user_id = auth.uid()` itself, so `authenticated` has no insert or update grant |
 
-Grants go to `authenticated` explicitly: from 2026-10-30, Supabase stops exposing tables to its Data API without them. `config.toml` sets `auto_expose_new_tables = false`, and the migration revokes Supabase's default privileges, so a later table or function is closed until a migration grants it. The migration creates `publication powersync for table sessions, count_events, practice_positions`, never `for all tables`. It also creates the replication role the PowerSync docs give, with `BYPASSRLS` and `select` on these tables only.
+Grants go to `authenticated` explicitly: from 2026-10-30, Supabase stops exposing tables to its Data API without them. `config.toml` sets `auto_expose_new_tables = false`, and the migration revokes Supabase's default privileges, so a later table or function is closed until a migration grants it. The migration creates `publication powersync for table sessions, count_events, practice_positions`, never `for all tables`. It also creates `powersync_role`, the role PowerSync Cloud connects as: `REPLICATION` (to open the logical replication slot) and `BYPASSRLS`, with `select` on these three tables only. The migration creates it `NOLOGIN` with no password, because no password belongs in the repo. On the hosted database the owner gives it `LOGIN` and a password (PR 5). The local PowerSync service connects as `postgres`, which already has `REPLICATION`, `BYPASSRLS` and `LOGIN`.
 
 ### The merge function
 
@@ -104,7 +104,7 @@ The steps:
 
 1. **`auth.uid()` is null, or differs from `user_id`: raise** `42501`. This comes first, because `null <> x` is null, not true, so a plain comparison would let a caller with no user through. The connector treats `42501` as a permanent failure. It can only be a bug or an attack, never a stale write.
 2. **Drop with success** (return; no error, so the upload queue isn't blocked) when:
-   - the row is malformed: a missing field, the wrong type, `hlc` or `deleted_hlc` not in the text form, a `deleted_hlc` without its `deleted_at` or the reverse, `chanted_steps` not lowercase hex, or a negative `step_index`, `pass_ordinal` or `practice_version`. No valid row has a negative `step_index`, deleted or not, and the device's row codec rejects one too. What only live rows are checked for is the **upper** bound, the step count, which the server can't know;
+   - the row is malformed: a missing field, the wrong type, `hlc` not in the text form, or `deleted_hlc` set but not in the text form (a live position's `deleted_hlc` is null, which is valid), a `deleted_hlc` without its `deleted_at` or the reverse, `chanted_steps` not lowercase hex, or a negative `step_index`, `pass_ordinal` or `practice_version`. No valid row has a negative `step_index`, deleted or not, and the device's row codec rejects one too. What only live rows are checked for is the **upper** bound, the step count, which the server can't know;
    - `practice_id` isn't canonical: a catalog id (`^[a-z0-9-]+$`, not shaped like a UUID) or a lowercase hyphenated UUID. Otherwise `Custom-UUID` and `custom-uuid` would derive two ids for one practice;
    - `id` isn't `extensions.uuid_generate_v5('49841fbe-b559-4c62-ae52-0d0611052939', 'v1:practice_positions:' || user_id || ':' || practice_id)`;
    - `hlc` or `deleted_hlc` is more than 5 minutes ahead of `now()`. This is a backstop against a wildly wrong clock: the device corrects its offset and restamps before uploading ([clock offset](#clock-offset)), so an honest edit never reaches it.
@@ -302,7 +302,8 @@ export function toServerRow(
 - [ ] `npx powersync init self-hosted`, then `npx powersync docker configure --database external --storage postgres`. Point the **source** at `supabase_db_japadhyan`, with `client_auth` using Supabase's JWKS through Kong and audience `authenticated`. Pin the image to `journeyapps/powersync-service:1.26.1`.
 - [ ] Bucket storage is a **separate** Postgres container, as in the self-host demo, never the Supabase database: a `pg-storage` service in the compose file, `PS_STORAGE_SOURCE_URI` pointing at it, and the PowerSync service depending on it being healthy. Check that the generated compose file has all three, and add whatever is missing.
 - [ ] Root scripts: `sync:up` (`supabase start`, then `powersync docker start`, which waits until healthy), `sync:down`, `sync:reset` (`supabase db reset` then restart PowerSync, since each reset drops the replication slot).
-- [ ] Run `npm run sync:up` and confirm PowerSync reports replication running. Commit: `chore: local Supabase and PowerSync stack`.
+- [ ] `sync:up` and `check` count the stack as up only once replication works: PowerSync's liveness probe answers, **and** Postgres has an active logical replication slot for PowerSync (`pg_replication_slots`, `active`). A liveness probe alone passes even when the service can't replicate. `check` names which part is missing.
+- [ ] Run `npm run sync:up` and confirm it reports replication running. Commit: `chore: local Supabase and PowerSync stack`.
 
 #### Task 6: the three tables
 
@@ -320,6 +321,7 @@ export function toServerRow(
   - `a session's ended_at can be filled once, then never changes; no other column changes`
   - `practice_positions can't be written directly, only through the merge function`
   - `the powersync publication lists exactly the three tables`
+  - `powersync_role has REPLICATION and BYPASSRLS, cannot log in until the hosted database gives it a password, and may only select the three tables`
   - `the anon role reads nothing`
 - [ ] Implement the migration as in [Tables](#tables). Run the tests; they pass. Commit: `feat(supabase): sessions, count events and positions`.
 
@@ -394,7 +396,7 @@ export function serverTotal(user: TestUser, practiceId: string): Promise<number>
 
 - [ ] Failing test: `a device can write offline and the row reaches the server when it reconnects`.
 - [ ] Implement. For "caught up", wait until `getUploadQueueStats().count` is 0 and then for the next `currentStatus.lastSyncedAt` after it. If that proves flaky, use `requestCheckpoint()` with `checkpointMode: 'requests'` (alpha; service 1.24 or later). If `@powersync/node`'s worker threads fail under Vitest, use `openWorker` with `startPowerSyncWorker` as its README describes. Write down what was needed; the results doc reports it.
-- [ ] Root script `sync:test`: first check the stack is up (Supabase status and PowerSync's health endpoint) and, if not, stop with "Run `npm run sync:up` first"; then `supabase test db`, then `npm run test:stack --workspace=tools/sync-lab`. The workspace has no `test` script, so `npm test --workspaces` never runs these.
+- [ ] Root script `sync:test`: first check the stack is up (Supabase status, PowerSync's liveness probe and an active replication slot, as `check` does) and, if not, stop with "Run `npm run sync:up` first"; then `supabase test db`, then `npm run test:stack --workspace=tools/sync-lab`. The workspace has no `test` script, so `npm test --workspaces` never runs these.
 - [ ] Commit: `test(sync-lab): headless devices on the local stack`.
 
 #### Task 10: two devices converge (criterion 2)
@@ -473,7 +475,8 @@ Manual. Record each run in the results doc, with platform, OS and browser versio
 
 Needs the owner: a PowerSync account (free plan), a Supabase project (free plan), and their iPhone and Mac.
 
-- [ ] **Owner:** create the Supabase project and the PowerSync Cloud instance. Connect them with Supabase's **direct connection** string, as the PowerSync guide says. Share the project ref and instance id, not the passwords.
+- [ ] **Owner:** create the Supabase project and the PowerSync Cloud instance. In the Supabase SQL editor, give the migration's role a login: `alter role powersync_role with login password '<generated>'`, with a password from the password manager, never committed. Connect PowerSync Cloud to Supabase's **direct connection** string as `powersync_role`, as the PowerSync guide says. Share the project ref and instance id, not the passwords.
+- [ ] Check that Cloud replicates: its dashboard shows replication running, and the hosted database has an active slot for it.
 - [ ] Apply the migrations with `supabase db push`. Set `max_wal_size` and `max_slot_wal_keep_size` to 1 GB (`supabase --experimental postgres-config update`).
 - [ ] `powersync link cloud`, then `powersync deploy sync-config` from the repo, so the config in git is the config running.
 - [ ] Point `tools/sync-lab` at Cloud through environment variables and run Tasks 10–11 against it. The merge parity test can stay local.
