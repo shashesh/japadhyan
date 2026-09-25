@@ -132,7 +132,12 @@ describe('restampPosition', () => {
       deleted_hlc: hlc(NOW + TEN_MINUTES, 1),
       deleted_at: '2026-09-24T05:40:00.000Z',
     });
-    const before = structuredClone(ahead);
+    const before = {
+      ...ahead,
+      hlc: { ...ahead.hlc },
+      deleted_hlc: { ...ahead.deleted_hlc! },
+      chanted_steps: Uint8Array.from(ahead.chanted_steps),
+    };
 
     const restamped = restampPosition(ahead, NOW, DEVICE)!;
 
