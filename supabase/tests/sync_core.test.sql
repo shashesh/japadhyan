@@ -3,7 +3,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(25);
+select plan(34);
 
 -- Two devotees.
 insert into auth.users (id, email, aud, role) values
@@ -13,6 +13,21 @@ insert into auth.users (id, email, aud, role) values
 create function pg_temp.act_as(user_id uuid) returns void language sql as $$
   select set_config('role', 'authenticated', true),
          set_config('request.jwt.claims', json_build_object('sub', user_id, 'role', 'authenticated')::text, true);
+$$;
+
+-- A count event in A's session, with one field changed. Runs as the caller.
+create function pg_temp.insert_event(
+  p_id uuid,
+  p_mode text default 'mala_tap',
+  p_count int default 108,
+  p_practice text default 'om-namah-shivaya',
+  p_day date default '2026-09-24',
+  p_steps int default 1
+) returns void language sql as $$
+  insert into public.count_events (id, user_id, practice_id, session_id, mode, count, estimated, device_id,
+                                   created_at, local_day, tz_offset_min, steps_per_repetition)
+  values (p_id, '00000000-0000-4000-8000-00000000000a', p_practice, '00000000-0000-7000-8000-0000000000a1',
+          p_mode, p_count, false, 'device-a', '2026-09-24T05:50:00Z', p_day, 330, p_steps)
 $$;
 
 -- New functions are closed by default (the migration's default privileges), so
@@ -53,6 +68,26 @@ select lives_ok($$
 $$, 'uploading an event the server already has is ignored, not an error');
 
 select is((select count(*) from public.count_events), 1::bigint, 'so it is stored once');
+
+-- A count means something: a known mode, and completed repetitions.
+select throws_ok($$ select pg_temp.insert_event('00000000-0000-7000-8000-0000000000c1', p_count => -100) $$,
+  '23514', null, 'a chanted count must be positive: -100 is refused');
+select throws_ok($$ select pg_temp.insert_event('00000000-0000-7000-8000-0000000000c2', p_count => 0) $$,
+  '23514', null, 'and so is 0');
+select throws_ok($$ select pg_temp.insert_event('00000000-0000-7000-8000-0000000000c3', p_mode => 'made_up', p_count => 1) $$,
+  '23514', null, 'a mode that is not a chant mode is refused');
+select lives_ok($$ select pg_temp.insert_event('00000000-0000-7000-8000-0000000000c4', p_mode => 'correction', p_count => -5) $$,
+  'a correction may be negative');
+select throws_ok($$ select pg_temp.insert_event('00000000-0000-7000-8000-0000000000c5', p_mode => 'correction', p_count => 0) $$,
+  '23514', null, 'but not 0');
+
+-- An event copies its session's practice, day and step count.
+select throws_ok($$ select pg_temp.insert_event('00000000-0000-7000-8000-0000000000c6', p_practice => 'gayatri') $$,
+  '23503', null, 'a count event cannot name a different practice from its session');
+select throws_ok($$ select pg_temp.insert_event('00000000-0000-7000-8000-0000000000c7', p_day => '2026-09-25') $$,
+  '23503', null, 'nor a different local_day');
+select throws_ok($$ select pg_temp.insert_event('00000000-0000-7000-8000-0000000000c8', p_steps => 108) $$,
+  '23503', null, 'nor a different steps_per_repetition');
 
 select throws_ok($$
   insert into public.sessions (id, user_id, practice_id, device_id, started_at, local_day,
@@ -128,6 +163,14 @@ create function public.added_later_fn() returns int language sql as $$ select 1 
 select ok(not has_function_privilege('authenticated', 'public.added_later_fn()', 'execute')
           and not has_function_privilege('anon', 'public.added_later_fn()', 'execute'),
           'nor is a function');
+
+select throws_ok($$
+  insert into public.practice_positions (id, user_id, practice_id, practice_version, step_index,
+                                         chanted_steps, pass_ordinal, hlc, deleted_hlc, deleted_at)
+  values ('7f64746d-3241-5ed7-a7b0-cfa9400cad6f', '00000000-0000-4000-8000-00000000000a',
+          'vishnu-ashtottara', 1, 0, '00', 0, '001727190000000:0000000000:device-a',
+          '001727190000001:0000000000:device-a', null)
+$$, '23514', null, 'a position''s deleted_hlc and deleted_at are set together or not at all');
 
 select set_eq(
   $$ select schemaname || '.' || tablename from pg_publication_tables where pubname = 'powersync' $$,

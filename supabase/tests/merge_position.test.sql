@@ -11,7 +11,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(65);
+select plan(72);
 
 -- 108 names: 14 bytes, bit i of byte i / 8, lowest bit first (as in marks.ts).
 create function pg_temp.marks(idx int[] default '{}', steps int default 108) returns text
@@ -134,6 +134,37 @@ select is(pg_temp.shape(pg_temp.merge(pg_temp.merge(pg_temp.pos('{0}', p_version
                                                     pg_temp.pos('{2}', p_version => 1, p_hlc => 3)))),
           'a newer version among three does not depend on grouping');
 
+-- Random rows, crowded so they tie often: two versions, two passes, four
+-- clocks, two devices, marks of 1 to 3 bytes, and some deletions.
+create function pg_temp.rand_marks() returns text language sql volatile as $$
+  select string_agg(lpad(to_hex(floor(random() * 256)::int), 2, '0'), '')
+  from generate_series(1, 1 + floor(random() * 3)::int)
+$$;
+create function pg_temp.rand_pos() returns public.practice_positions language sql volatile as $$
+  select pg_temp.pos(p_marks_hex => pg_temp.rand_marks(),
+                     p_version => 1 + floor(random() * 2)::int,
+                     p_pass => floor(random() * 2)::int,
+                     p_step => floor(random() * 5)::int,
+                     p_hlc => floor(random() * 4)::bigint,
+                     p_device => (array['a', 'b'])[1 + floor(random() * 2)::int],
+                     p_deleted => case when random() < 0.3 then floor(random() * 4)::bigint end)
+$$;
+select setseed(0.4);
+create temp table triples as
+  select pg_temp.rand_pos() as a, pg_temp.rand_pos() as b, pg_temp.rand_pos() as c
+  from generate_series(1, 500);
+
+select is((select count(*) from triples
+           where pg_temp.shape(pg_temp.merge(pg_temp.merge(a, b), c))
+                 is distinct from pg_temp.shape(pg_temp.merge(a, pg_temp.merge(b, c)))),
+          0::bigint, 'grouping never matters: 500 random triples (seed 0.4)');
+select is((select count(*) from triples
+           where pg_temp.shape(pg_temp.merge(a, b)) is distinct from pg_temp.shape(pg_temp.merge(b, a))),
+          0::bigint, 'nor does order');
+select is((select count(*) from triples
+           where pg_temp.shape(pg_temp.merge(a, a)) is distinct from pg_temp.shape(a)),
+          0::bigint, 'and merging a row with itself changes nothing');
+
 -- general
 select is(pg_temp.shape(pg_temp.merge(pg_temp.pos('{0,1}', p_step => 5, p_hlc => 1000, p_device => 'phone'),
                                       pg_temp.pos('{2}', p_step => 9, p_hlc => 2000, p_device => 'tablet'))),
@@ -159,7 +190,20 @@ select throws_ok($$ select pg_temp.merge(pg_temp.pos(), pg_temp.pos(p_practice =
 -- Server only
 select is((pg_temp.merge(pg_temp.pos(p_marks_hex => '0100', p_hlc => 1000),
                          pg_temp.pos(p_marks_hex => '02', p_hlc => 2000))).chanted_steps,
-          '02', 'marks of different lengths in one generation: the later row''s stand');
+          '0300', 'marks of different lengths in one generation: OR-ed, the shorter padded with zeros');
+-- Lengths 1, 2, 1 at hlc 1, 2, 3: a pairwise "later row's marks stand" gives
+-- different rows for different arrival orders.
+select is((select count(distinct pg_temp.shape(pg_temp.merge(pg_temp.merge(o.x, o.y), o.z)))
+           from (select pg_temp.pos(p_marks_hex => '01', p_hlc => 1) as a,
+                        pg_temp.pos(p_marks_hex => '0200', p_hlc => 2) as b,
+                        pg_temp.pos(p_marks_hex => '04', p_hlc => 3) as c) r,
+                lateral (values (r.a, r.b, r.c), (r.a, r.c, r.b), (r.b, r.a, r.c),
+                                (r.b, r.c, r.a), (r.c, r.a, r.b), (r.c, r.b, r.a)) as o(x, y, z)),
+          1::bigint, 'three rows with marks of mixed lengths converge in every arrival order');
+select is((pg_temp.merge(pg_temp.merge(pg_temp.pos(p_marks_hex => '01', p_hlc => 1),
+                                       pg_temp.pos(p_marks_hex => '0200', p_hlc => 2)),
+                         pg_temp.pos(p_marks_hex => '04', p_hlc => 3))).chanted_steps,
+          '0700', 'keeping every mark');
 select is((pg_temp.merge(pg_temp.pos('{0}', p_step => 5, p_hlc => 1, p_device => 'a-c'),
                          pg_temp.pos('{1}', p_step => 9, p_hlc => 1, p_device => 'ab'))).step_index,
           9, 'hlc compares in byte order: a-c before ab, as compareHlc orders them');
@@ -256,6 +300,7 @@ select lives_ok($$ select pg_temp.upload(pg_temp.pos('{9}', p_hlc => pg_temp.now
 select is((select count(*) from public.practice_positions), 1::bigint, 'and leaves no row');
 
 -- Malformed rows: each dropped with success, leaving the stored row as it was.
+select set_config('test.before_malformed', pg_temp.shape(pg_temp.stored()), true);
 select lives_ok(format($$ select public.merge_practice_position(%L::jsonb) $$, bad), label)
 from (values
   ((to_jsonb(pg_temp.pos(p_hlc => pg_temp.now_ms())) - 'chanted_steps'), 'a missing field'),
@@ -267,9 +312,13 @@ from (values
   ((to_jsonb(pg_temp.pos(p_hlc => pg_temp.now_ms())) || '{"step_index": -1}'), 'a negative step_index'),
   ((to_jsonb(pg_temp.pos(p_hlc => pg_temp.now_ms())) || '{"pass_ordinal": -1}'), 'a negative pass_ordinal'),
   ((to_jsonb(pg_temp.pos(p_hlc => pg_temp.now_ms())) || '{"practice_version": 0}'), 'a practice_version of 0'),
-  ((to_jsonb(pg_temp.pos(p_hlc => pg_temp.now_ms())) || '{"deleted_at": "not a time"}'), 'a deleted_at that is not a time')
+  ((to_jsonb(pg_temp.pos(p_hlc => pg_temp.now_ms())) || '{"deleted_at": "not a time"}'), 'a deleted_at that is not a time'),
+  ((to_jsonb(pg_temp.pos(p_hlc => pg_temp.now_ms())) || '{"deleted_at": "2026-09-22T12:00:00.000Z"}'),
+   'a deleted_at without a deleted_hlc'),
+  ((to_jsonb(pg_temp.pos(p_hlc => pg_temp.now_ms())) || jsonb_build_object('deleted_hlc', pg_temp.h(pg_temp.now_ms()))),
+   'a deleted_hlc without a deleted_at')
 ) as cases(bad, label);
-select is((select chanted_steps from pg_temp.stored()), pg_temp.marks('{0,1,2,5,6}'),
+select is(pg_temp.shape(pg_temp.stored()), current_setting('test.before_malformed'),
           'malformed rows leave the stored row as it was');
 
 select performs_ok($$ select pg_temp.upload(pg_temp.pos(p_hlc => pg_temp.now_ms(),

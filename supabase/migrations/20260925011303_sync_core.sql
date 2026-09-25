@@ -31,8 +31,9 @@ create table public.sessions (
   tz_offset_min integer not null,
   practice_version integer not null check (practice_version > 0),
   steps_per_repetition integer not null check (steps_per_repetition > 0),
-  -- So a count event can only point at a session of the same devotee.
-  unique (user_id, id)
+  -- So a count event can only point at a session of the same devotee, and
+  -- copies the session's practice, day and step count (count_events' key).
+  unique (user_id, id, practice_id, local_day, steps_per_repetition)
 );
 
 -- Count events: sealed on the device, inserted once, never changed.
@@ -41,15 +42,22 @@ create table public.count_events (
   user_id uuid not null references auth.users (id) on delete cascade,
   practice_id text not null check (char_length(practice_id) between 1 and 128),
   session_id uuid not null,
-  mode text not null check (char_length(mode) between 1 and 32),
-  count integer not null,
+  -- ChantMode, packages/shared/src/types/practice.ts.
+  mode text not null check (mode in ('mala_tap', 'word_tap', 'likhita_typing', 'silent_pace',
+                                     'silent_breath', 'volume_button', 'manual', 'correction', 'voice',
+                                     'watch', 'chant_along', 'listening', 'handwriting', 'ring')),
+  -- Completed repetitions: positive, except a correction, which may be negative but never 0.
+  count integer not null check (case when mode = 'correction' then count <> 0 else count > 0 end),
   estimated boolean not null,
   device_id text not null check (char_length(device_id) between 1 and 64),
   created_at timestamptz not null,
   local_day date not null,
   tz_offset_min integer not null,
   steps_per_repetition integer not null check (steps_per_repetition > 0),
-  foreign key (user_id, session_id) references public.sessions (user_id, id)
+  -- Every event in a session shares its practice, local_day and step count
+  -- (docs/architecture/data-model.md#session), so the key carries all three.
+  foreign key (user_id, session_id, practice_id, local_day, steps_per_repetition)
+    references public.sessions (user_id, id, practice_id, local_day, steps_per_repetition)
 );
 
 create index count_events_user_session on public.count_events (user_id, session_id);
@@ -70,6 +78,8 @@ create table public.practice_positions (
   hlc text collate "C" not null check (hlc ~ '^[0-9]{15}:[0-9]{10}:[a-z0-9-]{1,64}$'),
   deleted_hlc text collate "C" check (deleted_hlc ~ '^[0-9]{15}:[0-9]{10}:[a-z0-9-]{1,64}$'),
   deleted_at timestamptz,
+  -- A deletion is its clock and its time together; the merge carries them as a pair.
+  check ((deleted_hlc is null) = (deleted_at is null)),
   unique (user_id, practice_id)
 );
 
@@ -115,18 +125,25 @@ end $$;
 create trigger sessions_end_once before update on public.sessions
   for each row execute function public.sessions_end_once();
 
--- Two bitsets of the same length, OR-ed byte by byte.
+-- Two bitsets OR-ed byte by byte, the shorter padded with zeros: a union of
+-- sets of names, so it is associative whatever the lengths.
 create function public.union_marks(a text, b text) returns text
 language plpgsql immutable set search_path = '' as $$
 declare
-  x bytea := decode(a, 'hex');
-  y bytea := decode(b, 'hex');
+  longer bytea := decode(a, 'hex');
+  shorter bytea := decode(b, 'hex');
+  swap bytea;
   i integer;
 begin
-  for i in 0 .. length(x) - 1 loop
-    x := set_byte(x, i, get_byte(x, i) | get_byte(y, i));
+  if length(longer) < length(shorter) then
+    swap := longer;
+    longer := shorter;
+    shorter := swap;
+  end if;
+  for i in 0 .. length(shorter) - 1 loop
+    longer := set_byte(longer, i, get_byte(longer, i) | get_byte(shorter, i));
   end loop;
-  return encode(x, 'hex');
+  return encode(longer, 'hex');
 end $$;
 
 -- mergePositions (packages/shared/src/logic/position.ts) without the
@@ -163,10 +180,10 @@ begin
       behind := a;
     end if;
     merged := ahead;
-    -- Same length stands in for "fits the step count"; otherwise the later marks stand.
-    if length(a.chanted_steps) = length(b.chanted_steps) then
-      merged.chanted_steps := public.union_marks(behind.chanted_steps, ahead.chanted_steps);
-    end if;
+    -- One generation means one step count, so honest rows have the same length.
+    -- The server can't check the step count, so a corrupt length is still
+    -- unioned: choosing between lengths pairwise would depend on arrival order.
+    merged.chanted_steps := public.union_marks(behind.chanted_steps, ahead.chanted_steps);
   end if;
 
   -- Deletion, settled on its own: the later deleted_hlc, with its deleted_at.
@@ -237,6 +254,7 @@ begin
      or incoming.chanted_steps !~ '^([0-9a-f]{2})*$'
      or incoming.hlc !~ hlc_pattern
      or (incoming.deleted_hlc is not null and incoming.deleted_hlc !~ hlc_pattern)
+     or (incoming.deleted_hlc is null) <> (incoming.deleted_at is null)
      -- Canonical: a catalog id or a lowercase UUID, so one practice derives one id.
      or incoming.practice_id !~ '^[a-z0-9-]{1,128}$'
      or incoming.id <> extensions.uuid_generate_v5(
