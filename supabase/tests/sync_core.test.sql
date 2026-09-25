@@ -3,7 +3,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(22);
+select plan(25);
 
 -- Two devotees.
 insert into auth.users (id, email, aud, role) values
@@ -14,6 +14,16 @@ create function pg_temp.act_as(user_id uuid) returns void language sql as $$
   select set_config('role', 'authenticated', true),
          set_config('request.jwt.claims', json_build_object('sub', user_id, 'role', 'authenticated')::text, true);
 $$;
+
+-- New functions are closed by default (the migration's default privileges), so
+-- grant these test helpers explicitly, as a migration would.
+do $$
+declare f regprocedure;
+begin
+  for f in select oid::regprocedure from pg_proc where pronamespace = pg_my_temp_schema() loop
+    execute format('grant execute on function %s to public', f);
+  end loop;
+end $$;
 
 -- A's session and event, written as A.
 select pg_temp.act_as('00000000-0000-4000-8000-00000000000a');
@@ -94,6 +104,13 @@ select throws_ok($$
           'vishnu-ashtottara', 1, 0, '00', 0, '001727190000000:0000000000:device-b')
 $$, '42501', null, 'positions cannot be written directly, only through the merge function');
 
+select throws_ok($$
+  insert into public.sessions (id, user_id, practice_id, device_id, started_at, local_day,
+                               tz_offset_min, practice_version, steps_per_repetition)
+  values ('00000000-0000-7000-8000-0000000000b3', '00000000-0000-4000-8000-00000000000b',
+          repeat('p', 129), 'device-b', '2026-09-24T05:30:00Z', '2026-09-24', 330, 1, 1)
+$$, '23514', null, 'text fields have a length limit: a practice_id of 129 characters is refused');
+
 -- Anyone not signed in.
 select set_config('role', 'anon', true);
 select throws_ok($$ select count(*) from public.sessions $$, '42501', null, 'anon cannot read sessions');
@@ -102,6 +119,15 @@ select throws_ok($$ select count(*) from public.practice_positions $$, '42501', 
 
 -- As the owner of the database.
 select set_config('role', 'postgres', true);
+
+create table public.added_later (id int);
+select ok(not has_table_privilege('authenticated', 'public.added_later', 'select')
+          and not has_table_privilege('anon', 'public.added_later', 'select'),
+          'a table added to public later is not exposed until a migration grants it');
+create function public.added_later_fn() returns int language sql as $$ select 1 $$;
+select ok(not has_function_privilege('authenticated', 'public.added_later_fn()', 'execute')
+          and not has_function_privilege('anon', 'public.added_later_fn()', 'execute'),
+          'nor is a function');
 
 select set_eq(
   $$ select schemaname || '.' || tablename from pg_publication_tables where pubname = 'powersync' $$,

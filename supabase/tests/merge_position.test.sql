@@ -11,7 +11,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(60);
+select plan(65);
 
 -- 108 names: 14 bytes, bit i of byte i / 8, lowest bit first (as in marks.ts).
 create function pg_temp.marks(idx int[] default '{}', steps int default 108) returns text
@@ -212,6 +212,16 @@ create function pg_temp.stored() returns public.practice_positions language sql 
   select * from public.practice_positions where id = '7f64746d-3241-5ed7-a7b0-cfa9400cad6f'
 $$;
 
+-- New functions are closed by default (the migration's default privileges), so
+-- grant these test helpers explicitly, as a migration would.
+do $$
+declare f regprocedure;
+begin
+  for f in select oid::regprocedure from pg_proc where pronamespace = pg_my_temp_schema() loop
+    execute format('grant execute on function %s to public', f);
+  end loop;
+end $$;
+
 select pg_temp.act_as('0192a4b0-8c3e-7d4a-9b1f-2e3d4c5b6a79');
 
 select lives_ok($$ select pg_temp.upload(pg_temp.pos('{0,1,2}', p_hlc => pg_temp.now_ms() - 2000)) $$,
@@ -261,6 +271,18 @@ from (values
 ) as cases(bad, label);
 select is((select chanted_steps from pg_temp.stored()), pg_temp.marks('{0,1,2,5,6}'),
           'malformed rows leave the stored row as it was');
+
+select performs_ok($$ select pg_temp.upload(pg_temp.pos(p_hlc => pg_temp.now_ms(),
+                                                         p_marks_hex => repeat('ab', 1000000))) $$,
+                   500, 'an oversized row is answered with success, quickly');
+select lives_ok($$ select pg_temp.upload(pg_temp.pos(p_hlc => pg_temp.now_ms(), p_marks_hex => repeat('ff', 513))) $$,
+                'marks longer than 512 bytes (4,096 names) are answered with success');
+select lives_ok($$ select pg_temp.upload(pg_temp.pos(p_hlc => pg_temp.now_ms(), p_device => repeat('d', 65))) $$,
+                'a device id longer than 64 characters is answered with success');
+select is((select chanted_steps from pg_temp.stored()), pg_temp.marks('{0,1,2,5,6}'),
+          'and oversized rows leave the stored row as it was');
+select lives_ok($$ select pg_temp.upload(pg_temp.pos(p_hlc => pg_temp.now_ms() - 2500, p_marks_hex => repeat('00', 512))) $$,
+                'marks of exactly 512 bytes are still accepted');
 
 select lives_ok($$ select pg_temp.upload(pg_temp.pos(p_step => 500, p_hlc => pg_temp.now_ms() - 3000,
                                                      p_deleted => pg_temp.now_ms() - 500)) $$,

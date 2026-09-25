@@ -4,12 +4,27 @@
 
 create extension if not exists "uuid-ossp" with schema extensions;
 
+-- Closed by default. Supabase's defaults grant every new table and function in
+-- `public` to anon and authenticated, so a migration that forgot to revoke
+-- would expose it. From here on, each object is granted explicitly.
+alter default privileges for role postgres in schema public
+  revoke all on tables from anon, authenticated;
+alter default privileges for role postgres in schema public
+  revoke all on sequences from anon, authenticated;
+alter default privileges for role postgres in schema public
+  revoke all on functions from anon, authenticated;
+-- Execute for PUBLIC is a global default, which a per-schema command can't revoke.
+alter default privileges for role postgres revoke execute on functions from public;
+
+-- Every text field has a length limit, so no row can be made expensive to
+-- store or merge. Generous: practice ids are slugs or UUIDs, device ids UUIDs.
+
 -- Sessions: inserted once; `ended_at` may be filled in once, then never changes.
 create table public.sessions (
   id uuid primary key,
   user_id uuid not null references auth.users (id) on delete cascade,
-  practice_id text not null check (practice_id <> ''),
-  device_id text not null check (device_id <> ''),
+  practice_id text not null check (char_length(practice_id) between 1 and 128),
+  device_id text not null check (char_length(device_id) between 1 and 64),
   started_at timestamptz not null,
   ended_at timestamptz,
   local_day date not null,
@@ -24,12 +39,12 @@ create table public.sessions (
 create table public.count_events (
   id uuid primary key,
   user_id uuid not null references auth.users (id) on delete cascade,
-  practice_id text not null check (practice_id <> ''),
+  practice_id text not null check (char_length(practice_id) between 1 and 128),
   session_id uuid not null,
-  mode text not null check (mode <> ''),
+  mode text not null check (char_length(mode) between 1 and 32),
   count integer not null,
   estimated boolean not null,
-  device_id text not null check (device_id <> ''),
+  device_id text not null check (char_length(device_id) between 1 and 64),
   created_at timestamptz not null,
   local_day date not null,
   tz_offset_min integer not null,
@@ -45,13 +60,15 @@ create index count_events_user_session on public.count_events (user_id, session_
 create table public.practice_positions (
   id uuid primary key,
   user_id uuid not null references auth.users (id) on delete cascade,
-  practice_id text not null check (practice_id ~ '^[a-z0-9-]+$'),
+  practice_id text not null check (practice_id ~ '^[a-z0-9-]{1,128}$'),
   practice_version integer not null check (practice_version > 0),
   step_index integer not null check (step_index >= 0),
-  chanted_steps text not null check (chanted_steps ~ '^([0-9a-f]{2})*$'),
+  -- At most 512 bytes: 4,096 names, well past a Sahasranama's 1,000.
+  chanted_steps text not null
+    check (char_length(chanted_steps) <= 1024 and chanted_steps ~ '^([0-9a-f]{2})*$'),
   pass_ordinal integer not null check (pass_ordinal >= 0),
-  hlc text collate "C" not null check (hlc ~ '^[0-9]{15}:[0-9]{10}:[a-z0-9-]+$'),
-  deleted_hlc text collate "C" check (deleted_hlc ~ '^[0-9]{15}:[0-9]{10}:[a-z0-9-]+$'),
+  hlc text collate "C" not null check (hlc ~ '^[0-9]{15}:[0-9]{10}:[a-z0-9-]{1,64}$'),
+  deleted_hlc text collate "C" check (deleted_hlc ~ '^[0-9]{15}:[0-9]{10}:[a-z0-9-]{1,64}$'),
   deleted_at timestamptz,
   unique (user_id, practice_id)
 );
@@ -178,13 +195,19 @@ declare
   incoming public.practice_positions;
   stored public.practice_positions;
   merged public.practice_positions;
-  hlc_pattern constant text := '^[0-9]{15}:[0-9]{10}:[a-z0-9-]+$';
+  hlc_pattern constant text := '^[0-9]{15}:[0-9]{10}:[a-z0-9-]{1,64}$';
+  -- A real row is a few hundred bytes; checked before any other work.
+  max_row_bytes constant integer := 4096;
   max_drift_ms constant bigint := 5 * 60 * 1000;
   now_ms constant bigint := (extract(epoch from now()) * 1000)::bigint;
 begin
   -- First: `null <> x` is null, not true, so a caller with no user is checked explicitly.
   if caller is null or "row" ->> 'user_id' is distinct from caller::text then
     raise exception 'Not your position' using errcode = '42501';
+  end if;
+
+  if pg_column_size("row") > max_row_bytes then
+    return;
   end if;
 
   if not ("row" ?& array['id', 'user_id', 'practice_id', 'practice_version', 'step_index',
@@ -210,11 +233,12 @@ begin
   if incoming.practice_version <= 0
      or incoming.step_index < 0
      or incoming.pass_ordinal < 0
+     or char_length(incoming.chanted_steps) > 1024
      or incoming.chanted_steps !~ '^([0-9a-f]{2})*$'
      or incoming.hlc !~ hlc_pattern
      or (incoming.deleted_hlc is not null and incoming.deleted_hlc !~ hlc_pattern)
      -- Canonical: a catalog id or a lowercase UUID, so one practice derives one id.
-     or incoming.practice_id !~ '^[a-z0-9-]+$'
+     or incoming.practice_id !~ '^[a-z0-9-]{1,128}$'
      or incoming.id <> extensions.uuid_generate_v5(
           '49841fbe-b559-4c62-ae52-0d0611052939'::uuid,
           'v1:practice_positions:' || incoming.user_id::text || ':' || incoming.practice_id)
