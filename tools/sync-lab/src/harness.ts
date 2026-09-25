@@ -385,6 +385,16 @@ export async function mergeAsUser(user: TestUser, row: Record<string, unknown>):
   if (error) throw error;
 }
 
+/**
+ * Brings every device level with the server: each uploads in turn, then each
+ * reconnects, and the first checkpoint after a reconnect carries everything
+ * the others uploaded.
+ */
+export async function syncAll(...devices: readonly Device[]): Promise<void> {
+  for (const device of devices) await device.goOnline();
+  for (const device of devices) await device.goOnline();
+}
+
 export async function closeAllDevices(): Promise<void> {
   const devices = [...openDevices];
   openDevices.clear();

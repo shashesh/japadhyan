@@ -120,9 +120,9 @@ export async function markStep(
     correctedNow(ctx.state, ctx.nowMs),
     ctx.state.device_id,
   );
-  // A deleted bookmark's marks mean nothing, so chanting again starts afresh.
-  const marks =
-    base === null || isPositionDeleted(base) ? createMarks(stepCount) : base.chanted_steps;
+  // A revived position keeps the names marked before it was deleted, as the
+  // merge would bring them back anyway (docs/decisions/2026-09-22-position-deletion-barrier.md).
+  const marks = base === null ? createMarks(stepCount) : base.chanted_steps;
   const next: PracticePosition = {
     id: derivedId({
       table: 'practice_positions',
@@ -212,7 +212,8 @@ async function writePosition(tx: Sql, position: PracticePosition, exists: boolea
   );
 }
 
-async function insert(tx: Sql, table: string, row: Record<string, unknown>): Promise<void> {
+/** A plain insert, as the app's code makes one; tests use it to write rows by hand. */
+export async function insert(tx: Sql, table: string, row: Record<string, unknown>): Promise<void> {
   const columns = Object.keys(row);
   await tx.execute(
     `INSERT INTO ${table} (${columns.map((c) => `"${c}"`).join(', ')})
