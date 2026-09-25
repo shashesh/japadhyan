@@ -85,13 +85,13 @@ The PowerSync container joins the `supabase_network_japadhyan` Docker network an
 
 `supabase/migrations/<timestamp>_sync_core.sql`. Every table has `user_id uuid not null references auth.users on delete cascade`.
 
-| Table                | Columns beyond `id`, `user_id`                                                                                                                                                                                                           | Writes allowed (RLS, `user_id = auth.uid()`)                                                                                                                                                                            |
-| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `sessions`           | `practice_id text`, `device_id text`, `started_at timestamptz`, `ended_at timestamptz null`, `local_day date`, `tz_offset_min int`, `practice_version int`, `steps_per_repetition int`; unique `(user_id, id)`                           | Insert. Update of `ended_at` only, and only while it is null: a column grant plus a trigger. No delete                                                                                                                  |
-| `count_events`       | `practice_id`, `session_id uuid`, `mode text`, `count int`, `estimated boolean`, `device_id`, `created_at timestamptz`, `local_day date`, `tz_offset_min`, `steps_per_repetition`; FK `(user_id, session_id)` → `sessions (user_id, id)` | Insert only                                                                                                                                                                                                             |
-| `practice_positions` | `practice_id`, `practice_version int`, `step_index int`, `chanted_steps text`, `pass_ordinal int`, `hlc text collate "C"`, `deleted_hlc text collate "C" null`, `deleted_at timestamptz null`; unique `(user_id, practice_id)`           | Select only. Writes go through `merge_practice_position(row jsonb)`, which is `security definer` with an empty `search_path` and checks `user_id = auth.uid()` itself, so `authenticated` has no insert or update grant |
+| Table                | Columns beyond `id`, `user_id`                                                                                                                                                                                                                                                                                                                                                                                     | Writes allowed (RLS, `user_id = auth.uid()`)                                                                                                                                                                            |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sessions`           | `practice_id text`, `device_id text`, `started_at timestamptz`, `ended_at timestamptz null`, `local_day date`, `tz_offset_min int`, `practice_version int`, `steps_per_repetition int`; unique `(user_id, id, practice_id, local_day, steps_per_repetition)`                                                                                                                                                       | Insert. Update of `ended_at` only, and only while it is null: a column grant plus a trigger. No delete                                                                                                                  |
+| `count_events`       | `practice_id`, `session_id uuid`, `mode text` (a `ChantMode`), `count int` (positive; a correction's is non-zero), `estimated boolean`, `device_id`, `created_at timestamptz`, `local_day date`, `tz_offset_min`, `steps_per_repetition`; FK `(user_id, session_id, practice_id, local_day, steps_per_repetition)` → `sessions`, so an event is in its owner's session and copies its practice, day and step count | Insert only                                                                                                                                                                                                             |
+| `practice_positions` | `practice_id`, `practice_version int`, `step_index int`, `chanted_steps text`, `pass_ordinal int`, `hlc text collate "C"`, `deleted_hlc text collate "C" null`, `deleted_at timestamptz null`, both set or both null; unique `(user_id, practice_id)`                                                                                                                                                              | Select only. Writes go through `merge_practice_position(row jsonb)`, which is `security definer` with an empty `search_path` and checks `user_id = auth.uid()` itself, so `authenticated` has no insert or update grant |
 
-Grants go to `authenticated` explicitly: from 2026-10-30, Supabase stops exposing tables to its Data API without them. The migration creates `publication powersync for table sessions, count_events, practice_positions`, never `for all tables`. It also creates the replication role the PowerSync docs give, with `BYPASSRLS` and `select` on these tables only.
+Grants go to `authenticated` explicitly: from 2026-10-30, Supabase stops exposing tables to its Data API without them. `config.toml` sets `auto_expose_new_tables = false`, and the migration revokes Supabase's default privileges, so a later table or function is closed until a migration grants it. The migration creates `publication powersync for table sessions, count_events, practice_positions`, never `for all tables`. It also creates the replication role the PowerSync docs give, with `BYPASSRLS` and `select` on these tables only.
 
 ### The merge function
 
@@ -104,13 +104,13 @@ The steps:
 
 1. **`auth.uid()` is null, or differs from `user_id`: raise** `42501`. This comes first, because `null <> x` is null, not true, so a plain comparison would let a caller with no user through. The connector treats `42501` as a permanent failure. It can only be a bug or an attack, never a stale write.
 2. **Drop with success** (return; no error, so the upload queue isn't blocked) when:
-   - the row is malformed: a missing field, the wrong type, `hlc` or `deleted_hlc` not in the text form, `chanted_steps` not lowercase hex, or a negative `step_index`, `pass_ordinal` or `practice_version`. No valid row has a negative `step_index`, deleted or not, and the device's row codec rejects one too. What only live rows are checked for is the **upper** bound, the step count, which the server can't know;
+   - the row is malformed: a missing field, the wrong type, `hlc` or `deleted_hlc` not in the text form, a `deleted_hlc` without its `deleted_at` or the reverse, `chanted_steps` not lowercase hex, or a negative `step_index`, `pass_ordinal` or `practice_version`. No valid row has a negative `step_index`, deleted or not, and the device's row codec rejects one too. What only live rows are checked for is the **upper** bound, the step count, which the server can't know;
    - `practice_id` isn't canonical: a catalog id (`^[a-z0-9-]+$`, not shaped like a UUID) or a lowercase hyphenated UUID. Otherwise `Custom-UUID` and `custom-uuid` would derive two ids for one practice;
    - `id` isn't `extensions.uuid_generate_v5('49841fbe-b559-4c62-ae52-0d0611052939', 'v1:practice_positions:' || user_id || ':' || practice_id)`;
    - `hlc` or `deleted_hlc` is more than 5 minutes ahead of `now()`. This is a backstop against a wildly wrong clock: the device corrects its offset and restamps before uploading ([clock offset](#clock-offset)), so an honest edit never reaches it.
 3. `insert … on conflict (id) do nothing`, then `select … for update` the stored row, so two uploads for the same id at once serialise.
 4. Merge as `mergePositions` does: the higher generation (`practice_version`, then `pass_ordinal`) wins. Within one generation:
-   - the marks are OR-ed byte by byte, but only when both have the same length (the server's stand-in for "fits the step count"; otherwise the later row's marks stand);
+   - the marks are OR-ed byte by byte, the shorter padded with zeros. Honest rows in one generation share a step count and so a length. The server can't check the step count, and choosing between two lengths pair by pair would make the result depend on arrival order;
    - `step_index` comes from the higher `hlc`, ties broken by `step_index`.
 
    Deletion is settled separately, by the later `deleted_hlc`, carried with its `deleted_at`.
@@ -281,7 +281,8 @@ export function toServerRow(
 - [ ] Failing tests:
   - `each record round-trips through its row`
   - `fromRow accepts PowerSync's timestamp form and returns ISO`: `2026-09-24 05:30:00.000Z` → `2026-09-24T05:30:00.000Z`
-  - `fromRow rejects a missing field, a wrong type, and estimated other than 0 or 1`
+  - `fromRow accepts estimated as 0 or 1 (PowerSync) or a boolean (PostgREST)`
+  - `fromRow rejects a missing field, a wrong type, estimated of any other value, a count that isn't positive (a correction's may be negative, never 0), a deleted_hlc without its deleted_at or the reverse, and a position practice_id that isn't a catalog slug or a lowercase UUID`: the server refuses or drops each of these
   - `toServerRow turns estimated into a boolean and leaves other tables' rows unchanged`
 - [ ] Implement, run the tests, commit: `feat(shared): row codecs for synced tables`.
 
@@ -297,7 +298,7 @@ export function toServerRow(
 **Files:** `supabase/`, `powersync/`, root `package.json`, `docs/guides/setup.md`, `.gitignore`.
 
 - [ ] Add dev dependencies at the root, exact pins: `supabase` 2.117.0 and `powersync` 0.10.1 (the CLIs).
-- [ ] `npx supabase init`; project id `japadhyan`. In `config.toml`, email confirmations stay off (the local default). Generate an ES256 signing key with `supabase gen signing-key --algorithm ES256 --append`, into a gitignored file, as the self-host demo does.
+- [ ] `npx supabase init`; project id `japadhyan`. In `config.toml`, email confirmations stay off (the local default) and `auto_expose_new_tables = false`. Generate an ES256 signing key with `supabase gen signing-key --algorithm ES256 --append`, into a gitignored file, as the self-host demo does.
 - [ ] `npx powersync init self-hosted`, then `npx powersync docker configure --database external --storage postgres`. Point the **source** at `supabase_db_japadhyan`, with `client_auth` using Supabase's JWKS through Kong and audience `authenticated`. Pin the image to `journeyapps/powersync-service:1.26.1`.
 - [ ] Bucket storage is a **separate** Postgres container, as in the self-host demo, never the Supabase database: a `pg-storage` service in the compose file, `PS_STORAGE_SOURCE_URI` pointing at it, and the PowerSync service depending on it being healthy. Check that the generated compose file has all three, and add whatever is missing.
 - [ ] Root scripts: `sync:up` (`supabase start`, then `powersync docker start`, which waits until healthy), `sync:down`, `sync:reset` (`supabase db reset` then restart PowerSync, since each reset drops the replication slot).
@@ -312,6 +313,10 @@ export function toServerRow(
   - `a user inserts only their own rows`, into `sessions` and `count_events`. `practice_positions` has no insert grant; the next case and Task 7 cover it
   - `count_events can't be updated or deleted, even by their owner`
   - `a count event can't point at another user's session`
+  - `a count event can't differ from its session in practice_id, local_day or steps_per_repetition`
+  - `a count is positive, except a correction, which may be negative but not 0`, and `a mode that isn't a ChantMode is refused`
+  - `a position's deleted_hlc and deleted_at are set together or not at all`
+  - `a table or function added to public later is not exposed until a migration grants it`
   - `a session's ended_at can be filled once, then never changes; no other column changes`
   - `practice_positions can't be written directly, only through the merge function`
   - `the powersync publication lists exactly the three tables`
@@ -332,7 +337,8 @@ export function toServerRow(
   - `a caller with no user raises 42501`, and `anon can't execute the function at all`
   - `a non-canonical practice_id is dropped`: an uppercase custom practice UUID, with an id derived from it, leaves no row
   - `a deleted row with a step_index past the step count is kept`: the server doesn't police the upper bound on tombstones
-  - `marks of different lengths in one generation: the later row's stand`
+  - `marks of different lengths in one generation: OR-ed, the shorter padded with zeros`, and `three rows with marks of mixed lengths converge in every arrival order`
+  - `grouping, order and repetition never matter`: a seeded property test over random triples, crowded so they tie, with marks of mixed lengths and some deletions
   - `server_now returns the database's time`, and `anon can't execute server_now`
 - [ ] Implement `merge_position_rows`, `merge_practice_position` and `server_now`. Run the tests. Commit: `feat(supabase): merge positions on the server`.
 
