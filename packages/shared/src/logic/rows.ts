@@ -85,7 +85,16 @@ export interface PracticePositionRow {
 const DB_TIMESTAMP =
   /^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}:\d{2})(?:\.(\d{1,9}))?(Z|([+-])(\d{2}):?(\d{2})?)$/;
 
-/** To `YYYY-MM-DDTHH:MM:SS.sssZ`, via the one form every JavaScript engine must parse. */
+/**
+ * Checks the calendar, not just the shape: `Date` would roll 30 February or
+ * hour 24 forward into another day instead of rejecting them.
+ */
+const REAL_DATETIME = z.iso.datetime({ offset: true });
+
+/**
+ * To `YYYY-MM-DDTHH:MM:SS.sssZ`. Fractions beyond milliseconds are
+ * truncated, not rounded, so a time never moves into the next second.
+ */
 function toIso(stored: string, ctx: z.RefinementCtx): string {
   const match = DB_TIMESTAMP.exec(stored);
   if (match === null) {
@@ -95,12 +104,13 @@ function toIso(stored: string, ctx: z.RefinementCtx): string {
   const [, date, time, fraction = '', zone, sign, hours, minutes = '00'] = match;
   const millis = fraction.padEnd(3, '0').slice(0, 3);
   const offset = zone === 'Z' ? 'Z' : `${sign}${hours}:${minutes}`;
-  const parsed = new Date(`${date}T${time}.${millis}${offset}`);
-  if (Number.isNaN(parsed.getTime())) {
+  // The one form every JavaScript engine must parse, Hermes included.
+  const candidate = `${date}T${time}.${millis}${offset}`;
+  if (!REAL_DATETIME.safeParse(candidate).success) {
     ctx.addIssue({ code: 'custom', message: `Not a real time: "${stored}"` });
     return z.NEVER;
   }
-  return parsed.toISOString();
+  return new Date(candidate).toISOString();
 }
 
 const uuid = z.string().regex(UUID, 'Not a lowercase UUID');
@@ -109,7 +119,8 @@ const int = z.number().int();
 const nonNegativeInt = int.nonnegative();
 const positiveInt = int.positive();
 const timestamp = z.string().transform(toIso);
-const localDay = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Not YYYY-MM-DD');
+/** A real calendar date, since `local_day` is stored as is and never self-corrects. */
+const localDay = z.iso.date();
 const hlcText = z.string().transform((value, ctx) => {
   try {
     return hlcFromText(value);

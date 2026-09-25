@@ -117,12 +117,21 @@ describe('timestamps from the database', () => {
     expect(sessionFromRow({ ...sessionToRow(session), started_at: stored }).started_at).toBe(iso);
   });
 
-  test.each(['2026-09-24', '24/09/2026 05:30', '2026-09-24T05:30:00', 'soon'])(
-    'rejects %s',
-    (stored) => {
-      expect(() => sessionFromRow({ ...sessionToRow(session), started_at: stored })).toThrow();
-    },
-  );
+  test.each([
+    '2026-09-24',
+    '24/09/2026 05:30',
+    '2026-09-24T05:30:00',
+    'soon',
+    // Shaped right, but not a real time: Date would roll these forward.
+    '2026-02-30 00:00:00.000Z',
+    '2025-02-29 00:00:00Z',
+    '2026-09-24 24:00:00Z',
+    '2026-09-24 05:60:00Z',
+    '2026-09-24 05:30:60Z',
+    '2026-13-01 00:00:00Z',
+  ])('rejects %s', (stored) => {
+    expect(() => sessionFromRow({ ...sessionToRow(session), started_at: stored })).toThrow();
+  });
 });
 
 describe('fromRow rejects what the database should never hold', () => {
@@ -148,10 +157,25 @@ describe('fromRow rejects what the database should never hold', () => {
     expect(() => countEventFromRow({ ...countEventToRow(event), mode: 'shouting' })).toThrow();
   });
 
-  test('a local_day that is not YYYY-MM-DD', () => {
-    expect(() =>
-      countEventFromRow({ ...countEventToRow(event), local_day: '24-09-2026' }),
-    ).toThrow();
+  test('a local_day that is not a real YYYY-MM-DD date', () => {
+    for (const local_day of [
+      '24-09-2026',
+      '2026-02-30',
+      '2025-02-29',
+      '2026-13-01',
+      '2026-09-00',
+    ]) {
+      expect(
+        () => countEventFromRow({ ...countEventToRow(event), local_day }),
+        local_day,
+      ).toThrow();
+    }
+  });
+
+  test('a leap day is a real date', () => {
+    const leap = { ...event, local_day: '2024-02-29', created_at: '2024-02-29T12:00:00.000Z' };
+
+    expect(countEventFromRow(countEventToRow(leap))).toEqual(leap);
   });
 
   test('malformed marks or clocks', () => {
