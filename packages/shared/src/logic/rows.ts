@@ -183,7 +183,7 @@ const positionRow = z
     id: uuid,
     user_id: uuid,
     practice_id: canonicalPracticeId,
-    practice_version: positiveInt,
+    practice_version: nonNegativeInt,
     step_index: nonNegativeInt,
     chanted_steps: marksHex,
     pass_ordinal: nonNegativeInt,
