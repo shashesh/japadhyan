@@ -75,6 +75,11 @@ const INDEXES = {
   practice_positions: { practice: ['practice_id'] },
 } satisfies Record<SyncedTable, Record<string, string[]>>;
 
+/** A synced table's columns, other than `id`. */
+export function columnsOf(table: SyncedTable): string[] {
+  return Object.keys(COLUMNS[table]);
+}
+
 /** The table holding a guest's rows for `table`. */
 export function localTwin(table: SyncedTable): `local_${SyncedTable}` {
   return `local_${table}`;
