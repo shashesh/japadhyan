@@ -134,6 +134,25 @@ describe('timestamps from the database', () => {
   });
 });
 
+describe('estimated from the database', () => {
+  test.each([
+    [0, false], // PowerSync's form
+    [1, true],
+    [false, false], // PostgREST's form: a real boolean
+    [true, true],
+  ])('%s becomes %s', (stored, estimated) => {
+    expect(countEventFromRow({ ...countEventToRow(event), estimated: stored }).estimated).toBe(
+      estimated,
+    );
+  });
+
+  test('a count event read back through PostgREST decodes', () => {
+    const server = toServerRow('count_events', countEventToRow({ ...event, estimated: true }));
+
+    expect(countEventFromRow(server)).toEqual({ ...event, estimated: true });
+  });
+});
+
 describe('fromRow rejects what the database should never hold', () => {
   test('a missing field', () => {
     const row: Partial<CountEventRow> = countEventToRow(event);
@@ -147,8 +166,8 @@ describe('fromRow rejects what the database should never hold', () => {
     expect(() => sessionFromRow({ ...sessionToRow(session), practice_version: 1.5 })).toThrow();
   });
 
-  test('estimated other than 0 or 1', () => {
-    for (const estimated of [2, true, null]) {
+  test('estimated other than 0, 1 or a boolean', () => {
+    for (const estimated of [2, -1, 'true', 'false', '1', null]) {
       expect(() => countEventFromRow({ ...countEventToRow(event), estimated })).toThrow();
     }
   });

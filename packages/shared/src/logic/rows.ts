@@ -2,7 +2,8 @@
  * The synced records as table rows. PowerSync's columns are text, integer or
  * real, so a row is the record with its richer values written down:
  *
- * - `estimated` as `0` or `1` (how PowerSync syncs a Postgres `boolean`);
+ * - `estimated` as `0` or `1` (how PowerSync syncs a Postgres `boolean`).
+ *   Reading also accepts `true`/`false`, as PostgREST returns it;
  * - a position's marks as lowercase hex, and its clocks in their text form;
  * - timestamps as ISO strings. Reading accepts the forms the databases hand
  *   back — PowerSync's `2026-09-24 05:30:00.000Z`, PostgREST's `+00:00` —
@@ -158,7 +159,9 @@ const countEventRow = z.object({
   session_id: uuid,
   mode: z.enum(CHANT_MODES),
   count: int,
-  estimated: z.union([z.literal(0), z.literal(1)]).transform((flag) => flag === 1),
+  estimated: z
+    .union([z.literal(0), z.literal(1), z.boolean()])
+    .transform((flag) => flag === 1 || flag === true),
   device_id: deviceId,
   created_at: timestamp,
   local_day: localDay,

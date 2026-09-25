@@ -366,7 +366,7 @@ Synced columns are text, integer or real on the device, so the richer values are
 
 - **`hlc`** is one fixed-width text value: `<millis, 15 digits>:<counter, 10 digits>:<device_id>`, e.g. `001727190000000:0000000003:device-a`. Its byte order is exactly the [conflict rule](#conflict-rule)'s order, so SQLite and Postgres compare it with a plain `>`. `device_id` is limited to 64 lowercase letters, digits and hyphens, and Postgres declares the column `collate "C"`: other collations skip punctuation and would order it wrongly. `deleted_hlc` is stored the same way.
 - **`chanted_steps`** is lowercase hex, two characters a byte: 28 characters for 108 names.
-- **Booleans** are `0` or `1` on the device, which is how PowerSync syncs a Postgres `boolean`, and `boolean` in Postgres.
+- **Booleans** are `0` or `1` on the device, which is how PowerSync syncs a Postgres `boolean`, and `boolean` in Postgres. Reading a row accepts both, since PostgREST returns `true` or `false`.
 - **Timestamps** are ISO strings on the device and `timestamptz` in Postgres. Reading a row accepts the forms the databases hand back (PowerSync's `2026-09-24 05:30:00.000Z`, PostgREST's `+00:00`) and normalises them to `2026-09-24T05:30:00.000Z`.
 - Reading a row validates it: a row comes from storage or the network and is never trusted. It also enforces the server's length limits (practice ids 128 characters, device ids 64, marks 512 bytes), so the device never writes a row the server would refuse or drop.
 
