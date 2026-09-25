@@ -3,7 +3,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(34);
+select plan(36);
 
 -- Two devotees.
 insert into auth.users (id, email, aud, role) values
@@ -176,6 +176,17 @@ select set_eq(
   $$ select schemaname || '.' || tablename from pg_publication_tables where pubname = 'powersync' $$,
   array['public.sessions', 'public.count_events', 'public.practice_positions'],
   'the powersync publication lists exactly the three synced tables'
+);
+
+-- The role PowerSync Cloud connects as.
+select ok((select rolreplication and rolbypassrls and not rolcanlogin from pg_roles
+           where rolname = 'powersync_role'),
+          'powersync_role can replicate and bypass RLS, and cannot log in until the hosted database gives it a password');
+select set_eq(
+  $$ select table_schema || '.' || table_name || ':' || privilege_type
+     from information_schema.role_table_grants where grantee = 'powersync_role' $$,
+  array['public.sessions:SELECT', 'public.count_events:SELECT', 'public.practice_positions:SELECT'],
+  'powersync_role may select the three synced tables, and nothing else'
 );
 
 delete from auth.users where id = '00000000-0000-4000-8000-00000000000a';

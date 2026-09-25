@@ -4,10 +4,11 @@
 //   node scripts/sync-stack.mjs up      start both; makes the local signing key first if missing
 //   node scripts/sync-stack.mjs down    stop both
 //   node scripts/sync-stack.mjs reset   empty the database and PowerSync's storage, then start again
-//   node scripts/sync-stack.mjs check   fail unless both are up (sync:test runs this first)
+//   node scripts/sync-stack.mjs check   fail unless both are up and replicating (sync:test runs this first)
 import { spawnSync } from 'node:child_process';
 import { existsSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { setTimeout as sleep } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 
 const projectRoot = join(import.meta.dirname, '..');
@@ -15,6 +16,10 @@ const SIGNING_KEYS = join(projectRoot, 'supabase', 'signing_keys.json');
 const COMPOSE = ['compose', '-f', 'powersync/docker-compose.yaml'];
 
 export const POWERSYNC_URL = 'http://127.0.0.1:54340';
+/** Supabase names its database container after `project_id` in supabase/config.toml. */
+const DB_CONTAINER = 'supabase_db_japadhyan';
+const REPLICATION_TIMEOUT_MS = 60_000;
+const REPLICATION_POLL_MS = 1_000;
 
 const step = (command, ...args) => ({ command, args });
 
@@ -37,6 +42,7 @@ export function stepsFor(action, { hasSigningKey }) {
             ]),
         step('supabase', 'start'),
         step('docker', ...COMPOSE, 'up', '-d', '--wait'),
+        { ...step('wait-for-replication'), run: waitForReplication },
       ];
     case 'down':
       // PowerSync joins Supabase's Docker network, so it goes first.
@@ -47,6 +53,7 @@ export function stepsFor(action, { hasSigningKey }) {
         step('docker', ...COMPOSE, 'down', '-v'),
         step('supabase', 'db', 'reset'),
         step('docker', ...COMPOSE, 'up', '-d', '--wait'),
+        { ...step('wait-for-replication'), run: waitForReplication },
       ];
     default:
       throw new Error(`Unknown action "${action}". Use one of: up, down, reset, check.`);
@@ -66,7 +73,7 @@ function spawn(command, args, stdio) {
     : spawnSync(command, args, { cwd: projectRoot, stdio });
 }
 
-function run({ command, args, run: inProcess }) {
+async function run({ command, args, run: inProcess }) {
   if (inProcess) return inProcess();
   const result = spawn(command, args, 'inherit');
   if (result.status !== 0) {
@@ -75,16 +82,78 @@ function run({ command, args, run: inProcess }) {
   }
 }
 
-async function check() {
-  const supabase = spawn('supabase', ['status'], 'ignore');
-  let powersync = false;
-  try {
-    powersync = (await fetch(`${POWERSYNC_URL}/probes/liveness`)).ok;
-  } catch {
-    // Not listening.
+/**
+ * What stops the stack counting as up; empty when it is. PowerSync's liveness
+ * probe answers even when the service can't replicate, so an active slot is
+ * checked too, once both services run.
+ */
+export function stackProblems({ supabase, powersync, replicating }) {
+  const problems = [];
+  if (!supabase) problems.push('Supabase is not running.');
+  if (!powersync) problems.push(`PowerSync is not answering on ${POWERSYNC_URL}.`);
+  if (supabase && powersync && !replicating) {
+    problems.push(
+      'PowerSync is running but Postgres has no active replication slot for it. ' +
+        'See `docker compose -f powersync/docker-compose.yaml logs powersync`.',
+    );
   }
-  if (supabase.status !== 0 || !powersync) {
-    console.error('The local sync stack is not running. Run `npm run sync:up` first.');
+  return problems;
+}
+
+/** Whether Postgres has an active logical replication slot made by PowerSync. */
+function isReplicating() {
+  const result = spawnSync(
+    'docker',
+    [
+      'exec',
+      DB_CONTAINER,
+      'psql',
+      '-U',
+      'postgres',
+      '-At',
+      '-c',
+      "select count(*) from pg_replication_slots where slot_name like 'powersync%' and active",
+    ],
+    { encoding: 'utf8' },
+  );
+  return result.status === 0 && Number(result.stdout.trim()) > 0;
+}
+
+async function isPowerSyncLive() {
+  try {
+    return (await fetch(`${POWERSYNC_URL}/probes/liveness`)).ok;
+  } catch {
+    return false; // Not listening.
+  }
+}
+
+async function stackState() {
+  const supabase = spawn('supabase', ['status'], 'ignore').status === 0;
+  const powersync = await isPowerSyncLive();
+  return { supabase, powersync, replicating: supabase && powersync && isReplicating() };
+}
+
+/** After a start or reset, PowerSync takes a few seconds to open its slot. */
+async function waitForReplication() {
+  const deadline = Date.now() + REPLICATION_TIMEOUT_MS;
+  while (!isReplicating()) {
+    if (Date.now() > deadline) {
+      console.error(
+        `PowerSync did not start replicating within ${REPLICATION_TIMEOUT_MS / 1000} s.`,
+      );
+      for (const problem of stackProblems(await stackState())) console.error(problem);
+      process.exit(1);
+    }
+    await sleep(REPLICATION_POLL_MS);
+  }
+  console.log('PowerSync is replicating.');
+}
+
+async function check() {
+  const problems = stackProblems(await stackState());
+  if (problems.length > 0) {
+    for (const problem of problems) console.error(problem);
+    console.error('Run `npm run sync:up` first.');
     process.exit(1);
   }
 }
@@ -94,6 +163,6 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   if (action === 'check') {
     await check();
   } else {
-    for (const s of stepsFor(action, { hasSigningKey: existsSync(SIGNING_KEYS) })) run(s);
+    for (const s of stepsFor(action, { hasSigningKey: existsSync(SIGNING_KEYS) })) await run(s);
   }
 }
