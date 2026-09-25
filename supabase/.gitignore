@@ -1,0 +1,11 @@
+# Supabase
+.branches
+.temp
+
+# dotenvx
+.env.keys
+.env.local
+.env.*.local
+
+# ES256 signing key for local auth; `npm run sync:up` generates it
+signing_keys.json

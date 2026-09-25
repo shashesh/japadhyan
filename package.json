@@ -13,6 +13,10 @@
     "web": "npm run web --workspace=apps/mobile",
     "content:validate": "npm run validate --workspace=tools/content-build",
     "content:build": "node tools/content-build/run.mjs",
+    "sync:up": "node scripts/sync-stack.mjs up",
+    "sync:down": "node scripts/sync-stack.mjs down",
+    "sync:reset": "node scripts/sync-stack.mjs reset",
+    "sync:test": "node scripts/sync-stack.mjs check && supabase test db",
     "test": "npm run test:scripts && npm run test --workspaces --if-present",
     "test:scripts": "node --test \"{scripts,tools}/**/*.test.mjs\"",
     "lint": "eslint . && npm run lint:md",
@@ -35,6 +39,7 @@
     "globals": "^16.5.0",
     "markdownlint-cli2": "^0.23.3",
     "prettier": "^3.2.5",
+    "supabase": "2.117.0",
     "typescript-eslint": "^8.70.0",
     "yaml": "^2.9.1"
   },
