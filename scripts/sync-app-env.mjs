@@ -3,7 +3,10 @@
 // test user, or gives it the password already written there, so every device
 // and browser built from it signs in to the same account.
 //
-//   npm run sync:app-env    after `npm run sync:up`; then restart the Expo dev server
+//   npm run sync:app-env              the local stack, after `npm run sync:up`
+//   npm run sync:app-env -- --cloud   the hosted stack in tools/sync-lab/.env.cloud.local
+//
+// Then restart the Expo dev server.
 //
 // Everything written is a throwaway local value. The Supabase key is the
 // publishable one, which ships in apps; the secret key only makes the user.
@@ -18,6 +21,7 @@ import { POWERSYNC_URL } from './sync-stack.mjs';
 const projectRoot = join(import.meta.dirname, '..');
 const SUPABASE_CLI = join(projectRoot, 'node_modules', 'supabase', 'dist', 'supabase.js');
 const APP_ENV = join(projectRoot, 'apps', 'mobile', '.env.local');
+const CLOUD_ENV = join(projectRoot, 'tools', 'sync-lab', '.env.cloud.local');
 const LAB_EMAIL = 'sync-lab@example.test';
 
 export const HEADER =
@@ -46,19 +50,39 @@ export function renderAppEnv({ supabaseUrl, publishableKey, powersyncUrl, email,
   ].join('\n');
 }
 
-function supabaseStatus() {
+/** Where the stack is, and the key that makes the lab user. */
+function stackFrom(values, names, hint) {
+  const missing = Object.values(names).filter((name) => !values.get(name));
+  if (missing.length > 0) throw new Error(`No ${missing.join(', ')}. ${hint}`);
+  return Object.fromEntries(Object.entries(names).map(([key, name]) => [key, values.get(name)]));
+}
+
+/** The hosted stack, from the sync lab's cloud env file. Errors name keys, never values. */
+export function cloudStack(text) {
+  return stackFrom(
+    parseEnv(text),
+    {
+      supabaseUrl: 'SYNC_LAB_SUPABASE_URL',
+      publishableKey: 'SYNC_LAB_PUBLISHABLE_KEY',
+      secretKey: 'SYNC_LAB_SECRET_KEY',
+      powersyncUrl: 'SYNC_LAB_POWERSYNC_URL',
+    },
+    'See tools/sync-lab/.env.cloud.local.',
+  );
+}
+
+function localStack() {
   const output = execFileSync(process.execPath, [SUPABASE_CLI, 'status', '-o', 'env'], {
     cwd: projectRoot,
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'ignore'],
   });
-  const values = parseEnv(output);
-  for (const key of ['API_URL', 'PUBLISHABLE_KEY', 'SECRET_KEY']) {
-    if (!values.get(key)) {
-      throw new Error(`\`supabase status\` gave no ${key}. Run \`npm run sync:up\`.`);
-    }
-  }
-  return values;
+  const stack = stackFrom(
+    parseEnv(output),
+    { supabaseUrl: 'API_URL', publishableKey: 'PUBLISHABLE_KEY', secretKey: 'SECRET_KEY' },
+    'Run `npm run sync:up`.',
+  );
+  return { ...stack, powersyncUrl: POWERSYNC_URL };
 }
 
 /** The password already written, so a second run doesn't strand builds made from the first. */
@@ -85,21 +109,15 @@ async function ensureLabUser(url, secretKey, password) {
   if (result.error) throw result.error;
 }
 
-async function main() {
-  const status = supabaseStatus();
+async function main(cloud) {
+  const stack = cloud ? cloudStack(readFileSync(CLOUD_ENV, 'utf8')) : localStack();
   const password = existingPassword() ?? `pw-${randomUUID()}`;
-  await ensureLabUser(status.get('API_URL'), status.get('SECRET_KEY'), password);
-  writeFileSync(
-    APP_ENV,
-    renderAppEnv({
-      supabaseUrl: status.get('API_URL'),
-      publishableKey: status.get('PUBLISHABLE_KEY'),
-      powersyncUrl: POWERSYNC_URL,
-      email: LAB_EMAIL,
-      password,
-    }),
+  await ensureLabUser(stack.supabaseUrl, stack.secretKey, password);
+  writeFileSync(APP_ENV, renderAppEnv({ ...stack, email: LAB_EMAIL, password }));
+  console.log(
+    `Wrote ${APP_ENV} for the ${cloud ? 'hosted' : 'local'} stack. Restart the Expo dev server to pick it up.`,
   );
-  console.log(`Wrote ${APP_ENV}. Restart the Expo dev server to pick it up.`);
 }
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) await main();
+if (process.argv[1] === fileURLToPath(import.meta.url))
+  await main(process.argv.includes('--cloud'));

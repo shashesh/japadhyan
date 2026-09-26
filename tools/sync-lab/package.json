@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "test:stack": "vitest run",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test:stack:cloud": "node --env-file=.env.cloud.local ../../node_modules/vitest/vitest.mjs run src/harness.test.ts src/converge.test.ts src/guest.test.ts"
   },
   "dependencies": {
     "@japadhyan/shared": "*",

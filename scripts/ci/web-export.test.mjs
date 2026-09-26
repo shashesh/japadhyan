@@ -32,3 +32,11 @@ test('CI exports the web build through the app script', () => {
     `ci.yml should run \`${APP_EXPORT}\``,
   );
 });
+
+test("the app's export clears Metro's cache, so it inlines the EXPO_PUBLIC_ values it was given", () => {
+  // Without --clear, Metro reused a cached config.ts and shipped the previous backend's URLs.
+  const { scripts } = JSON.parse(
+    readFileSync(join(import.meta.dirname, '../../apps/mobile/package.json'), 'utf8'),
+  );
+  assert.match(scripts['export:web'], /expo export --platform web --clear\b/);
+});

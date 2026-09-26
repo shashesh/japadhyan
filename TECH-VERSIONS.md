@@ -76,12 +76,13 @@ Runs locally, never ships in the app.
 
 Runs on the developer's machine for the sync prototype and its tests; never ships in the app.
 
-| Tool                          | Version         | Notes                                                                                                                                                                                       |
-| ----------------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| supabase (CLI)                | 2.117.0 (exact) | Root dev dependency. `supabase start` runs Postgres 17 (`public.ecr.aws/supabase/postgres:17.6.1.167`), Auth and PostgREST                                                                  |
-| journeyapps/powersync-service | 1.26.1          | Open Edition, self-hosted in `powersync/docker-compose.yaml`                                                                                                                                |
-| postgres (image)              | 18              | PowerSync's bucket storage                                                                                                                                                                  |
-| PowerSync CLI                 | not installed   | Its table output needs an older React than the root `overrides` allow, so it runs from outside the repo when needed (PR 5 of the [plan](docs/plans/active/2026-09-24-s4-sync-prototype.md)) |
+| Tool                          | Version         | Notes                                                                                                                                                |
+| ----------------------------- | --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| supabase (CLI)                | 2.117.0 (exact) | Root dev dependency. `supabase start` runs Postgres 17 (`public.ecr.aws/supabase/postgres:17.6.1.167`), Auth and PostgREST                           |
+| journeyapps/powersync-service | 1.26.1          | Open Edition, self-hosted in `powersync/docker-compose.yaml`                                                                                         |
+| postgres (image)              | 18              | PowerSync's bucket storage                                                                                                                           |
+| PowerSync CLI                 | 0.10.1          | Not a dependency: its table output needs an older React than the root `overrides` allow. `npm run sync:cloud` runs it through `npx powersync@0.10.1` |
+| PowerSync Cloud               | free plan       | The Development instance, region `us`, deployed from `powersync/cloud/`                                                                              |
 
 ## Sync lab (`tools/sync-lab`)
 

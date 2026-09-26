@@ -476,12 +476,12 @@ Manual. Record each run in the results doc, with platform, OS and browser versio
 
 Needs the owner: a PowerSync account (free plan), a Supabase project (free plan), and their iPhone and Mac.
 
-- [ ] **Owner:** create the Supabase project and the PowerSync Cloud instance. Share the project ref and instance id.
-- [ ] Apply the migrations with `supabase db push`. This creates `powersync_role` and the publication, so it comes before anything that uses them. Set `max_wal_size` and `max_slot_wal_keep_size` to 1 GB (`supabase --experimental postgres-config update`).
-- [ ] **Owner:** in the Supabase SQL editor, give the migration's role a login: `alter role powersync_role with login password '<generated>'`, with a password from the password manager, never committed. Connect PowerSync Cloud to Supabase's **direct connection** string as `powersync_role`, as the PowerSync guide says. Don't share the password.
-- [ ] `powersync link cloud`, then `powersync deploy sync-config` from the repo, so the config in git is the config running.
-- [ ] Check that Cloud replicates: its dashboard shows replication running, and the hosted database has an active slot for it.
-- [ ] Point `tools/sync-lab` at Cloud through environment variables and run Tasks 10–11 against it. The merge parity test can stay local.
+- [x] **Owner:** create the Supabase project and the PowerSync Cloud instance. Share the project ref and instance id.
+- [x] Apply the migrations with `supabase db push`. This creates `powersync_role` and the publication, so it comes before anything that uses them. Set `max_wal_size` and `max_slot_wal_keep_size` to 1 GB (`supabase --experimental postgres-config update`).
+- [x] **Owner:** in the Supabase SQL editor, give the migration's role a login: `alter role powersync_role with login password '<generated>'`, with a password from the password manager, never committed. Connect PowerSync Cloud to Supabase's **direct connection** string as `powersync_role`, as the PowerSync guide says. Don't share the password.
+- [x] `powersync link cloud`, then `powersync deploy sync-config` from the repo, so the config in git is the config running.
+- [x] Check that Cloud replicates: its dashboard shows replication running, and the hosted database has an active slot for it.
+- [x] Point `tools/sync-lab` at Cloud through environment variables and run Tasks 10–11 against it. The merge parity test can stay local.
 - [ ] **Safari**: OPFS needs a secure context. Serve the static export over HTTPS (EAS Hosting preview, or a Cloudflare quick tunnel) against Cloud. Repeat the Chrome run on iPhone Safari and on macOS Safari. Compare `OPFSCoopSyncVFS` with IndexedDB, and try a private window.
 - [ ] **iOS**: a development build on the owner's iPhone, built on their Mac with Xcode (`npx expo run:ios --device`), or with EAS if that's easier. Then the Android run.
 - [ ] Afterwards: a free-plan instance idle for 7 days is deprovisioned and leaves its replication slot behind, which grows the WAL. Either keep it in use or delete the instance and drop the slot (`pg_drop_replication_slot`). Write down which.
@@ -548,6 +548,24 @@ What changed from the plan in PR 4:
 - On native the Supabase session is kept in memory only, so a restarted app signs in again before syncing. The lab's _Sign in_ does that for a signed-in device, refusing another account.
 - `expo run:android` rewrote the `android` and `ios` scripts to `expo run:*`: development builds replace Expo Go (decision 9).
 - Two emulators on one account weren't run separately: the Chrome and Android run above is the same case with two devices, and the headless tests cover three.
+
+From PR 5, against PowerSync Cloud (the Development instance, region `us`, free plan) and the Supabase project `rjyddnubeqwrjbaystow` (ca-central-1, free plan), on 2026-09-25 and 26:
+
+- **Cloud reaches Supabase over IPv6.** The direct connection's host has only an IPv6 address, and the instance connected as `powersync_role` with no IPv4 add-on. That answers the decision's IPv4-or-IPv6 question for the free plan.
+- **The config in git is the config running.** `powersync/cloud/service.yaml` holds the connection and Supabase auth (the project's JWKS, ES256); `npm run sync:cloud deploy` sends it with the repo's one `powersync/sync-config.yaml`. The database password comes from a gitignored file and never enters the repo or the logs.
+- **The headless convergence and guest tests pass on Cloud**: 26 passed, and one skipped because it stops the local PowerSync container. Test users are deleted afterwards, and their rows go with them.
+- **Hosted Auth enforces its sign-in rate limit.** A full run of the three test files hit "Request rate limit reached" in the last file; the same tests passed alone minutes earlier. Local Auth never enforced it (PR 3).
+- **Criteria 1 and 3 hold on Cloud.** In Chrome, a guest's 109 and three marks became the hosted account's (sign-in in 5.3 s, clock offset 317 ms), and 108 more chanted offline survived closing the tab and uploaded in 1.8 s on reopen. On the Android emulator, a guest's 110 combined with the account's 217 into 327.
+- **Web and Android converge on Cloud** as they did locally: both offline, 109 and two marks in Chrome, 216 and one mark on Android; after reconnecting, both and the hosted database showed 652 and one position with marks {0–5}.
+- **Metro's cache can ship the wrong backend.** An export built after `.env.local` changed still inlined the previous `EXPO_PUBLIC_*` values, and its log said it had loaded the new ones. A Chrome run against "Cloud" was in fact against the local stack, which the owner id gave away. `export:web` now always passes `--clear`, and a test holds it there.
+- **`validate` isn't a dry run.** The PowerSync CLI's `--validate-only` chooses which checks run and still deploys once they pass. The first "validation" provisioned the instance; `sync:cloud` has only `deploy` and `status` now.
+
+What changed from the plan in PR 5:
+
+- The dashboard made two instances, Development and Production; S4 uses Development and leaves Production unprovisioned.
+- `powersync deploy` sends the connection and auth with the sync config, rather than `deploy sync-config` alone after setting the connection by hand in the dashboard.
+- `max_wal_size` was already 1 GB on the free plan; `max_slot_wal_keep_size` is 512 MB, not the plan's 1 GB, until the owner decides.
+- Supabase created the project with an `ensure_rls` event trigger that runs `public.rls_auto_enable()`, a security-definer function the advisor flags as executable by `anon`. It isn't ours, and the local stack doesn't have it. Postgres runs event-trigger functions only as triggers, so the API can't call it; whether to revoke `execute` anyway is the owner's call.
 
 ## Done when
 
