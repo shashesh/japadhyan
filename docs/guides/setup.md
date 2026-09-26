@@ -106,7 +106,7 @@ SYNC_LAB_SEED=42 npm run test:stack --workspace=tools/sync-lab -- src/mergeParit
 
 ### The sync lab screen
 
-`/dev/sync` in the app is the S4 lab: chant, mark names, go offline and online, sign in, and watch the live total against the local stack. It exists in development builds only. To point the app at the stack:
+`/dev/sync` in the app is the S4 lab: chant, mark names, go offline and online, sign in, and watch the live total against the local stack. It exists in development builds, and in a web export built with `EXPO_PUBLIC_SYNC_LAB=true` (see [Web export](#web-export)). To point the app at the stack:
 
 ```bash
 npm run sync:up
@@ -114,6 +114,25 @@ npm run sync:app-env   # writes apps/mobile/.env.local, and makes the lab's test
 ```
 
 Then restart the dev server and open `/dev/sync` (on web, `http://localhost:8081/dev/sync`). The email and password fields are filled in with the lab's user, and sign-in needs the consent switch on. The Android emulator reaches the stack through `10.0.2.2`, which the app swaps in for `127.0.0.1` on Android. On native, the session is kept in memory only, so after restarting the app, sign in again before going online.
+
+### The hosted stack
+
+S4 also runs against PowerSync Cloud and a hosted Supabase project (`rjyddnubeqwrjbaystow`). The instance's config is in `powersync/cloud/`; it shares `powersync/sync-config.yaml` with the local stack. Two gitignored files hold what must not be committed:
+
+- `powersync/cloud/.env.local`: `PS_DATABASE_PASSWORD`, the password of `powersync_role`, which the instance connects as. The owner keeps the real copy in a password manager.
+- `tools/sync-lab/.env.cloud.local`: the hosted URLs and API keys, for the tests and `sync:app-env`. Write it from `npx supabase projects api-keys --project-ref rjyddnubeqwrjbaystow --reveal`, without printing it.
+
+```bash
+npx powersync@0.10.1 login          # once, with a personal access token from the PowerSync dashboard
+npm run sync:cloud deploy           # checks, then deploys the connection, auth and sync config
+npm run sync:cloud status           # connections, sync config and replication
+npm run sync:test:cloud             # the harness, convergence and guest tests, against Cloud
+npm run sync:app-env -- --cloud     # points the app at Cloud; `npm run sync:app-env` points it back
+```
+
+- `deploy` has no dry run: the CLI's `--validate-only` still deploys once its checks pass.
+- Hosted Auth limits sign-ins. A full `sync:test:cloud` run can reach it; if the last file fails at sign-in with "Request rate limit reached", wait a few minutes and run that file again.
+- After `sync:app-env`, restart Metro with `--clear`, or it may keep serving the previous backend's values.
 
 ## Web export
 
@@ -124,7 +143,7 @@ npm run export:web --workspace=apps/mobile   # output in apps/mobile/dist
 npx expo serve apps/mobile                   # serves it on http://localhost:8081
 ```
 
-`export:web` first copies PowerSync's worker and WASM into `apps/mobile/public/@powersync/` (`web:assets`, gitignored), which the export includes. To try the sync lab in the export, a production build, add `EXPO_PUBLIC_SYNC_LAB=true` to the export command.
+`export:web` first copies PowerSync's worker and WASM into `apps/mobile/public/@powersync/` (`web:assets`, gitignored), which the export includes. It also clears Metro's cache, so the export always carries the `EXPO_PUBLIC_*` values in `.env.local` now, not those of an earlier build. To try the sync lab in the export, a production build, add `EXPO_PUBLIC_SYNC_LAB=true` to the export command.
 
 ## Adding packages
 
