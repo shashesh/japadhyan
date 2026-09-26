@@ -41,7 +41,7 @@
     "web": "npm run web:assets && expo start --web",
     "type-check": "tsc --noEmit",
     "test": "jest",
-    "export:web": "npm run web:assets && expo export --platform web",
+    "export:web": "npm run web:assets && expo export --platform web --clear",
     "web:assets": "powersync-web copy-assets --output public"
   },
   "private": true
