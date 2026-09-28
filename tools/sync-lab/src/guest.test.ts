@@ -22,7 +22,7 @@ import {
   type GuestDevice,
   type TestUser,
 } from './harness';
-import { startPowerSync, stopPowerSync } from './stack';
+import { ON_CLOUD, startPowerSync, stopPowerSync } from './stack';
 
 const MANTRA = 'om-namah-shivaya';
 const NAMAVALI = 'vishnu-ashtottara';
@@ -187,23 +187,27 @@ describe('signing in', () => {
     expect(owners).toEqual([{ user_id: user.user_id }]);
   });
 
-  test('if the download fails, nothing changes and the guest can try again', async () => {
-    const { user } = await accountWithPractice();
-    const g = await guestWithPractice();
-    const { owner_id } = (await readDeviceState(g.db))!;
+  // Stops the local PowerSync container; nothing here can stop PowerSync Cloud.
+  test.skipIf(ON_CLOUD)(
+    'if the download fails, nothing changes and the guest can try again',
+    async () => {
+      const { user } = await accountWithPractice();
+      const g = await guestWithPractice();
+      const { owner_id } = (await readDeviceState(g.db))!;
 
-    stopPowerSync();
-    try {
-      await expect(g.signIn(user, { downloadTimeoutMs: 3_000 })).rejects.toThrow(/download/i);
-      await expectStillAGuest(g, user, owner_id);
-    } finally {
-      await startPowerSync();
-    }
+      stopPowerSync();
+      try {
+        await expect(g.signIn(user, { downloadTimeoutMs: 3_000 })).rejects.toThrow(/download/i);
+        await expectStillAGuest(g, user, owner_id);
+      } finally {
+        await startPowerSync();
+      }
 
-    await g.signIn(user);
-    await g.goOnline();
+      await g.signIn(user);
+      await g.goOnline();
 
-    expect(await serverTotal(user, MANTRA)).toBe(108 + 27);
-    expect(marked(await serverPosition(user, NAMAVALI))).toEqual([0, 1, 2, 5, 6]);
-  });
+      expect(await serverTotal(user, MANTRA)).toBe(108 + 27);
+      expect(marked(await serverPosition(user, NAMAVALI))).toEqual([0, 1, 2, 5, 6]);
+    },
+  );
 });

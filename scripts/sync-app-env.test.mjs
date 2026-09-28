@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { HEADER, parseEnv, renderAppEnv } from './sync-app-env.mjs';
+import { cloudStack, HEADER, parseEnv, renderAppEnv } from './sync-app-env.mjs';
 
 const VALUES = {
   supabaseUrl: 'http://127.0.0.1:54321',
@@ -42,4 +42,31 @@ test('the app env names the stack and the lab user, and no secret key', () => {
     ]),
   );
   assert.doesNotMatch(env, /sb_secret/);
+});
+
+test('--cloud reads the hosted stack from the sync lab’s cloud env file', () => {
+  const text = [
+    'SYNC_LAB_SUPABASE_URL=https://ref.supabase.co',
+    'SYNC_LAB_PUBLISHABLE_KEY=sb_publishable_x',
+    'SYNC_LAB_SECRET_KEY=sb_secret_y',
+    'SYNC_LAB_POWERSYNC_URL=https://instance.powersync.journeyapps.com',
+    'SYNC_LAB_TARGET=cloud',
+  ].join('\n');
+  assert.deepEqual(cloudStack(text), {
+    supabaseUrl: 'https://ref.supabase.co',
+    publishableKey: 'sb_publishable_x',
+    secretKey: 'sb_secret_y',
+    powersyncUrl: 'https://instance.powersync.journeyapps.com',
+  });
+});
+
+test('a cloud env file missing a value names it, and never echoes the file', () => {
+  assert.throws(
+    () => cloudStack('SYNC_LAB_SECRET_KEY=sb_secret_y\n'),
+    (error) => {
+      assert.match(error.message, /SYNC_LAB_SUPABASE_URL/);
+      assert.doesNotMatch(error.message, /sb_secret_y/);
+      return true;
+    },
+  );
 });

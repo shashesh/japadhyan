@@ -401,6 +401,8 @@ export async function closeAllDevices(): Promise<void> {
 
 /** Deleting a user deletes their rows too (on delete cascade). */
 export async function deleteTestUsers(): Promise<void> {
+  // Files that never connect run without a stack.
+  if (testUsers.size === 0) return;
   const admin = newSupabaseClient('secret');
   const ids = [...testUsers];
   testUsers.clear();
