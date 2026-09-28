@@ -2,12 +2,12 @@
 #
 # The PowerSync Cloud instance for S4's hosted run (PR 5 of
 # docs/plans/active/2026-09-24-s4-sync-prototype.md). The sync config is the
-# one the local stack runs, ../sync-config.yaml; `npm run sync:cloud:deploy`
+# one the local stack runs, ../sync-config.yaml; `npm run sync:cloud deploy`
 # passes it, so there is no second copy to drift.
 #
 # The database password is never in this file: deploys read it from
-# POWERSYNC_DATABASE_PASSWORD, which the deploy script takes from the
-# gitignored .env.local beside this file.
+# POWERSYNC_DATABASE_PASSWORD, which the deploy script takes from
+# PS_DATABASE_PASSWORD in the gitignored .env.local beside this file.
 
 _type: cloud
 name: Development
