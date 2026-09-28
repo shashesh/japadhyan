@@ -477,7 +477,8 @@ Manual. Record each run in the results doc, with platform, OS and browser versio
 Needs the owner: a PowerSync account (free plan), a Supabase project (free plan), and their iPhone and Mac.
 
 - [x] **Owner:** create the Supabase project and the PowerSync Cloud instance. Share the project ref and instance id.
-- [x] Apply the migrations with `supabase db push`. This creates `powersync_role` and the publication, so it comes before anything that uses them. Set `max_wal_size` and `max_slot_wal_keep_size` to 1 GB (`supabase --experimental postgres-config update`).
+- [x] Apply the migrations with `supabase db push`. This creates `powersync_role` and the publication, so it comes before anything that uses them.
+- [ ] Set `max_wal_size` and `max_slot_wal_keep_size` to 1 GB (`supabase --experimental postgres-config update`). `max_wal_size` was already 1 GB; `max_slot_wal_keep_size` is still the free plan's 512 MB until the owner decides.
 - [x] **Owner:** in the Supabase SQL editor, give the migration's role a login: `alter role powersync_role with login password '<generated>'`, with a password from the password manager, never committed. Connect PowerSync Cloud to Supabase's **direct connection** string as `powersync_role`, as the PowerSync guide says. Don't share the password.
 - [x] `powersync link cloud`, then `powersync deploy sync-config` from the repo, so the config in git is the config running.
 - [x] Check that Cloud replicates: its dashboard shows replication running, and the hosted database has an active slot for it.
