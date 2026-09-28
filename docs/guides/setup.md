@@ -126,7 +126,7 @@ S4 also runs against PowerSync Cloud and a hosted Supabase project (`rjyddnubeqw
 npx powersync@0.10.1 login          # once, with a personal access token from the PowerSync dashboard
 npm run sync:cloud deploy           # checks, then deploys the connection, auth and sync config
 npm run sync:cloud status           # connections, sync config and replication
-npm run sync:test:cloud             # the harness, convergence and guest tests, against Cloud
+npm run sync:test:cloud             # the harness, convergence and guest tests, against Cloud; it fails fast if a value is missing
 npm run sync:app-env -- --cloud     # points the app at Cloud; `npm run sync:app-env` points it back
 ```
 

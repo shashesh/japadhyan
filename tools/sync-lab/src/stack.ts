@@ -20,8 +20,33 @@ const COMPOSE = ['compose', '-f', join(projectRoot, 'powersync', 'docker-compose
 /**
  * The hosted stack (PowerSync Cloud and a Supabase project) instead of the
  * local one: `npm run sync:test:cloud`, with tools/sync-lab/.env.cloud.local.
+ * The marker comes from vitest.cloud.config.ts, not from that file, so a
+ * Cloud run can't forget it and stop the local stack.
  */
 export const ON_CLOUD = process.env.SYNC_LAB_TARGET === 'cloud';
+
+/** What a Cloud run reads from tools/sync-lab/.env.cloud.local. */
+export const CLOUD_KEYS = [
+  'SYNC_LAB_SUPABASE_URL',
+  'SYNC_LAB_PUBLISHABLE_KEY',
+  'SYNC_LAB_SECRET_KEY',
+  'SYNC_LAB_POWERSYNC_URL',
+] as const;
+
+/**
+ * Without these, the devices would quietly use the local stack's defaults.
+ * The error names keys, never values.
+ */
+export function assertCloudEnv(env: Readonly<Record<string, string | undefined>>): void {
+  const missing = CLOUD_KEYS.filter((key) => !env[key]);
+  if (missing.length > 0) {
+    throw new Error(
+      `A Cloud run needs ${missing.join(', ')}. See tools/sync-lab/.env.cloud.local.`,
+    );
+  }
+}
+
+if (ON_CLOUD) assertCloudEnv(process.env);
 
 /** Where powersync/docker-compose.yaml publishes the service. */
 export const POWERSYNC_URL = process.env.SYNC_LAB_POWERSYNC_URL ?? 'http://127.0.0.1:54340';
@@ -82,6 +107,7 @@ export function newSupabaseClient(key: 'publishable' | 'secret' = 'publishable')
 }
 
 function docker(...args: string[]): void {
+  if (ON_CLOUD) throw new Error('A Cloud run never touches the local PowerSync container.');
   const result = spawnSync('docker', [...COMPOSE, ...args], { encoding: 'utf8' });
   if (result.status !== 0) {
     throw new Error(`docker ${args.join(' ')} failed: ${result.stderr}`);
