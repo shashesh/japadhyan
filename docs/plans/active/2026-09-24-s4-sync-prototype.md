@@ -480,7 +480,7 @@ Needs the owner: a PowerSync account (free plan), a Supabase project (free plan)
 - [x] Apply the migrations with `supabase db push`. This creates `powersync_role` and the publication, so it comes before anything that uses them.
 - [x] Settle the WAL limits (`supabase --experimental postgres-config update`). The plan said 1 GB for both: `max_wal_size` was already 1 GB, and the owner kept `max_slot_wal_keep_size` at the free plan's 512 MB.
 - [x] **Owner:** in the Supabase SQL editor, give the migration's role a login: `alter role powersync_role with login password '<generated>'`, with a password from the password manager, never committed. Connect PowerSync Cloud to Supabase's **direct connection** string as `powersync_role`, as the PowerSync guide says. Don't share the password.
-- [x] `powersync link cloud`, then `powersync deploy sync-config` from the repo, so the config in git is the config running.
+- [x] `powersync link cloud`, then `npm run sync:cloud deploy` from the repo, which sends the connection, auth and sync config together, so the config in git is the config running.
 - [x] Check that Cloud replicates: its dashboard shows replication running, and the hosted database has an active slot for it.
 - [x] Point `tools/sync-lab` at Cloud through environment variables and run Tasks 10–11 against it. The merge parity test can stay local.
 - [ ] **Safari**: OPFS needs a secure context. Serve the static export over HTTPS (EAS Hosting preview, or a Cloudflare quick tunnel) against Cloud. Repeat the Chrome run on iPhone Safari and on macOS Safari. Compare `OPFSCoopSyncVFS` with IndexedDB, and try a private window.
