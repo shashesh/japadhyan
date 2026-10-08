@@ -1,5 +1,7 @@
 # CLAUDE.md
 
+> **Archived.** JapaDhyan now lives in SageVani (`shashesh/sagevani`, `website/docs/japa/`). Do not build features here.
+
 Guidance for Claude Code and other coding agents working in this repository.
 
 ## Project
